@@ -9,8 +9,8 @@
   
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #0f172a; font-family: Arial, sans-serif; color: white; padding: 30px; display: none; } /* Escondido por padrão até validar */
-    .container { max-width: 1400px; margin: auto; background: #1e293b; padding: 35px; border-radius: 18px; box-shadow: 0 0 30px rgba(0,0,0,0.4); }
+    body { background: #0f172a; font-family: Arial, sans-serif; color: white; padding: 30px; display: none; }
+    .container { max-width: 1450px; margin: auto; background: #1e293b; padding: 35px; border-radius: 18px; box-shadow: 0 0 30px rgba(0,0,0,0.4); }
     
     .header-area { display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; gap: 15px; }
     h1 { font-size: 30px; }
@@ -23,10 +23,22 @@
     th { background: #334155; color: #cbd5e1; font-weight: bold; }
     tr:hover { background: #24334d; }
     
+    .btn-editar { background: #eab308; color: black; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-right: 5px; }
+    .btn-editar:hover { opacity: 0.85; }
     .btn-eliminar { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; }
     .btn-eliminar:hover { opacity: 0.85; }
     
     .loading { text-align: center; padding: 40px; color: #94a3b8; font-size: 16px; }
+
+    /* Modal Estilos */
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+    .modal-content { background: #1e293b; padding: 25px; border-radius: 15px; width: 90%; max-width: 650px; border: 1px solid #334155; max-height: 90vh; overflow-y: auto; }
+    .modal h2 { margin-bottom: 15px; font-size: 22px; }
+    .grid-modal { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .full-modal { grid-column: 1 / -1; }
+    .form-group label { display: block; margin-bottom: 4px; font-size: 13px; color: #94a3b8; }
+    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border-radius: 8px; border: none; background: #334155; color: white; font-size: 14px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
   </style>
 </head>
 
@@ -62,15 +74,70 @@
     </div>
   </div>
 
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <h2>✏️ Editar Registo de Pedido</h2>
+      <input type="hidden" id="editId">
+      
+      <div class="grid-modal">
+        <div class="form-group">
+          <label>Técnico</label>
+          <input type="text" id="editTecnico">
+        </div>
+        <div class="form-group">
+          <label>Data/Hora Pedido</label>
+          <input type="datetime-local" id="editDataPedido">
+        </div>
+        <div class="form-group">
+          <label>Requerente</label>
+          <input type="text" id="editRequerente">
+        </div>
+        <div class="form-group">
+          <label>Empresa</label>
+          <input type="text" id="editEmpresa">
+        </div>
+        <div class="form-group">
+          <label>Via de Comunicação</label>
+          <input type="text" id="editVia">
+        </div>
+        <div class="form-group">
+          <label>Local / Obra</label>
+          <input type="text" id="editLocal">
+        </div>
+        <div class="form-group full-modal">
+          <label>Serviço Solicitado</label>
+          <textarea id="editServico"></textarea>
+        </div>
+        <div class="form-group full-modal">
+          <label>Observações</label>
+          <textarea id="editObservacao"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Tipo de Trabalho</label>
+          <input type="text" id="editTipoTrabalho">
+        </div>
+        <div class="form-group">
+          <label>Frequência</label>
+          <input type="text" id="editFrequencia">
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
+        <button class="btn-guardar" onclick="guardarEdicao()">Guardar Alterações</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const SB_URL_PEDIDOS = 'https://dunondjiqawovisnwavg.supabase.co/rest/v1/pedidos';
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
 
     const corpoTabela = document.getElementById("corpoTabelaPedidos");
     let tokenAdmin = sessionStorage.getItem("admin_code");
+    let pedidosLista = [];
 
-    // Validação estrita à entrada da página
-    function verificarAcesso() {
+    document.addEventListener("DOMContentLoaded", function() {
       if (!tokenAdmin) {
         tokenAdmin = prompt("Introduza o Código de Administrador para aceder à visualização:");
         if (!tokenAdmin) {
@@ -81,8 +148,8 @@
         sessionStorage.setItem("admin_code", tokenAdmin);
       }
       document.body.style.display = "block";
-    }
-    verificarAcesso();
+      carregarPedidos();
+    });
 
     function formatarData(dataISO) {
       if (!dataISO) return "-";
@@ -94,22 +161,19 @@
       try {
         const response = await fetch(`${SB_URL_PEDIDOS}?order=created_at.desc`, {
           method: 'GET',
-          headers: {
-            'apikey': SB_KEY,
-            'Authorization': `Bearer ${SB_KEY}`
-          }
+          headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
         });
 
         if (!response.ok) throw new Error();
-        const dados = await response.json();
+        pedidosLista = await response.json();
 
-        if (dados.length === 0) {
+        if (pedidosLista.length === 0) {
           corpoTabela.innerHTML = `<tr><td colspan="9" class="loading">Nenhum pedido registado.</td></tr>`;
           return;
         }
 
         corpoTabela.innerHTML = "";
-        dados.forEach(p => {
+        pedidosLista.forEach(p => {
           const tr = document.createElement("tr");
           tr.innerHTML = `
             <td><b>${p.tecnico || '-'}</b></td>
@@ -121,14 +185,78 @@
             <td>${p.servico || '-'}</td>
             <td>${p.tipo_trabalho || '-'}</td>
             <td>
+              <button class="btn-editar" onclick="abrirModalEditar(${p.id})">✏️ Editar</button>
               <button class="btn-eliminar" onclick="eliminarPedido(${p.id})">❌ Eliminar</button>
             </td>
           `;
           corpoTabela.appendChild(tr);
         });
-
       } catch (err) {
-        corpoTabela.innerHTML = `<tr><td colspan="9" class="loading" style="color: #ef4444;">Erro ao carregar dados. Código incorreto ou sem permissão.</td></tr>`;
+        corpoTabela.innerHTML = `<tr><td colspan="9" class="loading" style="color: #ef4444;">Erro ao carregar dados.</td></tr>`;
+      }
+    }
+
+    function abrirModalEditar(id) {
+      const p = pedidosLista.find(item => item.id === id);
+      if (!p) return;
+
+      document.getElementById("editId").value = p.id;
+      document.getElementById("editTecnico").value = p.tecnico || '';
+      document.getElementById("editDataPedido").value = p.data_hora_pedido || '';
+      document.getElementById("editRequerente").value = p.requerente || '';
+      document.getElementById("editEmpresa").value = p.empresa || '';
+      document.getElementById("editVia").value = p.via || '';
+      document.getElementById("editLocal").value = p.local_obra || '';
+      document.getElementById("editServico").value = p.servico || '';
+      document.getElementById("editObservacao").value = p.observacao || '';
+      document.getElementById("editTipoTrabalho").value = p.tipo_trabalho || '';
+      document.getElementById("editFrequencia").value = p.frequencia || '';
+
+      document.getElementById("editModal").style.display = "flex";
+    }
+
+    function fecharModal() {
+      document.getElementById("editModal").style.display = "none";
+    }
+
+    async function guardarEdicao() {
+      const id = document.getElementById("editId").value;
+      
+      const payload = {
+        tecnico: document.getElementById("editTecnico").value,
+        data_hora_pedido: document.getElementById("editDataPedido").value,
+        requerente: document.getElementById("editRequerente").value,
+        empresa: document.getElementById("editEmpresa").value,
+        via: document.getElementById("editVia").value,
+        local_obra: document.getElementById("editLocal").value,
+        servico: document.getElementById("editServico").value,
+        observacao: document.getElementById("editObservacao").value,
+        tipo_trabalho: document.getElementById("editTipoTrabalho").value,
+        frequencia: document.getElementById("editFrequencia").value
+      };
+
+      try {
+        const response = await fetch(`${SB_URL_PEDIDOS}?id=eq.${id}`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': SB_KEY,
+            'Authorization': `Bearer ${SB_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal',
+            'x-admin-code': tokenAdmin
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          alert("Pedido atualizado com sucesso!");
+          fecharModal();
+          carregarPedidos();
+        } else {
+          alert("Erro ao editar o pedido.");
+        }
+      } catch (err) {
+        console.error(err);
       }
     }
 
@@ -141,24 +269,20 @@
               'apikey': SB_KEY,
               'Authorization': `Bearer ${SB_KEY}`,
               'Prefer': 'return=minimal',
-              'x-admin-code': tokenAdmin // Usa o código da sessão
+              'x-admin-code': tokenAdmin
             }
           });
-
           if (response.ok) {
-            alert("Pedido eliminado com sucesso!");
+            alert("Pedido eliminado!");
             carregarPedidos();
           } else {
-            alert("Erro: O teu código de sessão não tem permissões para eliminar.");
+            alert("Erro ao eliminar.");
           }
         } catch (err) {
           console.error(err);
-          alert("Erro de ligação.");
         }
       }
     }
-
-    carregarPedidos();
   </script>
 </body>
 </html>

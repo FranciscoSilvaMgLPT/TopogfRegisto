@@ -9,7 +9,7 @@
   
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #0f172a; font-family: Arial, sans-serif; color: white; padding: 30px; display: none; } /* Escondido por padrão até validar */
+    body { background: #0f172a; font-family: Arial, sans-serif; color: white; padding: 30px; display: none; }
     .container { max-width: 1200px; margin: auto; background: #1e293b; padding: 35px; border-radius: 18px; box-shadow: 0 0 30px rgba(0,0,0,0.4); }
     
     .header-area { display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; gap: 15px; }
@@ -23,10 +23,25 @@
     th { background: #334155; color: #cbd5e1; font-weight: bold; }
     tr:hover { background: #24334d; }
     
+    .btn-editar { background: #eab308; color: black; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-right: 5px; }
+    .btn-editar:hover { opacity: 0.85; }
     .btn-eliminar { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; }
     .btn-eliminar:hover { opacity: 0.85; }
     
     .loading { text-align: center; padding: 40px; color: #94a3b8; font-size: 16px; }
+
+    /* Estilos da Janela Pop-up (Modal) */
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+    .modal-content { background: #1e293b; padding: 30px; border-radius: 15px; width: 90%; max-width: 600px; border: 1px solid #334155; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+    .modal h2 { margin-bottom: 20px; font-size: 22px; color: #cbd5e1; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; font-size: 14px; color: #94a3b8; }
+    .form-group input, .form-group textarea { width: 100%; padding: 10px; border-radius: 8px; border: none; background: #334155; color: white; font-size: 14px; }
+    .form-group textarea { min-height: 80px; resize: vertical; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    .btn-cancelar { background: #475569; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+    .btn-guardar { background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+    .btn-guardar:hover { background: #1d4ed8; }
   </style>
 </head>
 
@@ -59,14 +74,45 @@
     </div>
   </div>
 
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <h2>✏️ Editar Registo de Atividade</h2>
+      <input type="hidden" id="editId">
+      <div class="form-group">
+        <label>Técnico</label>
+        <input type="text" id="editTecnico">
+      </div>
+      <div class="form-group">
+        <label>Data/Hora Início</label>
+        <input type="datetime-local" id="editInicio">
+      </div>
+      <div class="form-group">
+        <label>Data/Hora Fim</label>
+        <input type="datetime-local" id="editFim">
+      </div>
+      <div class="form-group">
+        <label>Local / Obra</label>
+        <input type="text" id="editLocal">
+      </div>
+      <div class="form-group">
+        <label>Serviço Realizado</label>
+        <textarea id="editServico"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
+        <button class="btn-guardar" onclick="guardarEdicao()">Guardar Alterações</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const SB_URL = 'https://dunondjiqawovisnwavg.supabase.co/rest/v1/atividades';
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
 
     const corpoTabela = document.getElementById("corpoTabela");
     let tokenAdmin = sessionStorage.getItem("admin_code");
+    let atividadesLista = []; // Guarda dados localmente para facilitar edição
 
-    // Executa a verificação apenas quando os elementos da página estiverem prontos na memória
     document.addEventListener("DOMContentLoaded", function() {
       if (!tokenAdmin) {
         tokenAdmin = prompt("Introduza o Código de Administrador para aceder à visualização:");
@@ -77,11 +123,7 @@
         }
         sessionStorage.setItem("admin_code", tokenAdmin);
       }
-      
-      // Mostra a estrutura da página após o código ser digitado
       document.body.style.display = "block";
-      
-      // Só dispara a leitura dos dados após passar o prompt inicial com sucesso
       carregarAtividades();
     });
 
@@ -95,22 +137,19 @@
       try {
         const response = await fetch(`${SB_URL}?order=created_at.desc`, {
           method: 'GET',
-          headers: {
-            'apikey': SB_KEY,
-            'Authorization': `Bearer ${SB_KEY}`
-          }
+          headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
         });
 
         if (!response.ok) throw new Error();
-        const dados = await response.json();
+        atividadesLista = await response.json();
 
-        if (dados.length === 0) {
-          corpoTabela.innerHTML = `<tr><td colspan="6" class="loading">Nenhuma atividade registada até ao momento.</td></tr>`;
+        if (atividadesLista.length === 0) {
+          corpoTabela.innerHTML = `<tr><td colspan="6" class="loading">Nenhuma atividade registada.</td></tr>`;
           return;
         }
 
         corpoTabela.innerHTML = "";
-        dados.forEach(atv => {
+        atividadesLista.forEach(atv => {
           const tr = document.createElement("tr");
           tr.innerHTML = `
             <td><b>${atv.tecnico || '-'}</b></td>
@@ -119,14 +158,72 @@
             <td>${atv.local_obra || '-'}</td>
             <td>${atv.servico || '-'}</td>
             <td>
+              <button class="btn-editar" onclick="abrirModalEditar(${atv.id})">✏️ Editar</button>
               <button class="btn-eliminar" onclick="eliminarAtividade(${atv.id})">❌ Eliminar</button>
             </td>
           `;
           corpoTabela.appendChild(tr);
         });
-
       } catch (err) {
-        corpoTabela.innerHTML = `<tr><td colspan="6" class="loading" style="color: #ef4444;">Erro ao carregar dados. Código incorreto ou sem permissão.</td></tr>`;
+        corpoTabela.innerHTML = `<tr><td colspan="6" class="loading" style="color: #ef4444;">Erro ao carregar dados. Código incorreto.</td></tr>`;
+      }
+    }
+
+    function abrirModalEditar(id) {
+      const atv = atividadesLista.find(item => item.id === id);
+      if (!atv) return;
+
+      document.getElementById("editId").value = atv.id;
+      document.getElementById("editTecnico").value = atv.tecnico || '';
+      document.getElementById("editInicio").value = atv.data_hora_inicio || '';
+      document.getElementById("editFim").value = atv.data_hora_fim || '';
+      document.getElementById("editLocal").value = atv.local_obra || '';
+      document.getElementById("editServico").value = atv.servico || '';
+
+      document.getElementById("editModal").style.display = "flex";
+    }
+
+    function fecharModal() {
+      document.getElementById("editModal").style.display = "none";
+    }
+
+    async function guardarEdicao() {
+      const id = document.getElementById("editId").value;
+      const tecnico = document.getElementById("editTecnico").value;
+      const inicio = document.getElementById("editInicio").value;
+      const fim = document.getElementById("editFim").value;
+      const local = document.getElementById("editLocal").value;
+      const servico = document.getElementById("editServico").value;
+
+      try {
+        const response = await fetch(`${SB_URL}?id=eq.${id}`, {
+          method: 'PATCH', // UPDATE
+          headers: {
+            'apikey': SB_KEY,
+            'Authorization': `Bearer ${SB_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal',
+            'x-admin-code': tokenAdmin
+          },
+          body: JSON.stringify({
+            tecnico: tecnico,
+            data_hora_inicio: inicio,
+            data_hora_fim: fim,
+            local_obra: local,
+            servico: servico
+          })
+        });
+
+        if (response.ok) {
+          alert("Registo editado com sucesso!");
+          fecharModal();
+          carregarAtividades();
+        } else {
+          alert("Erro ao salvar alterações. Verifica as permissões.");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Erro de comunicação.");
       }
     }
 
@@ -144,14 +241,13 @@
           });
 
           if (response.ok) {
-            alert("Registo eliminado com sucesso!");
+            alert("Registo eliminado!");
             carregarAtividades();
           } else {
-            alert("Erro: O teu código de sessão não tem permissões para eliminar.");
+            alert("Erro ao eliminar.");
           }
         } catch (err) {
           console.error(err);
-          alert("Erro de ligação.");
         }
       }
     }
