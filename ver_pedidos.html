@@ -9,7 +9,7 @@
   
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #0f172a; font-family: Arial, sans-serif; color: white; padding: 30px; }
+    body { background: #0f172a; font-family: Arial, sans-serif; color: white; padding: 30px; display: none; } /* Escondido por padrão até validar */
     .container { max-width: 1400px; margin: auto; background: #1e293b; padding: 35px; border-radius: 18px; box-shadow: 0 0 30px rgba(0,0,0,0.4); }
     
     .header-area { display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; gap: 15px; }
@@ -67,6 +67,22 @@
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
 
     const corpoTabela = document.getElementById("corpoTabelaPedidos");
+    let tokenAdmin = sessionStorage.getItem("admin_code");
+
+    // Validação estrita à entrada da página
+    function verificarAcesso() {
+      if (!tokenAdmin) {
+        tokenAdmin = prompt("Introduza o Código de Administrador para aceder à visualização:");
+        if (!tokenAdmin) {
+          alert("Acesso negado.");
+          window.location.href = "index.html";
+          return;
+        }
+        sessionStorage.setItem("admin_code", tokenAdmin);
+      }
+      document.body.style.display = "block";
+    }
+    verificarAcesso();
 
     function formatarData(dataISO) {
       if (!dataISO) return "-";
@@ -84,8 +100,7 @@
           }
         });
 
-        if (!response.ok) throw new Error("Erro no carregamento");
-
+        if (!response.ok) throw new Error();
         const dados = await response.json();
 
         if (dados.length === 0) {
@@ -113,15 +128,11 @@
         });
 
       } catch (err) {
-        corpoTabela.innerHTML = `<tr><td colspan="9" class="loading" style="color: #ef4444;">Erro ao carregar dados dos pedidos.</td></tr>`;
-        console.error(err);
+        corpoTabela.innerHTML = `<tr><td colspan="9" class="loading" style="color: #ef4444;">Erro ao carregar dados. Código incorreto ou sem permissão.</td></tr>`;
       }
     }
 
     async function eliminarPedido(id) {
-      const codigoCodigo = prompt("Introduza o Código de Administrador para confirmar a eliminação:");
-      if (codigoCodigo === null) return;
-
       if (confirm("Desejas mesmo eliminar permanentemente este pedido?")) {
         try {
           const response = await fetch(`${SB_URL_PEDIDOS}?id=eq.${id}`, {
@@ -130,7 +141,7 @@
               'apikey': SB_KEY,
               'Authorization': `Bearer ${SB_KEY}`,
               'Prefer': 'return=minimal',
-              'x-admin-code': codigoCodigo
+              'x-admin-code': tokenAdmin // Usa o código da sessão
             }
           });
 
@@ -138,7 +149,7 @@
             alert("Pedido eliminado com sucesso!");
             carregarPedidos();
           } else {
-            alert("Erro: Código de acesso incorreto ou sem permissões.");
+            alert("Erro: O teu código de sessão não tem permissões para eliminar.");
           }
         } catch (err) {
           console.error(err);
