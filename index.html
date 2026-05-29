@@ -10,7 +10,7 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
-    /* Mantido o teu estilo original, apenas adicionado o display: none para o bloqueio de segurança */
+    /* O body começa escondido (display: none) para ninguém ver o menu antes de fazer login */
     body { background: #0f172a; font-family: Arial, sans-serif; color: white; min-height: 100vh; display: none; align-items: center; justify-content: center; padding: 30px; }
     
     .menu-container { max-width: 900px; width: 100%; background: #1e293b; padding: 45px; border-radius: 18px; box-shadow: 0 0 30px rgba(0,0,0,0.4); text-align: center; }
@@ -72,25 +72,56 @@
   </div>
 
   <script>
-    // Executa a validação de segurança logo à entrada
-    (function verificarAcessoGlobal() {
+    const SB_URL_VALIDAR = 'https://dunondjiqawovisnwavg.supabase.co/rest/v1/atividades?limit=1';
+    const SB_KEY_VALIDAR = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
+
+    async function verificarAcessoReal() {
       let tokenAdmin = sessionStorage.getItem("admin_code");
 
+      // Se não houver token guardado, fazemos o processo de login
       if (!tokenAdmin) {
         tokenAdmin = prompt("Introduza o Código de Acesso Técnico:");
         
         if (!tokenAdmin || tokenAdmin.trim() === "") {
           alert("Acesso recusado. Código obrigatório.");
-          window.location.reload(); // Força a pedir novamente se cancelar ou deixar em branco
+          window.location.reload();
           return;
         }
-        
-        sessionStorage.setItem("admin_code", tokenAdmin);
+
+        // Faz um pequeno teste de leitura no Supabase injetando o código digitado
+        try {
+          const response = await fetch(SB_URL_VALIDAR, {
+            method: 'GET',
+            headers: {
+              'apikey': SB_KEY_VALIDAR,
+              'Authorization': `Bearer ${SB_KEY_VALIDAR}`,
+              'x-admin-code': tokenAdmin // Enviamos o código para o Supabase validar nas RLS
+            }
+          });
+
+          // Se o Supabase rejeitar (status 401 ou 403), significa que o código está errado
+          if (!response.ok) {
+            alert("Código de acesso incorreto ou inválido.");
+            window.location.reload();
+            return;
+          }
+
+          // Se a resposta for positiva, guardamos o código na sessão
+          sessionStorage.setItem("admin_code", tokenAdmin);
+
+        } catch (err) {
+          alert("Erro ao conectar ao servidor de autenticação.");
+          window.location.reload();
+          return;
+        }
       }
       
-      // Se a password estiver guardada, aplica o estilo para mostrar o ecrã com o teu visual original
+      // Password validada com sucesso pelo Supabase! Mostramos o ecrã com o teu estilo flex
       document.body.style.display = "flex";
-    })();
+    }
+
+    // Dispara a validação imediatamente
+    verificarAcessoReal();
   </script>
 
 </body>
