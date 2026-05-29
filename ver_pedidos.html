@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestão de Pedidos</title>
+  <link rel="icon" type="image/jpeg" href="favicon.png">
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0f172a; font-family: Arial, sans-serif; color: white; padding: 30px; }
+    .container { max-width: 1400px; margin: auto; background: #1e293b; padding: 35px; border-radius: 18px; box-shadow: 0 0 30px rgba(0,0,0,0.4); }
+    
+    .header-area { display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; gap: 15px; }
+    h1 { font-size: 30px; }
+    .btn-voltar { background: #334155; color: white; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: bold; transition: 0.2s; white-space: nowrap; }
+    .btn-voltar:hover { background: #475569; }
+
+    /* Filtro de Estado rápido */
+    .filtros { display: flex; gap: 10px; margin-bottom: 20px; }
+    .btn-filtro { background: #334155; border: none; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: 0.2s; }
+    .btn-filtro.ativo { background: #2563eb; }
+
+    /* Estilo da Tabela */
+    .table-responsive { width: 100%; overflow-x: auto; border-radius: 10px; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; min-width: 1100px; }
+    th, td { padding: 12px 15px; border-bottom: 1px solid #334155; vertical-align: middle; }
+    th { background: #334155; color: #cbd5e1; font-weight: bold; }
+    tr:hover { background: #24334d; }
+    
+    /* Badges de Estado */
+    .badge { padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; display: inline-block; }
+    .badge-pendente { background: #f59e0b; color: #000; }
+    .badge-concluido { background: #10b981; color: white; }
+
+    /* Botões de Ação */
+    .btn-action { padding: 6px 10px; border: none; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; margin-right: 4px; transition: 0.2s; }
+    .btn-status { background: #10b981; color: white; }
+    .btn-status.undo { background: #64748b; }
+    .btn-editar { background: #eab308; color: #000; }
+    .btn-eliminar { background: #ef4444; color: white; }
+    .btn-action:hover { opacity: 0.85; }
+    
+    .loading { text-align: center; padding: 40px; color: #94a3b8; font-size: 16px; }
+
+    /* Janela Modal de Edição (Responsiva em Duas Colunas) */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; z-index: 1000; padding: 15px; }
+    .modal-content { background: #1e293b; padding: 30px; border-radius: 14px; max-width: 800px; width: 100%; max-height: 90vh; overflow-y: auto; border: 1px solid #334155; }
+    .modal-header { font-size: 20px; font-weight: bold; margin-bottom: 20px; }
+    .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .modal-full { grid-column: 1 / -1; }
+    .modal-field label { display: block; margin-bottom: 5px; font-size: 12px; color: #cbd5e1; }
+    .modal-field input, .modal-field textarea, .modal-field select { width: 100%; padding: 10px; background: #334155; border: none; border-radius: 8px; color: white; font-size: 14px; }
+    .modal-field textarea { min-height: 60px; resize: vertical; }
+    .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
+    
+    @media(max-width: 768px) { .modal-grid { grid-template-columns: 1fr; } }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+  <div class="container">
+    <div class="header-area">
+      <h1>Gestão de Pedidos</h1>
+      <a href="index.html" class="btn-voltar">⬅ Voltar ao Menu</a>
+    </div>
+
+    <div class="filtros">
+      <button class="btn-filtro ativo" id="filtroTodos" onclick="filtrarPedidos('Todos')">Todos</button>
+      <button class="btn-filtro" id="filtroPendentes" onclick="filtrarPedidos('Pendente')">⏳ Pendentes</button>
+      <button class="btn-filtro" id="filtroConcluidos" onclick="filtrarPedidos('Concluído')">✅ Concluídos</button>
+    </div>
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Estado</th>
+            <th>Técnico</th>
+            <th>Data Pedido</th>
+            <th>Requerente</th>
+            <th>Empresa</th>
+            <th>Via</th>
+            <th>Local / Obra</th>
+            <th>Concelho</th>
+            <th>Tipo Trabalho</th>
+            <th>Data Limite</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="corpoTabela">
+          <tr>
+            <td colspan="11" class="loading">A carregar pedidos...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">Editar Pedido</div>
+      <form id="editForm">
+        <input type="hidden" id="editId">
+        
+        <div class="modal-grid">
+          <div class="modal-field">
+            <label>Nome do Técnico</label>
+            <input type="text" id="editTecnico" required>
+          </div>
+          <div class="modal-field">
+            <label>Data / Hora do Pedido</label>
+            <input type="datetime-local" id="editDataHora" required>
+          </div>
+          <div class="modal-field">
+            <label>Requerente</label>
+            <input type="text" id="editRequerente" required>
+          </div>
+          <div class="modal-field">
+            <label>Empresa</label>
+            <select id="editEmpresa" required>
+              <option value="CCR ENG&CONST">CCR ENG&CONST</option>
+              <option value="CCR-INVEST">CCR-INVEST</option>
+              <option value="GROWNOR">GROWNOR</option>
+              <option value="WEST-VIEW">WEST-VIEW</option>
+              <option value="GRAU-ON">GRAU-ON</option>
+              <option value="FERCAYO">FERCAYO</option>
+              <option value="DECIBOLT">DECIBOLT</option>
+              <option value="INTERNO">INTERNO</option>
+              <option value="EXTERNO">EXTERNO</option>
+            </select>
+          </div>
+          <div class="modal-field">
+            <label>Via de Comunicação</label>
+            <input type="text" id="editVia" required>
+          </div>
+          <div class="modal-field">
+            <label>Local / Obra</label>
+            <input type="text" id="editLocal" required>
+          </div>
+          <div class="modal-field">
+            <label>Concelho</label>
+            <input type="text" id="editConcelho" required>
+          </div>
+          <div class="modal-field">
+            <label>Tipo de Trabalho</label>
+            <select id="editTipoTrabalho" required>
+              <option value="Lev. Topográfico">Lev. Topográfico</option>
+              <option value="Monitorização">Monitorização</option>
+              <option value="Implantação">Implantação</option>
+              <option value="Gabinete / Estudos">Gabinete / Estudos</option>
+            </select>
+          </div>
+          <div class="modal-field">
+            <label>Frequência</label>
+            <select id="editFrequencia" required>
+              <option value="Diária">Diária</option>
+              <option value="Semanal">Semanal</option>
+              <option value="Mensal">Mensal</option>
+              <option value="Trimestral">Trimestral</option>
+              <option value="Semestral">Semestral</option>
+              <option value="Anual">Anual</option>
+              <option value="Continua">Continua</option>
+            </select>
+          </div>
+          <div class="modal-field">
+            <label>Tempo Dedicado (S/Deslocação)</label>
+            <input type="text" id="editTempoDedicado">
+          </div>
+          <div class="modal-field modal-full">
+            <label>Data Limite de Resposta</label>
+            <input type="datetime-local" id="editDataLimite" required>
+          </div>
+          <div class="modal-field modal-full">
+            <label>Serviço Solicitado</label>
+            <textarea id="editServico" required></textarea>
+          </div>
+          <div class="modal-field modal-full">
+            <label>Observação</label>
+            <textarea id="editObservacao"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-buttons">
+          <button type="button" class="btn-action btn-eliminar" style="background:#64748b" onclick="fecharModal()">Cancelar</button>
+          <button type="submit" class="btn-action btn-status">Guardar Alterações</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const _supabase = supabase.createClient('https://dunondjiqawovisnwavg.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro');
+
+    const corpoTabela = document.getElementById("corpoTabela");
+    let todosOsPedidos = [];
+    let filtroAtual = "Todos";
+
+    function formatarData(dataISO) {
+      if (!dataISO) return "-";
+      const data = new Date(dataISO);
+      return data.toLocaleString('pt-PT', { hourCycle: 'h23', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    async function carregarPedidos() {
+      try {
+        const { data, error } = await _supabase
+          .from('pedidos')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        todosOsPedidos = data;
+        renderizarTabela();
+      } catch (err) {
+        corpoTabela.innerHTML = `<tr><td colspan="11" class="loading" style="color: #ef4444;">Erro ao carregar pedidos.</td></tr>`;
+        console.error(err);
+      }
+    }
+
+    function renderizarTabela() {
+      const dadosFiltrados = todosOsPedidos.filter(p => {
+        if (filtroAtual === "Todos") return true;
+        return p.estado === filtroAtual;
+      });
+
+      if (dadosFiltrados.length === 0) {
+        corpoTabela.innerHTML = `<tr><td colspan="11" class="loading">Nenhum pedido encontrado.</td></tr>`;
+        return;
+      }
+
+      corpoTabela.innerHTML = "";
+      dadosFiltrados.forEach(p => {
+        const tr = document.createElement("tr");
+        const classeBadge = p.estado === 'Concluído' ? 'badge-concluido' : 'badge-pendente';
+        const textoBotaoStatus = p.estado === 'Concluído' ? '⏳ Pendente' : '✅ Concluir';
+        const classeBotaoStatus = p.estado === 'Concluído' ? 'btn-status undo' : 'btn-status';
+
+        tr.innerHTML = `
+          <td><span class="badge ${classeBadge}">${p.estado || 'Pendente'}</span></td>
+          <td><b>${p.tecnico || '-'}</b></td>
+          <td>${formatarData(p.data_hora_pedido)}</td>
+          <td>${p.requerente || '-'}</td>
+          <td>${p.empresa || '-'}</td>
+          <td>${p.via || '-'}</td>
+          <td>${p.local_obra || '-'}</td>
+          <td>${p.concelho || '-'}</td>
+          <td>${p.tipo_trabalho || '-'}</td>
+          <td>${formatarData(p.data_hora_limite)}</td>
+          <td>
+            <button class="btn-action ${classeBotaoStatus}" onclick="alternarEstado(${p.id}, '${p.estado}')">${textoBotaoStatus}</button>
+            <button class="btn-action btn-editar" onclick="abrirModal(${JSON.stringify(p).replace(/"/g, '&quot;')})">✏️</button>
+            <button class="btn-action btn-eliminar" onclick="eliminarPedido(${p.id})">❌</button>
+          </td>
+        `;
+        corpoTabela.appendChild(tr);
+      });
+    }
+
+    function filtrarPedidos(estado) {
+      filtroAtual = estado;
+      document.querySelectorAll(".btn-filtro").forEach(b => b.classList.remove("ativo"));
+      if(estado === 'Todos') document.getElementById("filtroTodos").classList.add("ativo");
+      if(estado === 'Pendente') document.getElementById("filtroPendentes").classList.add("ativo");
+      if(estado === 'Concluído') document.getElementById("filtroConcluidos").classList.add("ativo");
+      renderizarTabela();
+    }
+
+    async function alternarEstado(id, estadoAtual) {
+      const novoEstado = estadoAtual === 'Concluído' ? 'Pendente' : 'Concluído';
+      const { error } = await _supabase.from('pedidos').update({ estado: novoEstado }).eq('id', id);
+      if (!error) carregarPedidos();
+    }
+
+    async function eliminarPedido(id) {
+      if (confirm("Desejas eliminar permanentemente este pedido?")) {
+        const { error } = await _supabase.from('pedidos').delete().eq('id', id);
+        if (!error) carregarPedidos();
+      }
+    }
+
+    const modal = document.getElementById("editModal");
+
+    function abrirModal(p) {
+      document.getElementById("editId").value = p.id;
+      document.getElementById("editTecnico").value = p.tecnico || "";
+      document.getElementById("editDataHora").value = p.data_hora_pedido ? p.data_hora_pedido.slice(0,16) : "";
+      document.getElementById("editRequerente").value = p.requerente || "";
+      document.getElementById("editEmpresa").value = p.empresa || "";
+      document.getElementById("editVia").value = p.via || "";
+      document.getElementById("editLocal").value = p.local_obra || "";
+      document.getElementById("editConcelho").value = p.concelho || "";
+      document.getElementById("editTipoTrabalho").value = p.tipo_trabalho || "";
+      document.getElementById("editFrequencia").value = p.frequencia || "";
+      document.getElementById("editTempoDedicado").value = p.tempo_dedicado || "";
+      document.getElementById("editDataLimite").value = p.data_hora_limite ? p.data_hora_limite.slice(0,16) : "";
+      document.getElementById("editServico").value = p.servico || "";
+      document.getElementById("editObservacao").value = p.observacao || "";
+      modal.style.display = "flex";
+    }
+
+    function fecharModal() { modal.style.display = "none"; }
+
+    document.getElementById("editForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const id = document.getElementById("editId").value;
+      
+      const dadosAtualizados = {
+        tecnico: document.getElementById("editTecnico").value,
+        data_hora_pedido: document.getElementById("editDataHora").value,
+        requerente: document.getElementById("editRequerente").value,
+        empresa: document.getElementById("editEmpresa").value,
+        via: document.getElementById("editVia").value,
+        local_obra: document.getElementById("editLocal").value,
+        concelho: document.getElementById("editConcelho").value,
+        tipo_trabalho: document.getElementById("editTipoTrabalho").value,
+        frequencia: document.getElementById("editFrequencia").value,
+        tempo_dedicado: document.getElementById("editTempoDedicado").value,
+        data_hora_limite: document.getElementById("editDataLimite").value,
+        servico: document.getElementById("editServico").value,
+        observacao: document.getElementById("editObservacao").value
+      };
+
+      const { error } = await _supabase.from('pedidos').update(dadosAtualizados).eq('id', id);
+      if (!error) { fecharModal(); carregarPedidos(); } else { alert("Erro ao atualizar o pedido."); }
+    });
+
+    carregarPedidos();
+  </script>
+</body>
+</html>

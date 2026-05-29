@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Histórico de Atividades</title>
+  <link rel="icon" type="image/jpeg" href="favicon.png">
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0f172a; font-family: Arial, sans-serif; color: white; padding: 30px; }
+    .container { max-width: 1200px; margin: auto; background: #1e293b; padding: 35px; border-radius: 18px; box-shadow: 0 0 30px rgba(0,0,0,0.4); }
+    
+    .header-area { display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; gap: 15px; }
+    h1 { font-size: 30px; }
+    .btn-voltar { background: #334155; color: white; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: bold; transition: 0.2s; white-space: nowrap; }
+    .btn-voltar:hover { background: #475569; }
+
+    /* Estilo da Tabela */
+    .table-responsive { width: 100%; overflow-x: auto; margin-top: 20px; border-radius: 10px; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+    th, td { padding: 15px; border-bottom: 1px solid #334155; }
+    th { background: #334155; color: #cbd5e1; font-weight: bold; }
+    tr:hover { background: #24334d; }
+    
+    /* Botões de Ação */
+    .btn-action { padding: 6px 12px; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; margin-right: 5px; transition: 0.2s; }
+    .btn-editar { background: #eab308; color: #000; }
+    .btn-editar:hover { background: #ca8a04; }
+    .btn-eliminar { background: #ef4444; color: white; }
+    .btn-eliminar:hover { background: #dc2626; }
+    
+    /* Estado de carregamento */
+    .loading { text-align: center; padding: 40px; color: #94a3b8; font-size: 16px; }
+
+    /* Janela Modal (Popup de Edição) */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; z-index: 1000; }
+    .modal-content { background: #1e293b; padding: 30px; border-radius: 14px; max-width: 500px; width: 90%; border: 1px solid #334155; }
+    .modal-header { font-size: 20px; font-weight: bold; margin-bottom: 20px; }
+    .modal-field { margin-bottom: 15px; }
+    .modal-field label { display: block; margin-bottom: 5px; font-size: 12px; color: #cbd5e1; }
+    .modal-field input, .modal-field textarea { width: 100%; padding: 10px; background: #334155; border: none; border-radius: 8px; color: white; }
+    .modal-field textarea { min-height: 80px; resize: vertical; }
+    .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    .btn-cancelar { background: #64748b; color: white; }
+    .btn-guardar { background: #2563eb; color: white; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+  <div class="container">
+    <div class="header-area">
+      <h1>Histórico de Atividades</h1>
+      <a href="index.html" class="btn-voltar">⬅ Voltar ao Menu</a>
+    </div>
+
+    <div class="table-responsive">
+      <table id="tabelaAtividades">
+        <thead>
+          <tr>
+            <th>Técnico</th>
+            <th>Início</th>
+            <th>Fim</th>
+            <th>Local / Obra</th>
+            <th>Serviço Realizado</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="corpoTabela">
+          <tr>
+            <td colspan="6" class="loading">A carregar atividades...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">Editar Atividade</div>
+      <form id="editForm">
+        <input type="hidden" id="editId">
+        <div class="modal-field">
+          <label>Nome do Técnico</label>
+          <input type="text" id="editTecnico" required>
+        </div>
+        <div class="modal-field">
+          <label>Data / Hora de Início</label>
+          <input type="datetime-local" id="editInicio" required>
+        </div>
+        <div class="modal-field">
+          <label>Data / Hora de Fim</label>
+          <input type="datetime-local" id="editFim" required>
+        </div>
+        <div class="modal-field">
+          <label>Local / Obra</label>
+          <input type="text" id="editLocal" required>
+        </div>
+        <div class="modal-field">
+          <label>Serviço solicitado / realizado</label>
+          <textarea id="editServico" required></textarea>
+        </div>
+        <div class="modal-buttons">
+          <button type="button" class="btn-action btn-cancelar" onclick="fecharModal()">Cancelar</button>
+          <button type="submit" class="btn-action btn-guardar">

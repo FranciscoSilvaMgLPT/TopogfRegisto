@@ -11,23 +11,27 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #0f172a; font-family: Arial, sans-serif; color: white; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 30px; }
     
-    .menu-container { max-width: 800px; width: 100%; background: #1e293b; padding: 45px; border-radius: 18px; box-shadow: 0 0 30px rgba(0,0,0,0.4); text-align: center; }
+    .menu-container { max-width: 900px; width: 100%; background: #1e293b; padding: 45px; border-radius: 18px; box-shadow: 0 0 30px rgba(0,0,0,0.4); text-align: center; }
     
-    /* Estilo para o Logótipo Original (Sem alterações de formato) */
     .menu-logo { width: 80px; height: auto; margin-bottom: 20px; }
     
-    /* Adicionado margin-bottom maior para criar o espaço desejado */
     h1 { font-size: 36px; margin-bottom: 40px; color: #ffffff; }
     
+    /* Grid ajustada para 2 colunas */
     .grid-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
     
-    .menu-card { display: flex; flex-direction: column; align-items: center; justify-content: center; background: #334155; padding: 35px; border-radius: 14px; text-decoration: none; color: white; transition: all 0.3s ease; border: 2px solid transparent; }
+    .menu-card { display: flex; flex-direction: column; align-items: center; justify-content: center; background: #334155; padding: 30px; border-radius: 14px; text-decoration: none; color: white; transition: all 0.3s ease; border: 2px solid transparent; }
     .menu-card:hover { transform: translateY(-5px); background: #475569; border-color: #3b82f6; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
     
-    .icon { font-size: 40px; margin-bottom: 15px; }
-    .card-title { font-size: 20px; font-weight: bold; margin-bottom: 8px; }
+    /* Cores subtis para diferenciar Registar de Visualizar */
+    .card-registar { border-left: 4px solid #3b82f6; }
+    .card-visualizar { border-left: 4px solid #10b981; }
     
-    @media(max-width:600px) { 
+    .icon { font-size: 36px; margin-bottom: 15px; }
+    .card-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+    .card-desc { font-size: 13px; color: #cbd5e1; text-align: center; }
+    
+    @media(max-width:700px) { 
       .grid-menu { grid-template-columns: 1fr; } 
       .menu-container { padding: 30px 20px; }
       .menu-logo { width: 70px; }
@@ -43,14 +47,24 @@
     <h1>Painel de Controlo</h1>
 
     <div class="grid-menu">
-      <a href="registo_pedidos.html" class="menu-card">
+      <a href="registo_pedidos.html" class="menu-card card-registar">
         <div class="icon">📝</div>
-        <div class="card-title">Registo de Pedidos</div>
+        <div class="card-title">Registar Pedido</div>
       </a>
 
-      <a href="atividade.html" class="menu-card">
+      <a href="ver_pedidos.html" class="menu-card card-visualizar">
+        <div class="icon">📋</div>
+        <div class="card-title">Gerir Pedidos</div>
+      </a>
+
+      <a href="atividade.html" class="menu-card card-registar">
         <div class="icon">📊</div>
-        <div class="card-title">Atividade</div>
+        <div class="card-title">Registar Atividade</div>
+      </a>
+
+      <a href="ver_atividade.html" class="menu-card card-visualizar">
+        <div class="icon">🔍</div>
+        <div class="card-title">Ver Histórico de Atividades</div>
       </a>
     </div>
   </div>
