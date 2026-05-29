@@ -66,24 +66,13 @@
 
   <script>
     async function validarAcesso() {
-      // URL para verificar permissão na tabela atividades
+      console.log("--- INÍCIO DA VALIDAÇÃO ---");
+      
       const SB_URL = 'https://dunondjiqawovisnwavg.supabase.co/rest/v1/atividades?limit=1';
       const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
 
-      // Tenta recuperar a password da sessão
-      let password = sessionStorage.getItem("admin_code");
-
-      // Se não tiver password guardada, pede
-      if (!password) {
-        password = prompt("Introduza a Chave de Acesso Técnico:");
-      }
-
-      // Se o utilizador cancelou o prompt
-      if (!password) {
-        alert("Acesso negado.");
-        window.location.reload();
-        return;
-      }
+      let password = prompt("Introduza a Chave de Acesso:");
+      console.log("Password digitada:", password);
 
       try {
         const response = await fetch(SB_URL, {
@@ -91,28 +80,33 @@
           headers: {
             'apikey': SB_KEY,
             'Authorization': `Bearer ${SB_KEY}`,
-            'x-admin-code': password
+            'x-admin-code': password || ''
           }
         });
 
-        // Verificação: Se a password for errada, o Supabase bloqueia (403 ou 401)
-        if (response.status === 403 || response.status === 401) {
-          throw new Error("Credenciais inválidas");
+        console.log("Status HTTP recebido:", response.status);
+        
+        // Se o Supabase responder 200, vamos ver o que ele devolveu
+        const data = await response.json();
+        console.log("Dados devolvidos pelo Supabase:", data);
+
+        if (response.status === 200) {
+            // SE ESTIVER A ENTRAR SEMPRE, É PORQUE ISTO ESTÁ A SER VERDADEIRO
+            console.log("O servidor aceitou a request. O acesso será libertado.");
+            document.body.style.display = "flex";
+        } else {
+            console.warn("Servidor rejeitou. Acesso não permitido.");
+            alert("Acesso negado pelo servidor (Status: " + response.status + ")");
+            window.location.reload();
         }
 
-        // Se chegou aqui, o acesso é legítimo
-        sessionStorage.setItem("admin_code", password);
-        document.body.style.display = "flex"; // Mostra o menu
-
       } catch (e) {
-        console.error("Erro de autenticação:", e);
-        alert("Chave de acesso incorreta ou erro de servidor.");
-        sessionStorage.removeItem("admin_code"); // Remove a chave errada
-        window.location.reload(); // Recarrega para pedir de novo
+        console.error("Erro crítico na ligação:", e);
+        alert("Erro de conexão!");
       }
     }
 
-    // Executa a validação
+    // Chama a função
     validarAcesso();
   </script>
 </body>
