@@ -10,7 +10,7 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
-    /* O body começa escondido para bloquear totalmente o acesso visual */
+    /* Mantido o teu estilo original, mantendo em display: none até validação */
     body { background: #0f172a; font-family: Arial, sans-serif; color: white; min-height: 100vh; display: none; align-items: center; justify-content: center; padding: 30px; }
     
     .menu-container { max-width: 900px; width: 100%; background: #1e293b; padding: 45px; border-radius: 18px; box-shadow: 0 0 30px rgba(0,0,0,0.4); text-align: center; }
@@ -72,7 +72,7 @@
   </div>
 
   <script>
-    const SB_URL = 'https://dunondjiqawovisnwavg.supabase.co/rest/v1/atividades';
+    const SB_URL = 'https://dunondjiqawovisnwavg.supabase.co/rest/v1/atividades?limit=1';
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
 
     async function verificarAcessoSupabase() {
@@ -88,43 +88,38 @@
         }
 
         try {
-          // Para garantir que o Supabase avalia o código, fazemos um pedido POST de um objeto vazio.
-          // Como as tuas regras do Supabase (RLS) proíbem qualquer inserção que não venha com o 'x-admin-code' correto,
-          // o Supabase vai responder com um status de erro (401 Unauthorized ou 403 Forbidden) se a password falhar.
+          // Agora o Supabase exige a password até para ler dados (SELECT devido ao FOR ALL)
           const response = await fetch(SB_URL, {
-            method: 'POST',
+            method: 'GET',
             headers: {
               'apikey': SB_KEY,
               'Authorization': `Bearer ${SB_KEY}`,
-              'Content-Type': 'application/json',
-              'Prefer': 'return=minimal',
               'x-admin-code': inputPassword.trim()
-            },
-            body: JSON.stringify({}) // Envia vazio. Se a password estiver certa, o Supabase passa da segurança e dá erro de dados (400), se estiver errada dá erro de segurança (401/403)
+            }
           });
 
-          // Se o Supabase responder que não está autorizado (Código errado)
-          if (response.status === 401 || response.status === 403) {
+          // Se o código inserido não for o correto ('chave_tecnica_2026'), o Supabase bloqueia com status 400/401/403 devido à RLS
+          if (!response.ok) {
             alert("Código de acesso incorreto.");
+            sessionStorage.removeItem("admin_code");
             window.location.reload();
             return;
           }
 
-          // Se não deu erro de autorização, significa que o teu cabeçalho 'x-admin-code' foi aceite pelo Supabase!
+          // Se a resposta for OK, o código está correto e guardamos na sessão
           sessionStorage.setItem("admin_code", inputPassword.trim());
 
         } catch (err) {
-          alert("Erro ao estabelecer ligação com o Supabase.");
+          alert("Erro de comunicação com o servidor.");
           window.location.reload();
           return;
         }
       }
       
-      // Se o token existe e foi validado, exibe a página com a tua estrutura original
+      // Password validada! Mostra o menu com o teu design original
       document.body.style.display = "flex";
     }
 
-    // Executa a validação em tempo real contra a tua BD
     verificarAcessoSupabase();
   </script>
 
