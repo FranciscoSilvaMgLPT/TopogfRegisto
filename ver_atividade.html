@@ -17,36 +17,17 @@
     .btn-voltar { background: #334155; color: white; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: bold; transition: 0.2s; white-space: nowrap; }
     .btn-voltar:hover { background: #475569; }
 
-    /* Estilo da Tabela */
-    .table-responsive { width: 100%; overflow-x: auto; margin-top: 20px; border-radius: 10px; }
-    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
-    th, td { padding: 15px; border-bottom: 1px solid #334155; }
+    .table-responsive { width: 100%; overflow-x: auto; border-radius: 10px; margin-top: 20px; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; min-width: 800px; }
+    th, td { padding: 14px 18px; border-bottom: 1px solid #334155; vertical-align: middle; }
     th { background: #334155; color: #cbd5e1; font-weight: bold; }
     tr:hover { background: #24334d; }
     
-    /* Botões de Ação */
-    .btn-action { padding: 6px 12px; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; margin-right: 5px; transition: 0.2s; }
-    .btn-editar { background: #eab308; color: #000; }
-    .btn-editar:hover { background: #ca8a04; }
-    .btn-eliminar { background: #ef4444; color: white; }
-    .btn-eliminar:hover { background: #dc2626; }
+    .btn-eliminar { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .btn-eliminar:hover { opacity: 0.85; }
     
-    /* Estado de carregamento */
     .loading { text-align: center; padding: 40px; color: #94a3b8; font-size: 16px; }
-
-    /* Janela Modal (Popup de Edição) */
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; z-index: 1000; }
-    .modal-content { background: #1e293b; padding: 30px; border-radius: 14px; max-width: 500px; width: 90%; border: 1px solid #334155; }
-    .modal-header { font-size: 20px; font-weight: bold; margin-bottom: 20px; }
-    .modal-field { margin-bottom: 15px; }
-    .modal-field label { display: block; margin-bottom: 5px; font-size: 12px; color: #cbd5e1; }
-    .modal-field input, .modal-field textarea { width: 100%; padding: 10px; background: #334155; border: none; border-radius: 8px; color: white; }
-    .modal-field textarea { min-height: 80px; resize: vertical; }
-    .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
-    .btn-cancelar { background: #64748b; color: white; }
-    .btn-guardar { background: #2563eb; color: white; }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
@@ -58,7 +39,7 @@
     </div>
 
     <div class="table-responsive">
-      <table id="tabelaAtividades">
+      <table>
         <thead>
           <tr>
             <th>Técnico</th>
@@ -78,31 +59,86 @@
     </div>
   </div>
 
-  <div id="editModal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">Editar Atividade</div>
-      <form id="editForm">
-        <input type="hidden" id="editId">
-        <div class="modal-field">
-          <label>Nome do Técnico</label>
-          <input type="text" id="editTecnico" required>
-        </div>
-        <div class="modal-field">
-          <label>Data / Hora de Início</label>
-          <input type="datetime-local" id="editInicio" required>
-        </div>
-        <div class="modal-field">
-          <label>Data / Hora de Fim</label>
-          <input type="datetime-local" id="editFim" required>
-        </div>
-        <div class="modal-field">
-          <label>Local / Obra</label>
-          <input type="text" id="editLocal" required>
-        </div>
-        <div class="modal-field">
-          <label>Serviço solicitado / realizado</label>
-          <textarea id="editServico" required></textarea>
-        </div>
-        <div class="modal-buttons">
-          <button type="button" class="btn-action btn-cancelar" onclick="fecharModal()">Cancelar</button>
-          <button type="submit" class="btn-action btn-guardar">
+  <script>
+    // Configurações diretas da API REST do teu projeto
+    const SB_URL = 'https://dunondjiqawovisnwavg.supabase.co/rest/v1/atividades';
+    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
+
+    const corpoTabela = document.getElementById("corpoTabela");
+
+    function formatarData(dataISO) {
+      if (!dataISO) return "-";
+      const data = new Date(dataISO);
+      return data.toLocaleString('pt-PT', { hourCycle: 'h23', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    async function carregarAtividades() {
+      try {
+        // Pedido HTTP direto ordenando por data de criação mais recente
+        const response = await fetch(`${SB_URL}?order=created_at.desc`, {
+          method: 'GET',
+          headers: {
+            'apikey': SB_KEY,
+            'Authorization': `Bearer ${SB_KEY}`
+          }
+        });
+
+        if (!response.ok) throw new Error("Erro na resposta do servidor");
+
+        const dados = await response.json();
+
+        if (dados.length === 0) {
+          corpoTabela.innerHTML = `<tr><td colspan="6" class="loading">Nenhuma atividade registada até ao momento.</td></tr>`;
+          return;
+        }
+
+        corpoTabela.innerHTML = "";
+        dados.forEach(atv => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td><b>${atv.tecnico || '-'}</b></td>
+            <td>${formatarData(atv.data_hora_inicio)}</td>
+            <td>${formatarData(atv.data_hora_fim)}</td>
+            <td>${atv.local_obra || '-'}</td>
+            <td>${atv.servico || '-'}</td>
+            <td>
+              <button class="btn-eliminar" onclick="eliminarAtividade(${atv.id})">❌ Eliminar</button>
+            </td>
+          `;
+          corpoTabela.appendChild(tr);
+        });
+
+      } catch (err) {
+        corpoTabela.innerHTML = `<tr><td colspan="6" class="loading" style="color: #ef4444;">Erro ao carregar os dados. Verifica as políticas do banco de dados.</td></tr>`;
+        console.error(err);
+      }
+    }
+
+    async function eliminarAtividade(id) {
+      if (confirm("Desejas eliminar permanentemente este registo de atividade?")) {
+        try {
+          const response = await fetch(`${SB_URL}?id=eq.${id}`, {
+            method: 'DELETE',
+            headers: {
+              'apikey': SB_KEY,
+              'Authorization': `Bearer ${SB_KEY}`,
+              'Prefer': 'return=minimal'
+            }
+          });
+
+          if (response.ok) {
+            carregarAtividades();
+          } else {
+            alert("Não foi possível eliminar a atividade.");
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    }
+
+    // Inicializar carregamento automático ao abrir a página
+    carregarAtividades();
+  </script>
+</body>
+</html>
