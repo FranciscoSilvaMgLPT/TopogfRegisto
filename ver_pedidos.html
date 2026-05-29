@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="pt">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -30,18 +29,18 @@
     
     .loading { text-align: center; padding: 40px; color: #94a3b8; font-size: 16px; }
 
-    /* Modal Estilos */
     .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
     .modal-content { background: #1e293b; padding: 25px; border-radius: 15px; width: 90%; max-width: 650px; border: 1px solid #334155; max-height: 90vh; overflow-y: auto; }
     .modal h2 { margin-bottom: 15px; font-size: 22px; }
     .grid-modal { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .full-modal { grid-column: 1 / -1; }
     .form-group label { display: block; margin-bottom: 4px; font-size: 13px; color: #94a3b8; }
-    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border-radius: 8px; border: none; background: #334155; color: white; font-size: 14px; }
+    .form-group input, .form-group textarea { width: 100%; padding: 10px; border-radius: 8px; border: none; background: #334155; color: white; font-size: 14px; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    .btn-cancelar { background: #475569; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+    .btn-guardar { background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
   </style>
 </head>
-
 <body>
 
   <div class="container">
@@ -80,46 +79,16 @@
       <input type="hidden" id="editId">
       
       <div class="grid-modal">
-        <div class="form-group">
-          <label>Técnico</label>
-          <input type="text" id="editTecnico">
-        </div>
-        <div class="form-group">
-          <label>Data/Hora Pedido</label>
-          <input type="datetime-local" id="editDataPedido">
-        </div>
-        <div class="form-group">
-          <label>Requerente</label>
-          <input type="text" id="editRequerente">
-        </div>
-        <div class="form-group">
-          <label>Empresa</label>
-          <input type="text" id="editEmpresa">
-        </div>
-        <div class="form-group">
-          <label>Via de Comunicação</label>
-          <input type="text" id="editVia">
-        </div>
-        <div class="form-group">
-          <label>Local / Obra</label>
-          <input type="text" id="editLocal">
-        </div>
-        <div class="form-group full-modal">
-          <label>Serviço Solicitado</label>
-          <textarea id="editServico"></textarea>
-        </div>
-        <div class="form-group full-modal">
-          <label>Observações</label>
-          <textarea id="editObservacao"></textarea>
-        </div>
-        <div class="form-group">
-          <label>Tipo de Trabalho</label>
-          <input type="text" id="editTipoTrabalho">
-        </div>
-        <div class="form-group">
-          <label>Frequência</label>
-          <input type="text" id="editFrequencia">
-        </div>
+        <div class="form-group"><label>Técnico</label><input type="text" id="editTecnico"></div>
+        <div class="form-group"><label>Data/Hora Pedido</label><input type="datetime-local" id="editDataPedido"></div>
+        <div class="form-group"><label>Requerente</label><input type="text" id="editRequerente"></div>
+        <div class="form-group"><label>Empresa</label><input type="text" id="editEmpresa"></div>
+        <div class="form-group"><label>Via de Comunicação</label><input type="text" id="editVia"></div>
+        <div class="form-group"><label>Local / Obra</label><input type="text" id="editLocal"></div>
+        <div class="form-group full-modal"><label>Serviço Solicitado</label><textarea id="editServico"></textarea></div>
+        <div class="form-group full-modal"><label>Observações</label><textarea id="editObservacao"></textarea></div>
+        <div class="form-group"><label>Tipo de Trabalho</label><input type="text" id="editTipoTrabalho"></div>
+        <div class="form-group"><label>Frequência</label><input type="text" id="editFrequencia"></div>
       </div>
 
       <div class="modal-actions">
@@ -139,13 +108,9 @@
 
     document.addEventListener("DOMContentLoaded", function() {
       if (!tokenAdmin) {
-        tokenAdmin = prompt("Introduza o Código de Administrador para aceder à visualização:");
-        if (!tokenAdmin) {
-          alert("Acesso negado.");
-          window.location.href = "index.html";
-          return;
-        }
-        sessionStorage.setItem("admin_code", tokenAdmin);
+        alert("Acesso negado. Por favor insira a password no ecrã inicial.");
+        window.location.href = "index.html";
+        return;
       }
       document.body.style.display = "block";
       carregarPedidos();
@@ -163,7 +128,6 @@
           method: 'GET',
           headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
         });
-
         if (!response.ok) throw new Error();
         pedidosLista = await response.json();
 
@@ -191,15 +155,12 @@
           `;
           corpoTabela.appendChild(tr);
         });
-      } catch (err) {
-        corpoTabela.innerHTML = `<tr><td colspan="9" class="loading" style="color: #ef4444;">Erro ao carregar dados.</td></tr>`;
-      }
+      } catch (err) { corpoTabela.innerHTML = `<tr><td colspan="9" class="loading" style="color: #ef4444;">Erro de autenticação.</td></tr>`; }
     }
 
     function abrirModalEditar(id) {
       const p = pedidosLista.find(item => item.id === id);
       if (!p) return;
-
       document.getElementById("editId").value = p.id;
       document.getElementById("editTecnico").value = p.tecnico || '';
       document.getElementById("editDataPedido").value = p.data_hora_pedido || '';
@@ -211,30 +172,13 @@
       document.getElementById("editObservacao").value = p.observacao || '';
       document.getElementById("editTipoTrabalho").value = p.tipo_trabalho || '';
       document.getElementById("editFrequencia").value = p.frequencia || '';
-
       document.getElementById("editModal").style.display = "flex";
     }
 
-    function fecharModal() {
-      document.getElementById("editModal").style.display = "none";
-    }
+    function fecharModal() { document.getElementById("editModal").style.display = "none"; }
 
     async function guardarEdicao() {
       const id = document.getElementById("editId").value;
-      
-      const payload = {
-        tecnico: document.getElementById("editTecnico").value,
-        data_hora_pedido: document.getElementById("editDataPedido").value,
-        requerente: document.getElementById("editRequerente").value,
-        empresa: document.getElementById("editEmpresa").value,
-        via: document.getElementById("editVia").value,
-        local_obra: document.getElementById("editLocal").value,
-        servico: document.getElementById("editServico").value,
-        observacao: document.getElementById("editObservacao").value,
-        tipo_trabalho: document.getElementById("editTipoTrabalho").value,
-        frequencia: document.getElementById("editFrequencia").value
-      };
-
       try {
         const response = await fetch(`${SB_URL_PEDIDOS}?id=eq.${id}`, {
           method: 'PATCH',
@@ -245,23 +189,29 @@
             'Prefer': 'return=minimal',
             'x-admin-code': tokenAdmin
           },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({
+            tecnico: document.getElementById("editTecnico").value,
+            data_hora_pedido: document.getElementById("editDataPedido").value,
+            requerente: document.getElementById("editRequerente").value,
+            empresa: document.getElementById("editEmpresa").value,
+            via: document.getElementById("editVia").value,
+            local_obra: document.getElementById("editLocal").value,
+            servico: document.getElementById("editServico").value,
+            observacao: document.getElementById("editObservacao").value,
+            tipo_trabalho: document.getElementById("editTipoTrabalho").value,
+            frequencia: document.getElementById("editFrequencia").value
+          })
         });
-
         if (response.ok) {
-          alert("Pedido atualizado com sucesso!");
+          alert("Pedido atualizado!");
           fecharModal();
           carregarPedidos();
-        } else {
-          alert("Erro ao editar o pedido.");
-        }
-      } catch (err) {
-        console.error(err);
-      }
+        } else { alert("Erro ao editar."); }
+      } catch (err) { console.error(err); }
     }
 
     async function eliminarPedido(id) {
-      if (confirm("Desejas mesmo eliminar permanentemente este pedido?")) {
+      if (confirm("Confirmar remoção permanente?")) {
         try {
           const response = await fetch(`${SB_URL_PEDIDOS}?id=eq.${id}`, {
             method: 'DELETE',
@@ -272,15 +222,9 @@
               'x-admin-code': tokenAdmin
             }
           });
-          if (response.ok) {
-            alert("Pedido eliminado!");
-            carregarPedidos();
-          } else {
-            alert("Erro ao eliminar.");
-          }
-        } catch (err) {
-          console.error(err);
-        }
+          if (response.ok) { alert("Pedido limpo!"); carregarPedidos(); }
+          else { alert("Erro ao apagar."); }
+        } catch (err) { console.error(err); }
       }
     }
   </script>

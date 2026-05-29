@@ -9,7 +9,9 @@
   <link rel="icon" type="image/jpeg" href="favicon.png">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #0f172a; font-family: Arial, sans-serif; color: white; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 30px; }
+    
+    /* Mantido o teu estilo original, apenas adicionado o display: none para o bloqueio de segurança */
+    body { background: #0f172a; font-family: Arial, sans-serif; color: white; min-height: 100vh; display: none; align-items: center; justify-content: center; padding: 30px; }
     
     .menu-container { max-width: 900px; width: 100%; background: #1e293b; padding: 45px; border-radius: 18px; box-shadow: 0 0 30px rgba(0,0,0,0.4); text-align: center; }
     
@@ -54,7 +56,7 @@
 
       <a href="ver_pedidos.html" class="menu-card card-visualizar">
         <div class="icon">📋</div>
-        <div class="card-title">Gerir Pedidos</div>
+        <div class="card-title">Ver/Gerir Pedidos</div>
       </a>
 
       <a href="atividade.html" class="menu-card card-registar">
@@ -64,10 +66,32 @@
 
       <a href="ver_atividade.html" class="menu-card card-visualizar">
         <div class="icon">🔍</div>
-        <div class="card-title">Ver Histórico de Atividades</div>
+        <div class="card-title">Ver/Gerir Atividades</div>
       </a>
     </div>
   </div>
+
+  <script>
+    // Executa a validação de segurança logo à entrada
+    (function verificarAcessoGlobal() {
+      let tokenAdmin = sessionStorage.getItem("admin_code");
+
+      if (!tokenAdmin) {
+        tokenAdmin = prompt("Introduza o Código de Acesso Técnico:");
+        
+        if (!tokenAdmin || tokenAdmin.trim() === "") {
+          alert("Acesso recusado. Código obrigatório.");
+          window.location.reload(); // Força a pedir novamente se cancelar ou deixar em branco
+          return;
+        }
+        
+        sessionStorage.setItem("admin_code", tokenAdmin);
+      }
+      
+      // Se a password estiver guardada, aplica o estilo para mostrar o ecrã com o teu visual original
+      document.body.style.display = "flex";
+    })();
+  </script>
 
 </body>
 </html>
