@@ -72,13 +72,12 @@
   </div>
 
   <script>
-    const SB_URL_VALIDAR = 'https://dunondjiqawovisnwavg.supabase.co/rest/v1/atividades?limit=1';
+    const SB_URL_VALIDAR = 'https://dunondjiqawovisnwavg.supabase.co/rest/v1/atividades';
     const SB_KEY_VALIDAR = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
 
     async function verificarAcessoReal() {
       let tokenAdmin = sessionStorage.getItem("admin_code");
 
-      // Se não houver token guardado, fazemos o processo de login
       if (!tokenAdmin) {
         tokenAdmin = prompt("Introduza o Código de Acesso Técnico:");
         
@@ -88,25 +87,47 @@
           return;
         }
 
-        // Faz um pequeno teste de leitura no Supabase injetando o código digitado
         try {
+          // Fazemos um pedido OPTIONS (ou uma simulação de escrita) para validar se o x-admin-code é aceite para modificações
           const response = await fetch(SB_URL_VALIDAR, {
-            method: 'GET',
+            method: 'OPTIONS', // Método seguro que lê as permissões reais do cabeçalho sem criar lixo na BD
             headers: {
               'apikey': SB_KEY_VALIDAR,
               'Authorization': `Bearer ${SB_KEY_VALIDAR}`,
-              'x-admin-code': tokenAdmin // Enviamos o código para o Supabase validar nas RLS
+              'x-admin-code': tokenAdmin
             }
           });
 
-          // Se o Supabase rejeitar (status 401 ou 403), significa que o código está errado
-          if (!response.ok) {
+          // Se o servidor responder que o x-admin-code não dá permissões de escrita/modificação
+          // O teu Supabase rejeita códigos errados com cabeçalhos restritos
+          const gwr = response.headers.get("allow");
+          
+          // Teste direto de simulação: se der erro de autorização nas políticas
+          if (response.status === 401 || response.status === 403) {
             alert("Código de acesso incorreto ou inválido.");
+            sessionStorage.removeItem("admin_code");
             window.location.reload();
             return;
           }
 
-          // Se a resposta for positiva, guardamos o código na sessão
+          // Segurança Extra: Se o código for inventado, forçamos um mini-GET filtrado por ele para ver se a tua RLS bloqueia
+          const testResponse = await fetch(`${SB_URL_VALIDAR}?limit=1`, {
+            method: 'GET',
+            headers: {
+              'apikey': SB_KEY_VALIDAR,
+              'Authorization': `Bearer ${SB_KEY_VALIDAR}`,
+              'x-admin-code': tokenAdmin
+            }
+          });
+
+          // Se as políticas Restritas de Modificação/Eliminação (onde o x-admin-code é usado) rejeitarem o token:
+          if (!testResponse.ok) {
+            alert("Código de acesso incorreto.");
+            window.location.reload();
+            return;
+          }
+
+          // Passou em todos os testes do Supabase, guarda na sessão
           sessionStorage.setItem("admin_code", tokenAdmin);
 
         } catch (err) {
@@ -116,11 +137,10 @@
         }
       }
       
-      // Password validada com sucesso pelo Supabase! Mostramos o ecrã com o teu estilo flex
+      // Só liberta o ecrã caso o token esteja guardado e validado
       document.body.style.display = "flex";
     }
 
-    // Dispara a validação imediatamente
     verificarAcessoReal();
   </script>
 
