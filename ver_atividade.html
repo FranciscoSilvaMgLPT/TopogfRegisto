@@ -60,7 +60,6 @@
   </div>
 
   <script>
-    // Configurações diretas da API REST do teu projeto
     const SB_URL = 'https://dunondjiqawovisnwavg.supabase.co/rest/v1/atividades';
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
 
@@ -74,7 +73,6 @@
 
     async function carregarAtividades() {
       try {
-        // Pedido HTTP direto ordenando por data de criação mais recente
         const response = await fetch(`${SB_URL}?order=created_at.desc`, {
           method: 'GET',
           headers: {
@@ -109,35 +107,41 @@
         });
 
       } catch (err) {
-        corpoTabela.innerHTML = `<tr><td colspan="6" class="loading" style="color: #ef4444;">Erro ao carregar os dados. Verifica as políticas do banco de dados.</td></tr>`;
+        corpoTabela.innerHTML = `<tr><td colspan="6" class="loading" style="color: #ef4444;">Erro ao carregar os dados.</td></tr>`;
         console.error(err);
       }
     }
 
     async function eliminarAtividade(id) {
-      if (confirm("Desejas eliminar permanentemente este registo de atividade?")) {
+      // 1. Pede o código antes de qualquer ação
+      const codigoCodigo = prompt("Introduza o Código de Administrador para confirmar a eliminação:");
+      if (codigoCodigo === null) return; 
+
+      if (confirm("Desejas mesmo eliminar permanentemente este registo?")) {
         try {
           const response = await fetch(`${SB_URL}?id=eq.${id}`, {
             method: 'DELETE',
             headers: {
               'apikey': SB_KEY,
               'Authorization': `Bearer ${SB_KEY}`,
-              'Prefer': 'return=minimal'
+              'Prefer': 'return=minimal',
+              'x-admin-code': codigoCodigo // Envia o código digitado para validação do RLS
             }
           });
 
           if (response.ok) {
+            alert("Registo eliminado com sucesso!");
             carregarAtividades();
           } else {
-            alert("Não foi possível eliminar a atividade.");
+            alert("Erro: Código de acesso incorreto ou sem permissões.");
           }
         } catch (err) {
           console.error(err);
+          alert("Erro de ligação.");
         }
       }
     }
 
-    // Inicializar carregamento automático ao abrir a página
     carregarAtividades();
   </script>
 </body>
