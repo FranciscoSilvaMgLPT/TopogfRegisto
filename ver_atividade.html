@@ -66,8 +66,8 @@
     const corpoTabela = document.getElementById("corpoTabela");
     let tokenAdmin = sessionStorage.getItem("admin_code");
 
-    // Validação estrita à entrada da página
-    function verificarAcesso() {
+    // Executa a verificação apenas quando os elementos da página estiverem prontos na memória
+    document.addEventListener("DOMContentLoaded", function() {
       if (!tokenAdmin) {
         tokenAdmin = prompt("Introduza o Código de Administrador para aceder à visualização:");
         if (!tokenAdmin) {
@@ -77,10 +77,13 @@
         }
         sessionStorage.setItem("admin_code", tokenAdmin);
       }
-      // Mostra a página se o utilizador digitou algo
+      
+      // Mostra a estrutura da página após o código ser digitado
       document.body.style.display = "block";
-    }
-    verificarAcesso();
+      
+      // Só dispara a leitura dos dados após passar o prompt inicial com sucesso
+      carregarAtividades();
+    });
 
     function formatarData(dataISO) {
       if (!dataISO) return "-";
@@ -136,7 +139,7 @@
               'apikey': SB_KEY,
               'Authorization': `Bearer ${SB_KEY}`,
               'Prefer': 'return=minimal',
-              'x-admin-code': tokenAdmin // Envia automaticamente o código que foi guardado à entrada
+              'x-admin-code': tokenAdmin
             }
           });
 
@@ -152,8 +155,6 @@
         }
       }
     }
-
-    carregarAtividades();
   </script>
 </body>
 </html>
