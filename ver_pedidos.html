@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consultar Pedidos</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { background: #0f172a; color: white; font-family: sans-serif; padding: 20px; }
+    .container { max-width: 1200px; margin: auto; background: #1e293b; padding: 25px; border-radius: 18px; }
+    .btn-voltar { background: #334155; color: white; text-decoration: none; padding: 10px 15px; border-radius: 8px; display: inline-block; margin-bottom: 20px; }
+    .table-wrapper { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; background: #0f172a; border-radius: 10px; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #334155; font-size: 14px; }
+    th { color: #94a3b8; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Pedidos Registados</h1>
+  <a href="index.html" class="btn-voltar">⬅ Voltar ao Painel</a>
+  
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Data/Hora</th>
+          <th>Técnico</th>
+          <th>Requerente</th>
+          <th>Empresa</th>
+          <th>Via</th>
+          <th>Local/Obra</th>
+          <th>Concelho</th>
+          <th>Serviço</th>
+          <th>Tipo</th>
+          <th>Frequência</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody id="tabela-body">
+        <tr><td colspan="11">A carregar dados...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  async function carregarPedidos() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) { window.location.href = 'index.html'; return; }
+
+    // Busca os dados da tabela 'pedidos'
+    const { data, error } = await supabaseClient
+      .from('pedidos')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) { 
+      alert("Erro ao carregar: " + error.message); 
+      return; 
+    }
+
+    const tbody = document.getElementById('tabela-body');
+    tbody.innerHTML = '';
+
+    data.forEach(item => {
+      tbody.innerHTML += `<tr>
+        <td>${item.data_hora_pedido || '-'}</td>
+        <td>${item.tecnico || '-'}</td>
+        <td>${item.requerente || '-'}</td>
+        <td>${item.empresa || '-'}</td>
+        <td>${item.via || '-'}</td>
+        <td>${item.local_obra || '-'}</td>
+        <td>${item.concelho || '-'}</td>
+        <td>${item.servico || '-'}</td>
+        <td>${item.tipo_trabalho || '-'}</td>
+        <td>${item.frequencia || '-'}</td>
+        <td>${item.estado || '-'}</td>
+      </tr>`;
+    });
+  }
+
+  carregarPedidos();
+</script>
+</body>
+</html>

@@ -2,18 +2,24 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel de Controlo - Login</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <style>
-    body { background: #0f172a; font-family: Arial, sans-serif; color: white; min-height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0; }
-    #login-box { background: #1e293b; padding: 40px; border-radius: 18px; text-align: center; width: 300px; }
-    input { padding: 12px; margin: 10px 0; border-radius: 5px; border: none; width: 100%; box-sizing: border-box; }
-    button { padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 5px; width: 100%; cursor: pointer; font-weight: bold; }
+    body { background: #0f172a; font-family: 'Segoe UI', Arial, sans-serif; color: white; min-height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0; }
+    #login-box { background: #1e293b; padding: 40px; border-radius: 18px; text-align: center; width: 300px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+    input { padding: 12px; margin: 10px 0; border-radius: 5px; border: 1px solid #334155; width: 100%; box-sizing: border-box; background: #0f172a; color: white; }
+    button { padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 5px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px; transition: background 0.3s; }
+    button:hover { background: #2563eb; }
+    button:disabled { background: #64748b; cursor: not-allowed; }
+    
     #main-content { display: none; }
-    .menu-container { max-width: 800px; width: 100%; background: #1e293b; padding: 45px; border-radius: 18px; box-shadow: 0 0 30px rgba(0,0,0,0.4); text-align: center; }
+    .menu-container { max-width: 600px; width: 90%; background: #1e293b; padding: 45px; border-radius: 18px; box-shadow: 0 0 30px rgba(0,0,0,0.4); text-align: center; }
+    .user-info { margin-bottom: 20px; color: #94a3b8; font-size: 0.9em; }
     .grid-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top: 20px; }
-    .menu-card { background: #334155; padding: 35px; border-radius: 14px; text-decoration: none; color: white; display: flex; flex-direction: column; align-items: center; }
+    .menu-card { background: #334155; padding: 25px; border-radius: 14px; text-decoration: none; color: white; display: flex; flex-direction: column; align-items: center; transition: transform 0.2s; font-size: 0.9em; }
+    .menu-card:hover { transform: scale(1.03); background: #475569; }
   </style>
 </head>
 <body>
@@ -22,49 +28,65 @@
     <h2>Login</h2>
     <input type="email" id="email" placeholder="Email">
     <input type="password" id="password" placeholder="Password">
-    <button onclick="fazerLogin()">Entrar</button>
+    <button id="btn-entrar" onclick="fazerLogin()">Entrar</button>
   </div>
 
   <div id="main-content" class="menu-container">
+    <div class="user-info">
+      Logado como: <span id="user-email" style="font-weight: bold; color: #f8fafc;"></span>
+    </div>
     <h1>Painel de Controlo</h1>
+    
     <div class="grid-menu">
       <a href="registo_pedidos.html" class="menu-card"><div>📝 Registo de Pedidos</div></a>
-      <a href="atividade.html" class="menu-card"><div>📊 Atividade</div></a>
+      <a href="registo_atividade.html" class="menu-card"><div>📊 Registo de Atividade</div></a>
+      <a href="ver_pedidos.html" class="menu-card"><div>📋 Consultar Pedidos</div></a>
+      <a href="ver_atividades.html" class="menu-card"><div>📈 Consultar Atividades</div></a>
     </div>
-    <button onclick="fazerLogout()" style="margin-top:20px; background:#ef4444; width: auto;">Sair</button>
+
+    <button onclick="fazerLogout()" style="background:#ef4444; width: auto; margin-top:30px;">Sair da Conta</button>
   </div>
 
   <script>
-    // Configuração do cliente Supabase
     const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
 
-    // Usamos 'window.supabaseClient' para evitar conflitos globais
-    window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     window.onload = async () => {
-      const { data } = await window.supabaseClient.auth.getSession();
+      const { data } = await supabaseClient.auth.getSession();
       if (data.session) {
-        document.getElementById('login-box').style.display = 'none';
-        document.getElementById('main-content').style.display = 'block';
+        mostrarPainel(data.session.user.email);
       }
     };
 
+    function mostrarPainel(email) {
+      document.getElementById('login-box').style.display = 'none';
+      document.getElementById('main-content').style.display = 'block';
+      document.getElementById('user-email').innerText = email;
+    }
+
     async function fazerLogin() {
+      const btn = document.getElementById('btn-entrar');
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
 
-      const { error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
+      btn.disabled = true;
+      btn.innerText = "A autenticar...";
+
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
       if (error) {
-        alert("Erro: " + error.message);
+        alert("Erro no login: " + error.message);
+        btn.disabled = false;
+        btn.innerText = "Entrar";
       } else {
-        location.reload();
+        mostrarPainel(data.user.email);
       }
     }
 
     async function fazerLogout() {
-      await window.supabaseClient.auth.signOut();
+      await supabaseClient.auth.signOut();
       location.reload();
     }
   </script>

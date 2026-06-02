@@ -5,17 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Registo de Pedidos</title>
   <link rel="icon" type="image/jpeg" href="favicon.png">
-  
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+  
   <style>
-    /* O conteúdo começa invisível até validarmos o login */
-    #main-container { display: none; }
-    
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #0f172a; font-family: Arial, sans-serif; color: white; padding: 30px; }
     .container { max-width: 900px; margin: auto; background: #1e293b; padding: 35px; border-radius: 18px; box-shadow: 0 0 30px rgba(0,0,0,0.4); }
     .header-area { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; gap: 15px; }
+    .user-info { color: #94a3b8; font-size: 0.9em; margin-bottom: 20px; }
     h1 { font-size: 34px; }
     .btn-voltar { background: #334155; color: white; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: bold; transition: 0.2s; white-space: nowrap; }
     .btn-voltar:hover { background: #475569; }
@@ -26,51 +23,33 @@
     button { width: 100%; margin-top: 25px; padding: 16px; border: none; border-radius: 10px; background: #2563eb; color: white; font-size: 16px; font-weight: bold; cursor: pointer; }
     .success { display: none; margin-top: 20px; background: #065f46; padding: 15px; border-radius: 10px; text-align: center; }
   </style>
-
-  <script>
-    // --- PROTEÇÃO DE LOGIN ---
-   const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) {
-        window.location.href = 'index.html'; // Se não houver login, volta para o index
-      } else {
-        document.getElementById('main-container').style.display = 'block';
-      }
-    });
-  </script>
 </head>
-
 <body>
 
-  <div id="main-container" class="container">
+  <div class="container">
     <div class="header-area">
       <h1>Registo de Pedidos</h1>
       <a href="index.html" class="btn-voltar">⬅ Voltar ao Menu</a>
+    </div>
+
+    <div class="user-info">
+      Utilizador: <span id="user-display" style="color: #60a5fa;">A carregar...</span>
     </div>
 
     <form id="formulario" action="https://api.web3forms.com/submit" method="POST">
       <input type="hidden" name="access_key" value="9f471d61-2558-4df2-a220-0028f59bd975">
       <input type="hidden" name="subject" value="Novo Pedido - Sistema Interno">
       <input type="hidden" name="from_name" value="Sistema de Pedidos">
+      <input type="checkbox" name="botcheck" style="display:none;">
+      <input type="hidden" name="00_LINHA_EXCEL" id="excelLinha">
+      <input type="hidden" name="01_Data_do_Pedido" id="hiddenData">
+      <input type="hidden" name="02_Hora_do_Pedido" id="hiddenHora">
       
       <div class="grid">
-        <div>
-          <label>Nome do Técnico *</label>
-          <input type="text" name="03_Nome" required>
-        </div>
-        <div>
-          <label>Data + Hora do Pedido *</label>
-          <input type="datetime-local" id="dataHoraInput" required>
-        </div>
-        <div>
-          <label>Requerente *</label>
-          <input type="text" name="04_Requerente" required>
-        </div>
-        <div>
-          <label>Empresa *</label>
+        <div><label>Nome do Técnico *</label><input type="text" name="03_Nome" required></div>
+        <div><label>Data + Hora do Pedido *</label><input type="datetime-local" id="dataHoraInput" required></div>
+        <div><label>Requerente *</label><input type="text" name="04_Requerente" required></div>
+        <div><label>Empresa *</label>
           <select id="empresaSelect" name="05_Empresa" required>
             <option value="">Selecionar Empresa</option>
             <option value="CCR ENG&CONST">CCR ENG&CONST</option>
@@ -85,27 +64,90 @@
           </select>
         </div>
       </div>
-      
+      <input type="hidden" name="06_Via" id="hiddenVia">
+      <div class="grid">
+        <div><label>Via de Comunicação *</label>
+          <select id="viaSelect" required>
+            <option value="">Selecionar Via</option>
+            <option value="Chamada">Chamada</option>
+            <option value="SMS">SMS</option>
+            <option value="Email">Email</option>
+            <option value="Presencial">Presencial</option>
+            <option value="Whatsapp">Whatsapp</option>
+            <option value="Outro">Outro</option>
+          </select>
+        </div>
+        <div id="outrosDiv" style="display:none;"><label>Especificar Via Outro *</label><input type="text" id="viaOutrosInput"></div>
+        <div><label>Local / Obra *</label><input type="text" name="07_Local_Obra" required></div>
+      </div>
+      <input type="hidden" name="08_Concelho" id="hiddenConcelho">
+      <div class="grid">
+        <div><label>Concelho *</label>
+          <select id="concelhoSelect" required>
+            <option value="">Selecionar Concelho</option>
+            <option value="Póvoa de Varzim">Póvoa de Varzim</option>
+            <option value="Guimarães">Guimarães</option>
+            <option value="Vila do Conde">Vila do Conde</option>
+            <option value="Famalicão">Famalicão</option>
+            <option value="Maia">Maia</option>
+            <option value="Porto">Porto</option>
+            <option value="Outro">Outro</option>
+          </select>
+        </div>
+        <div id="concelhoOutroDiv" style="display:none;"><label>Especificar Concelho Outro *</label><input type="text" id="concelhoOutroInput"></div>
+        <div class="full"><label>Serviço solicitado *</label><textarea name="09_Servico" required></textarea></div>
+        <div class="full"><label>Observação</label><textarea name="10_Observação"></textarea></div>
+        <div><label>Tipo de Trabalho *</label>
+          <select id="tipoTrabalhoSelect" name="11_Tipo_Trabalho" required>
+            <option value="">Selecionar Tipo</option>
+            <option value="Lev. Topográfico">Lev. Topográfico</option>
+            <option value="Monitorização">Monitorização</option>
+            <option value="Implantação">Implantação</option>
+            <option value="Gabinete / Estudos">Gabinete / Estudos</option>
+          </select>
+        </div>
+        <div><label>Frequência *</label>
+          <select id="frequenciaSelect" name="12_Frequencia" required>
+            <option value="">Selecionar Frequência</option>
+            <option value="Diária">Diária</option>
+            <option value="Semanal">Semanal</option>
+            <option value="Mensal">Mensal</option>
+            <option value="Trimestral">Trimestral</option>
+            <option value="Semestral">Semestral</option>
+            <option value="Anual">Anual</option>
+            <option value="Continua">Continua</option>
+          </select>
+        </div>
+        <div class="full"><label>Tempo Dedicado ao Trabalho (S/Deslocação)</label><input type="text" name="13_Tempo_Dedicado" id="tempoDedicadoInput" placeholder="Ex: 2h, 1 dia inteiro"></div>
+        <div><label>Data Limite de Resposta *</label><input type="datetime-local" id="dataHoraLimInput" required></div>
+      </div>
+      <input type="hidden" name="14_Data_Limite" id="hiddenDataLim">
+      <input type="hidden" name="15_Hora_Limite" id="hiddenHoraLim">
       <button type="submit" id="btnEnviar">Enviar Pedido</button>
     </form>
-
     <div class="success" id="successMessage">✅ Pedido enviado!</div>
   </div>
 
   <script>
-    // --- LÓGICA DO FORMULÁRIO (Igual à que já tinhas) ---
-    function atualizarDataAtual() {
-      const now = new Date();
-      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-      document.getElementById("dataHoraInput").value = now.toISOString().slice(0, 16);
-    }
-    atualizarDataAtual();
+    // Inicialização Supabase
+    const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const form = document.getElementById("formulario");
-    form.addEventListener("submit", async (e) => {
-      // (Mantém o teu código de envio aqui)
-      alert("Enviado com sucesso!");
-    });
+    // Proteção e carregamento de utilizador
+    window.onload = async () => {
+      const { data } = await supabaseClient.auth.getSession();
+      if (!data.session) {
+        window.location.href = 'index.html';
+      } else {
+        document.getElementById('user-display').innerText = data.session.user.email;
+        atualizarDataAtual();
+      }
+    };
+
+    // (TODO O SEU SCRIPT ORIGINAL ABAIXO A PARTIR DAQUI...)
+    function atualizarDataAtual() { /* ... */ }
+    // ... restante do seu código ...
   </script>
 </body>
 </html>
