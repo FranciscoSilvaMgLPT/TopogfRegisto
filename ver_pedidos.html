@@ -34,12 +34,11 @@
           <th>Concelho</th>
           <th>Serviço</th>
           <th>Tipo</th>
-          <th>Frequência</th>
           <th>Estado</th>
         </tr>
       </thead>
       <tbody id="tabela-body">
-        <tr><td colspan="11">A carregar dados...</td></tr>
+        <tr><td colspan="10">A carregar dados...</td></tr>
       </tbody>
     </table>
   </div>
@@ -51,16 +50,22 @@
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   async function carregarPedidos() {
+    // 1. Verifica autenticação
     const { data: { session } } = await supabaseClient.auth.getSession();
-    if (!session) { window.location.href = 'index.html'; return; }
+    if (!session) { 
+      alert("Sessão expirada. Faça login novamente.");
+      window.location.href = 'index.html'; 
+      return; 
+    }
 
-    // Busca os dados da tabela 'pedidos'
+    // 2. Busca dados (ajustado para os nomes exatos das suas colunas)
     const { data, error } = await supabaseClient
       .from('pedidos')
-      .select('*')
+      .select('data_hora_pedido, tecnico, requerente, empresa, via, local_obra, concelho, servico, tipo_trabalho, estado')
       .order('created_at', { ascending: false });
 
     if (error) { 
+      console.error("Erro Supabase:", error);
       alert("Erro ao carregar: " + error.message); 
       return; 
     }
@@ -68,6 +73,12 @@
     const tbody = document.getElementById('tabela-body');
     tbody.innerHTML = '';
 
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Nenhum pedido encontrado.</td></tr>';
+      return;
+    }
+
+    // 3. Preenche a tabela
     data.forEach(item => {
       tbody.innerHTML += `<tr>
         <td>${item.data_hora_pedido || '-'}</td>
@@ -79,7 +90,6 @@
         <td>${item.concelho || '-'}</td>
         <td>${item.servico || '-'}</td>
         <td>${item.tipo_trabalho || '-'}</td>
-        <td>${item.frequencia || '-'}</td>
         <td>${item.estado || '-'}</td>
       </tr>`;
     });
