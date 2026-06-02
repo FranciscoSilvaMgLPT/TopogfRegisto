@@ -2,7 +2,6 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Consultar Pedidos</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -25,7 +24,7 @@
     <table>
       <thead>
         <tr>
-          <th>Data/Hora</th>
+          <th>Data Pedido</th>
           <th>Técnico</th>
           <th>Requerente</th>
           <th>Empresa</th>
@@ -34,51 +33,43 @@
           <th>Concelho</th>
           <th>Serviço</th>
           <th>Tipo</th>
+          <th>Frequência</th>
+          <th>Data Limite</th>
           <th>Estado</th>
         </tr>
       </thead>
       <tbody id="tabela-body">
-        <tr><td colspan="10">A carregar dados...</td></tr>
+        <tr><td colspan="12">A carregar...</td></tr>
       </tbody>
     </table>
   </div>
 </div>
 
 <script>
+  // Inicialização única (garante que não ocorra o erro de redeclaração)
   const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
-  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   async function carregarPedidos() {
-    // 1. Verifica autenticação
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (!session) { 
-      alert("Sessão expirada. Faça login novamente.");
-      window.location.href = 'index.html'; 
-      return; 
-    }
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = 'index.html'; return; }
 
-    // 2. Busca dados (ajustado para os nomes exatos das suas colunas)
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
       .from('pedidos')
-      .select('data_hora_pedido, tecnico, requerente, empresa, via, local_obra, concelho, servico, tipo_trabalho, estado')
+      .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) { 
-      console.error("Erro Supabase:", error);
-      alert("Erro ao carregar: " + error.message); 
-      return; 
-    }
+    if (error) { console.error(error); alert("Erro: " + error.message); return; }
 
     const tbody = document.getElementById('tabela-body');
     tbody.innerHTML = '';
 
     if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Nenhum pedido encontrado.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="12">Nenhum pedido encontrado.</td></tr>';
       return;
     }
 
-    // 3. Preenche a tabela
     data.forEach(item => {
       tbody.innerHTML += `<tr>
         <td>${item.data_hora_pedido || '-'}</td>
@@ -90,6 +81,8 @@
         <td>${item.concelho || '-'}</td>
         <td>${item.servico || '-'}</td>
         <td>${item.tipo_trabalho || '-'}</td>
+        <td>${item.frequencia || '-'}</td>
+        <td>${item.data_hora_limite || '-'}</td>
         <td>${item.estado || '-'}</td>
       </tr>`;
     });
