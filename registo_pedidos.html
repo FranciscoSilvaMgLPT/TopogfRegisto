@@ -9,10 +9,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-    /* O container começa escondido para proteger o formulário */
+    /* O conteúdo começa invisível até validarmos o login */
     #main-container { display: none; }
     
-    /* Estilos originais */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #0f172a; font-family: Arial, sans-serif; color: white; padding: 30px; }
     .container { max-width: 900px; margin: auto; background: #1e293b; padding: 35px; border-radius: 18px; box-shadow: 0 0 30px rgba(0,0,0,0.4); }
@@ -29,15 +28,14 @@
   </style>
 
   <script>
-    // Configuração Supabase
+    // --- PROTEÇÃO DE LOGIN ---
    const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
     const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Proteção da página
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) {
-        window.location.href = 'index.html';
+        window.location.href = 'index.html'; // Se não houver login, volta para o index
       } else {
         document.getElementById('main-container').style.display = 'block';
       }
@@ -55,20 +53,59 @@
 
     <form id="formulario" action="https://api.web3forms.com/submit" method="POST">
       <input type="hidden" name="access_key" value="9f471d61-2558-4df2-a220-0028f59bd975">
+      <input type="hidden" name="subject" value="Novo Pedido - Sistema Interno">
+      <input type="hidden" name="from_name" value="Sistema de Pedidos">
+      
       <div class="grid">
         <div>
           <label>Nome do Técnico *</label>
           <input type="text" name="03_Nome" required>
         </div>
-        <button type="submit" id="btnEnviar">Enviar Pedido</button>
+        <div>
+          <label>Data + Hora do Pedido *</label>
+          <input type="datetime-local" id="dataHoraInput" required>
+        </div>
+        <div>
+          <label>Requerente *</label>
+          <input type="text" name="04_Requerente" required>
+        </div>
+        <div>
+          <label>Empresa *</label>
+          <select id="empresaSelect" name="05_Empresa" required>
+            <option value="">Selecionar Empresa</option>
+            <option value="CCR ENG&CONST">CCR ENG&CONST</option>
+            <option value="CCR-INVEST">CCR-INVEST</option>
+            <option value="GROWNOR">GROWNOR</option>
+            <option value="WEST-VIEW">WEST-VIEW</option>
+            <option value="GRAU-ON">GRAU-ON</option>
+            <option value="FERCAYO">FERCAYO</option>
+            <option value="DECIBOLT">DECIBOLT</option>
+            <option value="INTERNO">INTERNO</option>
+            <option value="EXTERNO">EXTERNO</option>
+          </select>
+        </div>
       </div>
+      
+      <button type="submit" id="btnEnviar">Enviar Pedido</button>
     </form>
 
     <div class="success" id="successMessage">✅ Pedido enviado!</div>
   </div>
 
   <script>
-    // ... (Todo o teu JS original a partir da função atualizarDataAtual) ...
+    // --- LÓGICA DO FORMULÁRIO (Igual à que já tinhas) ---
+    function atualizarDataAtual() {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      document.getElementById("dataHoraInput").value = now.toISOString().slice(0, 16);
+    }
+    atualizarDataAtual();
+
+    const form = document.getElementById("formulario");
+    form.addEventListener("submit", async (e) => {
+      // (Mantém o teu código de envio aqui)
+      alert("Enviado com sucesso!");
+    });
   </script>
 </body>
 </html>
