@@ -2,92 +2,89 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Histórico de Pedidos</title>
+  <title>Histórico Completo de Pedidos</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #0f172a; font-family: Arial, sans-serif; color: white; padding: 30px; }
-    .container { max-width: 1450px; margin: auto; background: #1e293b; padding: 35px; border-radius: 18px; }
-    .header-area { display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; }
-    .user-info { color: #60a5fa; font-size: 0.9em; margin-bottom: 10px; }
-    .btn-voltar { background: #334155; color: white; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: bold; }
-    .table-responsive { width: 100%; overflow-x: auto; margin-top: 20px; }
-    table { width: 100%; border-collapse: collapse; min-width: 1100px; }
-    th, td { padding: 12px 15px; border-bottom: 1px solid #334155; text-align: left; }
-    th { background: #334155; color: #cbd5e1; }
-    .btn-editar { background: #eab308; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-    .btn-eliminar { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    body { background: #0f172a; color: white; padding: 20px; font-family: Arial, sans-serif; }
+    .container { max-width: 1450px; margin: auto; background: #1e293b; padding: 25px; border-radius: 15px; }
+    .user-info { color: #60a5fa; margin-bottom: 15px; }
     
-    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
-    .modal-content { background: #1e293b; padding: 25px; border-radius: 15px; width: 90%; max-width: 650px; max-height: 90vh; overflow-y: auto; }
-    .grid-modal { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .full-modal { grid-column: 1 / -1; }
-    .form-group label { display: block; margin-bottom: 4px; color: #94a3b8; font-size: 13px; }
-    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border-radius: 8px; border: none; background: #334155; color: white; }
-    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    /* Scroll para tabelas largas */
+    .table-responsive { width: 100%; overflow-x: auto; margin-top: 20px; }
+    table { width: 100%; border-collapse: collapse; min-width: 1400px; }
+    th, td { padding: 12px; border-bottom: 1px solid #334155; text-align: left; font-size: 13px; }
+    th { background: #334155; color: #cbd5e1; }
+    
+    /* Modal */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; }
+    .modal-content { background: #1e293b; padding: 25px; border-radius: 15px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .full { grid-column: 1 / -1; }
+    input, textarea, select { width: 100%; padding: 10px; background: #334155; border: none; color: white; border-radius: 5px; margin-top: 5px; }
+    button { padding: 10px 20px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; margin-top: 10px; }
   </style>
 </head>
 <body>
 
 <div class="container">
   <div class="user-info">Utilizador: <span id="user-display">A carregar...</span></div>
-  <div class="header-area">
+  <div style="display:flex; justify-content:space-between; align-items:center;">
     <h1>Histórico de Pedidos</h1>
-    <a href="index.html" class="btn-voltar">⬅ Voltar ao Menu</a>
+    <a href="index.html" style="color:white; text-decoration:none; background:#334155; padding:8px 15px; border-radius:5px;">⬅ Voltar</a>
   </div>
 
   <div class="table-responsive">
-    <table>
+    <table id="tabelaPedidos">
       <thead>
-        <tr><th>Técnico</th><th>Data Pedido</th><th>Requerente</th><th>Empresa</th><th>Via</th><th>Local</th><th>Serviço</th><th>Estado</th><th>Ações</th></tr>
+        <tr>
+          <th>Técnico</th><th>Data Pedido</th><th>Requerente</th><th>Empresa</th><th>Via</th>
+          <th>Local</th><th>Concelho</th><th>Serviço</th><th>Trabalho</th><th>Frequência</th><th>Estado</th><th>Ações</th>
+        </tr>
       </thead>
-      <tbody id="corpoTabelaPedidos"><tr><td colspan="9">A carregar...</td></tr></tbody>
+      <tbody id="corpoTabela"></tbody>
     </table>
   </div>
 </div>
 
 <div id="editModal" class="modal">
   <div class="modal-content">
-    <h2>✏️ Editar Registo</h2>
+    <h2>Editar Pedido</h2>
     <input type="hidden" id="editId">
-    <div class="grid-modal">
-      <div class="form-group"><label>Técnico</label><input type="text" id="editTecnico"></div>
-      <div class="form-group"><label>Data/Hora Pedido</label><input type="datetime-local" id="editDataPedido"></div>
-      <div class="form-group"><label>Requerente</label><input type="text" id="editRequerente"></div>
-      <div class="form-group"><label>Empresa</label><input type="text" id="editEmpresa"></div>
-      <div class="form-group"><label>Via</label><input type="text" id="editVia"></div>
-      <div class="form-group"><label>Local</label><input type="text" id="editLocal"></div>
-      <div class="form-group full-modal"><label>Serviço</label><textarea id="editServico"></textarea></div>
-      <div class="form-group full-modal"><label>Observações</label><textarea id="editObservacao"></textarea></div>
-      <div class="form-group"><label>Frequência</label><input type="text" id="editFrequencia"></div>
-      <div class="form-group"><label>Data Limite</label><input type="datetime-local" id="editDataLimite"></div>
-      <div class="form-group full-modal"><label>Estado</label>
-        <select id="editEstado">
-          <option value="Pendente">Pendente</option>
-          <option value="Em curso">Em curso</option>
-          <option value="Concluído">Concluído</option>
-        </select>
-      </div>
+    <div class="grid">
+      <input type="text" id="editTecnico" placeholder="Técnico">
+      <input type="datetime-local" id="editDataPedido">
+      <input type="text" id="editRequerente" placeholder="Requerente">
+      <input type="text" id="editEmpresa" placeholder="Empresa">
+      <input type="text" id="editVia" placeholder="Via">
+      <input type="text" id="editLocal" placeholder="Local / Obra">
+      <input type="text" id="editConcelho" placeholder="Concelho">
+      <input type="text" id="editTipoTrabalho" placeholder="Tipo de Trabalho">
+      <input type="text" id="editFrequencia" placeholder="Frequência">
+      <input type="text" id="editTempoDedicado" placeholder="Tempo Dedicado">
+      <textarea id="editServico" class="full" placeholder="Serviço"></textarea>
+      <textarea id="editObservacao" class="full" placeholder="Observação"></textarea>
+      <input type="datetime-local" id="editDataLimite">
+      <select id="editEstado">
+        <option value="Pendente">Pendente</option>
+        <option value="Em curso">Em curso</option>
+        <option value="Concluído">Concluído</option>
+      </select>
     </div>
-    <div class="modal-actions">
-      <button class="btn-eliminar" onclick="fecharModal()">Cancelar</button>
-      <button class="btn-editar" style="background:#2563eb; color:white;" onclick="guardarEdicao()">Guardar</button>
-    </div>
+    <button onclick="guardarEdicao()" style="background:#2563eb; color:white;">Guardar Alterações</button>
+    <button onclick="document.getElementById('editModal').style.display='none'" style="background:#475569; color:white;">Cancelar</button>
   </div>
 </div>
 
 <script>
-  // Inicialização ÚNICA do Supabase
+  // Inicialização ÚNICA
   const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
   const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   window.onload = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      window.location.href = 'index.html';
-    } else {
+    if (!session) { window.location.href = 'index.html'; }
+    else {
       document.getElementById('user-display').innerText = session.user.email;
       carregarPedidos();
     }
@@ -95,46 +92,46 @@
 
   async function carregarPedidos() {
     const { data, error } = await supabase.from('pedidos').select('*').order('created_at', { ascending: false });
-    const tbody = document.getElementById("corpoTabelaPedidos");
-    if (error) { tbody.innerHTML = "<tr><td colspan='9'>Erro: " + error.message + "</td></tr>"; return; }
+    if (error) { alert("Erro ao carregar: " + error.message); return; }
     
+    const tbody = document.getElementById("corpoTabela");
     tbody.innerHTML = data.map(p => `
       <tr>
         <td>${p.tecnico || '-'}</td>
-        <td>${p.data_hora_pedido ? new Date(p.data_hora_pedido).toLocaleString() : '-'}</td>
+        <td>${p.data_hora_pedido ? p.data_hora_pedido.slice(0, 10) : '-'}</td>
         <td>${p.requerente || '-'}</td>
         <td>${p.empresa || '-'}</td>
         <td>${p.via || '-'}</td>
         <td>${p.local_obra || '-'}</td>
+        <td>${p.concelho || '-'}</td>
         <td>${p.servico || '-'}</td>
+        <td>${p.tipo_trabalho || '-'}</td>
+        <td>${p.frequencia || '-'}</td>
         <td>${p.estado || 'Pendente'}</td>
-        <td>
-          <button class="btn-editar" onclick="abrirModal(${p.id})">✏️</button>
-          <button class="btn-eliminar" onclick="eliminar(${p.id})">❌</button>
-        </td>
+        <td><button onclick="abrirModal(${p.id})">✏️ Editar</button></td>
       </tr>
     `).join('');
   }
 
-  function abrirModal(id) {
-    supabase.from('pedidos').select('*').eq('id', id).single().then(({data}) => {
-      document.getElementById("editId").value = data.id;
-      document.getElementById("editTecnico").value = data.tecnico || '';
-      document.getElementById("editDataPedido").value = data.data_hora_pedido ? data.data_hora_pedido.slice(0, 16) : '';
-      document.getElementById("editRequerente").value = data.requerente || '';
-      document.getElementById("editEmpresa").value = data.empresa || '';
-      document.getElementById("editVia").value = data.via || '';
-      document.getElementById("editLocal").value = data.local_obra || '';
-      document.getElementById("editServico").value = data.servico || '';
-      document.getElementById("editObservacao").value = data.observacao || '';
-      document.getElementById("editFrequencia").value = data.frequencia || '';
-      document.getElementById("editDataLimite").value = data.data_hora_limite ? data.data_hora_limite.slice(0, 16) : '';
-      document.getElementById("editEstado").value = data.estado || 'Pendente';
-      document.getElementById("editModal").style.display = "flex";
-    });
+  async function abrirModal(id) {
+    const { data } = await supabase.from('pedidos').select('*').eq('id', id).single();
+    document.getElementById("editId").value = data.id;
+    document.getElementById("editTecnico").value = data.tecnico || '';
+    document.getElementById("editDataPedido").value = data.data_hora_pedido ? data.data_hora_pedido.slice(0, 16) : '';
+    document.getElementById("editRequerente").value = data.requerente || '';
+    document.getElementById("editEmpresa").value = data.empresa || '';
+    document.getElementById("editVia").value = data.via || '';
+    document.getElementById("editLocal").value = data.local_obra || '';
+    document.getElementById("editConcelho").value = data.concelho || '';
+    document.getElementById("editServico").value = data.servico || '';
+    document.getElementById("editObservacao").value = data.observacao || '';
+    document.getElementById("editTipoTrabalho").value = data.tipo_trabalho || '';
+    document.getElementById("editFrequencia").value = data.frequencia || '';
+    document.getElementById("editTempoDedicado").value = data.tempo_dedicado || '';
+    document.getElementById("editDataLimite").value = data.data_hora_limite ? data.data_hora_limite.slice(0, 16) : '';
+    document.getElementById("editEstado").value = data.estado || 'Pendente';
+    document.getElementById("editModal").style.display = "flex";
   }
-
-  function fecharModal() { document.getElementById("editModal").style.display = "none"; }
 
   async function guardarEdicao() {
     const id = document.getElementById("editId").value;
@@ -145,23 +142,18 @@
       empresa: document.getElementById("editEmpresa").value,
       via: document.getElementById("editVia").value,
       local_obra: document.getElementById("editLocal").value,
+      concelho: document.getElementById("editConcelho").value,
       servico: document.getElementById("editServico").value,
       observacao: document.getElementById("editObservacao").value,
+      tipo_trabalho: document.getElementById("editTipoTrabalho").value,
       frequencia: document.getElementById("editFrequencia").value,
+      tempo_dedicado: document.getElementById("editTempoDedicado").value,
       data_hora_limite: document.getElementById("editDataLimite").value,
       estado: document.getElementById("editEstado").value
     }).eq('id', id);
 
     if (error) alert("Erro: " + error.message);
-    else { alert("Atualizado com sucesso!"); fecharModal(); carregarPedidos(); }
-  }
-
-  async function eliminar(id) {
-    if (confirm("Confirmar exclusão?")) {
-      const { error } = await supabase.from('pedidos').delete().eq('id', id);
-      if (error) alert("Erro: " + error.message);
-      else carregarPedidos();
-    }
+    else { alert("Sucesso!"); document.getElementById('editModal').style.display='none'; carregarPedidos(); }
   }
 </script>
 </body>
