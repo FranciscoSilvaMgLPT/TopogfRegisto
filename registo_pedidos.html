@@ -109,7 +109,7 @@
       const dataObj = Object.fromEntries(formData.entries());
 
       // 1. Enviar para Supabase
-      const { error } = await supabaseClient.from('NOME_DA_SUA_TABELA').insert([dataObj]);
+      const { error } = await supabaseClient.from('pedidos').insert([dataObj]);
       if (error) { alert("Erro DB: " + error.message); btn.disabled = false; return; }
 
       // 2. Enviar para Web3Forms
