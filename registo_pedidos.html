@@ -91,16 +91,15 @@
   </div>
 
   <script>
-    const supabaseClient = supabase.createClient('https://dunondjiqawovisnwavg.supabase.co', 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs');
-
+const supabaseUrl = 'https://dunondjiqawovisnwavg.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
     window.onload = async () => {
       const { data } = await supabaseClient.auth.getSession();
       if (!data.session) window.location.href = 'index.html';
       else document.getElementById('user-display').innerText = data.session.user.email;
     };
-const supabaseUrl = 'https://dunondjiqawovisnwavg.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
-const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
     form.addEventListener("submit", async (e) => {
   e.preventDefault();
   const btn = document.getElementById("btnEnviar");
