@@ -99,27 +99,38 @@
       else document.getElementById('user-display').innerText = data.session.user.email;
     };
 
-    const form = document.getElementById("formulario");
     form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const btn = document.getElementById("btnEnviar");
-      btn.disabled = true; btn.innerText = "A gravar...";
+  e.preventDefault();
+  const btn = document.getElementById("btnEnviar");
+  btn.disabled = true; btn.innerText = "A gravar...";
 
-      const formData = new FormData(form);
-      const dataObj = Object.fromEntries(formData.entries());
+  const formData = new FormData(form);
+  const dataObj = Object.fromEntries(formData.entries());
 
-      // 1. Enviar para Supabase
-      const { error } = await supabaseClient.from('pedidos').insert([dataObj]);
-      if (error) { alert("Erro DB: " + error.message); btn.disabled = false; return; }
+  // --- FIX STARTS HERE ---
+  // Create a copy of the data without the access_key for Supabase
+  const supabaseData = { ...dataObj };
+  delete supabaseData.access_key; 
+  // --- FIX ENDS HERE ---
 
-      // 2. Enviar para Web3Forms
-      const response = await fetch("https://api.web3forms.com/submit", { method: "POST", body: formData });
-      if (response.ok) {
-        document.getElementById("successMessage").style.display = "block";
-        form.reset();
-      }
-      btn.disabled = false; btn.innerText = "Enviar Pedido";
-    });
+  // 1. Enviar para Supabase (use the cleaned data)
+  const { error } = await supabaseClient.from('pedidos').insert([supabaseData]);
+  if (error) { 
+      console.error(error); // Helpful for debugging
+      alert("Erro DB: " + error.message); 
+      btn.disabled = false; 
+      btn.innerText = "Enviar Pedido";
+      return; 
+  }
+
+  // 2. Enviar para Web3Forms (use the original formData)
+  const response = await fetch("https://api.web3forms.com/submit", { method: "POST", body: formData });
+  if (response.ok) {
+    document.getElementById("successMessage").style.display = "block";
+    form.reset();
+  }
+  btn.disabled = false; btn.innerText = "Enviar Pedido";
+});
   </script>
 </body>
 </html>
