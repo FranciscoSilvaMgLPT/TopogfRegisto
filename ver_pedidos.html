@@ -2,17 +2,18 @@
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
-    <title>Histórico de Pedidos1</title>
+    <title>Histórico de Pedidos</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        body { background-color: #0f172a; color: white; font-family: sans-serif; padding: 20px; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; color: #fff; font-size: 14px; }
-        th, td { border: 1px solid #444; padding: 8px; text-align: left; }
+        th, td { border: 1px solid #444; padding: 10px; text-align: left; }
         th { background-color: #1e293b; }
     </style>
 </head>
-<body style="background-color: #0f172a; color: white; font-family: sans-serif; padding: 20px;">
+<body>
 
-    <div>Utilizador: <span id="utilizador-info">A carregar...</span></div>
+    <div>Utilizador: <strong id="utilizador-info">A verificar...</strong></div>
     <h1>Histórico de Pedidos</h1>
 
     <table id="tabela-pedidos">
@@ -34,45 +35,70 @@
                 <th>Estado</th>
             </tr>
         </thead>
-        <tbody></tbody>
+        <tbody id="corpo-tabela">
+            </tbody>
     </table>
 
     <script>
+        // Substitui pelas tuas credenciais REAIS após regenerar a chave
         const supabaseUrl = 'https://dunondjiqawovisnwavg.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro'; 
+        
+        // Inicialização correta
         const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
         async function carregarDados() {
+            // 1. Verifica autenticação
             const { data: { session } } = await supabase.auth.getSession();
-            if (!session) { window.location.href = 'login.html'; return; }
+            
+            if (!session) {
+                console.warn("Sem sessão, redirecionando...");
+                window.location.href = 'login.html';
+                return;
+            }
+
             document.getElementById('utilizador-info').innerText = session.user.email;
 
-            const { data, error } = await supabase.from('pedidos').select('*');
-            if (error) { console.error(error); return; }
+            // 2. Busca dados
+            const { data, error } = await supabase
+                .from('pedidos')
+                .select('*');
 
-            const tbody = document.querySelector('tbody');
-            tbody.innerHTML = ''; 
+            if (error) {
+                console.error("Erro ao buscar pedidos:", error);
+                alert("Erro ao carregar dados. Verifica a consola (F12).");
+                return;
+            }
 
-            data.forEach(p => {
-                const row = `<tr>
-                    <td>${p.tecnico || ''}</td>
-                    <td>${p.data_hora_pedido || ''}</td>
-                    <td>${p.requerente || ''}</td>
-                    <td>${p.empresa || ''}</td>
-                    <td>${p.via || ''}</td>
-                    <td>${p.local_obra || ''}</td>
-                    <td>${p.concelho || ''}</td>
-                    <td>${p.servico || ''}</td>
-                    <td>${p.observacao || ''}</td>
-                    <td>${p.tipo_trabalho || ''}</td>
-                    <td>${p.frequencia || ''}</td>
-                    <td>${p.tempo_dedicado || ''}</td>
-                    <td>${p.data_hora_limite || ''}</td>
-                    <td>${p.estado || ''}</td>
-                </tr>`;
-                tbody.innerHTML += row;
-            });
+            // 3. Preenche tabela
+            const tbody = document.getElementById('corpo-tabela');
+            tbody.innerHTML = '';
+
+            if (data && data.length > 0) {
+                data.forEach(p => {
+                    const row = `<tr>
+                        <td>${p.tecnico || ''}</td>
+                        <td>${p.data_hora_pedido || ''}</td>
+                        <td>${p.requerente || ''}</td>
+                        <td>${p.empresa || ''}</td>
+                        <td>${p.via || ''}</td>
+                        <td>${p.local_obra || ''}</td>
+                        <td>${p.concelho || ''}</td>
+                        <td>${p.servico || ''}</td>
+                        <td>${p.observacao || ''}</td>
+                        <td>${p.tipo_trabalho || ''}</td>
+                        <td>${p.frequencia || ''}</td>
+                        <td>${p.tempo_dedicado || ''}</td>
+                        <td>${p.data_hora_limite || ''}</td>
+                        <td>${p.estado || ''}</td>
+                    </tr>`;
+                    tbody.innerHTML += row;
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="14">Nenhum pedido encontrado.</td></tr>';
+            }
         }
+
         carregarDados();
     </script>
 </body>
