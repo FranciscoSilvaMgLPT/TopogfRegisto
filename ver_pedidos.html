@@ -2,60 +2,78 @@
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
-    <title>Ver Pedidos</title>
-    <!-- Importação do Supabase SDK -->
+    <title>Histórico de Pedidos</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; color: #fff; font-size: 14px; }
+        th, td { border: 1px solid #444; padding: 8px; text-align: left; }
+        th { background-color: #1e293b; }
+    </style>
 </head>
-<body>
+<body style="background-color: #0f172a; color: white; font-family: sans-serif; padding: 20px;">
 
-    <h1>Meus Pedidos</h1>
-    <div id="lista-pedidos">A carregar pedidos...</div>
+    <div>Utilizador: <span id="utilizador-info">A carregar...</span></div>
+    <h1>Histórico de Pedidos</h1>
+
+    <table id="tabela-pedidos">
+        <thead>
+            <tr>
+                <th>Técnico</th>
+                <th>Data Pedido</th>
+                <th>Requerente</th>
+                <th>Empresa</th>
+                <th>Via</th>
+                <th>Local</th>
+                <th>Concelho</th>
+                <th>Serviço</th>
+                <th>Observação</th>
+                <th>Tipo Trabalho</th>
+                <th>Frequência</th>
+                <th>Tempo Dedicado</th>
+                <th>Data Limite</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
 
     <script>
-        // Configurações do teu projeto (Substitui pelos teus dados reais)
         const supabaseUrl = 'https://dunondjiqawovisnwavg.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
-        const supabase = supabaseClient.createClient(supabaseUrl, supabaseKey);
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-        async function carregarPedidos() {
-            // 1. Verifica se o utilizador está autenticado
+        async function carregarDados() {
             const { data: { session } } = await supabase.auth.getSession();
-            
-            if (!session) {
-                // Redirecionar para login se não estiver autenticado
-                window.location.href = 'login.html';
-                return;
-            }
+            if (!session) { window.location.href = 'login.html'; return; }
+            document.getElementById('utilizador-info').innerText = session.user.email;
 
-            // 2. Busca os pedidos
-            const { data, error } = await supabase
-                .from('pedidos')
-                .select('*');
+            const { data, error } = await supabase.from('pedidos').select('*');
+            if (error) { console.error(error); return; }
 
-            if (error) {
-                document.getElementById('lista-pedidos').innerText = 'Erro ao carregar: ' + error.message;
-            } else {
-                renderizarPedidos(data);
-            }
-        }
+            const tbody = document.querySelector('tbody');
+            tbody.innerHTML = ''; 
 
-        function renderizarPedidos(pedidos) {
-            const container = document.getElementById('lista-pedidos');
-            if (pedidos.length === 0) {
-                container.innerText = 'Não existem pedidos.';
-                return;
-            }
-            
-            let html = '<ul>';
-            pedidos.forEach(p => {
-                html += `<li>Pedido ID: ${p.id} - Data: ${p.created_at}</li>`;
+            data.forEach(p => {
+                const row = `<tr>
+                    <td>${p.tecnico || ''}</td>
+                    <td>${p.data_hora_pedido || ''}</td>
+                    <td>${p.requerente || ''}</td>
+                    <td>${p.empresa || ''}</td>
+                    <td>${p.via || ''}</td>
+                    <td>${p.local_obra || ''}</td>
+                    <td>${p.concelho || ''}</td>
+                    <td>${p.servico || ''}</td>
+                    <td>${p.observacao || ''}</td>
+                    <td>${p.tipo_trabalho || ''}</td>
+                    <td>${p.frequencia || ''}</td>
+                    <td>${p.tempo_dedicado || ''}</td>
+                    <td>${p.data_hora_limite || ''}</td>
+                    <td>${p.estado || ''}</td>
+                </tr>`;
+                tbody.innerHTML += row;
             });
-            html += '</ul>';
-            container.innerHTML = html;
         }
-
-        // Executar ao carregar
-        carregarPedidos();
+        carregarDados();
     </script>
 </body>
 </html>
