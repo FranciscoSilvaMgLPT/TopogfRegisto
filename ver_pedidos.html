@@ -1,160 +1,61 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-  <meta charset="UTF-8">
-  <title>Histórico Completo de Pedidos</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    body { background: #0f172a; color: white; padding: 20px; font-family: Arial, sans-serif; }
-    .container { max-width: 1450px; margin: auto; background: #1e293b; padding: 25px; border-radius: 15px; }
-    .user-info { color: #60a5fa; margin-bottom: 15px; }
-    
-    /* Scroll para tabelas largas */
-    .table-responsive { width: 100%; overflow-x: auto; margin-top: 20px; }
-    table { width: 100%; border-collapse: collapse; min-width: 1400px; }
-    th, td { padding: 12px; border-bottom: 1px solid #334155; text-align: left; font-size: 13px; }
-    th { background: #334155; color: #cbd5e1; }
-    
-    /* Modal */
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; }
-    .modal-content { background: #1e293b; padding: 25px; border-radius: 15px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .full { grid-column: 1 / -1; }
-    input, textarea, select { width: 100%; padding: 10px; background: #334155; border: none; color: white; border-radius: 5px; margin-top: 5px; }
-    button { padding: 10px 20px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; margin-top: 10px; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Ver Pedidos</title>
+    <!-- Importação do Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-<div class="container">
-  <div class="user-info">Utilizador: <span id="user-display">A carregar...</span></div>
-  <div style="display:flex; justify-content:space-between; align-items:center;">
-    <h1>Histórico de Pedidos</h1>
-    <a href="index.html" style="color:white; text-decoration:none; background:#334155; padding:8px 15px; border-radius:5px;">⬅ Voltar</a>
-  </div>
+    <h1>Meus Pedidos</h1>
+    <div id="lista-pedidos">A carregar pedidos...</div>
 
-  <div class="table-responsive">
-    <table id="tabelaPedidos">
-      <thead>
-        <tr>
-          <th>Técnico</th><th>Data Pedido</th><th>Requerente</th><th>Empresa</th><th>Via</th>
-          <th>Local</th><th>Concelho</th><th>Serviço</th><th>Trabalho</th><th>Frequência</th><th>Estado</th><th>Ações</th>
-        </tr>
-      </thead>
-      <tbody id="corpoTabela"></tbody>
-    </table>
-  </div>
-</div>
+    <script>
+        // Configurações do teu projeto (Substitui pelos teus dados reais)
+        const supabaseUrl = 'https://dunondjiqawovisnwavg.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
+        const supabase = supabaseClient.createClient(supabaseUrl, supabaseKey);
 
-<div id="editModal" class="modal">
-  <div class="modal-content">
-    <h2>Editar Pedido</h2>
-    <input type="hidden" id="editId">
-    <div class="grid">
-      <input type="text" id="editTecnico" placeholder="Técnico">
-      <input type="datetime-local" id="editDataPedido">
-      <input type="text" id="editRequerente" placeholder="Requerente">
-      <input type="text" id="editEmpresa" placeholder="Empresa">
-      <input type="text" id="editVia" placeholder="Via">
-      <input type="text" id="editLocal" placeholder="Local / Obra">
-      <input type="text" id="editConcelho" placeholder="Concelho">
-      <input type="text" id="editTipoTrabalho" placeholder="Tipo de Trabalho">
-      <input type="text" id="editFrequencia" placeholder="Frequência">
-      <input type="text" id="editTempoDedicado" placeholder="Tempo Dedicado">
-      <textarea id="editServico" class="full" placeholder="Serviço"></textarea>
-      <textarea id="editObservacao" class="full" placeholder="Observação"></textarea>
-      <input type="datetime-local" id="editDataLimite">
-      <select id="editEstado">
-        <option value="Pendente">Pendente</option>
-        <option value="Em curso">Em curso</option>
-        <option value="Concluído">Concluído</option>
-      </select>
-    </div>
-    <button onclick="guardarEdicao()" style="background:#2563eb; color:white;">Guardar Alterações</button>
-    <button onclick="document.getElementById('editModal').style.display='none'" style="background:#475569; color:white;">Cancelar</button>
-  </div>
-</div>
+        async function carregarPedidos() {
+            // 1. Verifica se o utilizador está autenticado
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (!session) {
+                // Redirecionar para login se não estiver autenticado
+                window.location.href = 'login.html';
+                return;
+            }
 
-<script>
-  // Inicialização ÚNICA
-  const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
-  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            // 2. Busca os pedidos
+            const { data, error } = await supabase
+                .from('pedidos')
+                .select('*');
 
-  window.onload = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { window.location.href = 'index.html'; }
-    else {
-      document.getElementById('user-display').innerText = session.user.email;
-      carregarPedidos();
-    }
-  };
+            if (error) {
+                document.getElementById('lista-pedidos').innerText = 'Erro ao carregar: ' + error.message;
+            } else {
+                renderizarPedidos(data);
+            }
+        }
 
-  async function carregarPedidos() {
-    const { data, error } = await supabase.from('pedidos').select('*').order('created_at', { ascending: false });
-    if (error) { alert("Erro ao carregar: " + error.message); return; }
-    
-    const tbody = document.getElementById("corpoTabela");
-    tbody.innerHTML = data.map(p => `
-      <tr>
-        <td>${p.tecnico || '-'}</td>
-        <td>${p.data_hora_pedido ? p.data_hora_pedido.slice(0, 10) : '-'}</td>
-        <td>${p.requerente || '-'}</td>
-        <td>${p.empresa || '-'}</td>
-        <td>${p.via || '-'}</td>
-        <td>${p.local_obra || '-'}</td>
-        <td>${p.concelho || '-'}</td>
-        <td>${p.servico || '-'}</td>
-        <td>${p.tipo_trabalho || '-'}</td>
-        <td>${p.frequencia || '-'}</td>
-        <td>${p.estado || 'Pendente'}</td>
-        <td><button onclick="abrirModal(${p.id})">✏️ Editar</button></td>
-      </tr>
-    `).join('');
-  }
+        function renderizarPedidos(pedidos) {
+            const container = document.getElementById('lista-pedidos');
+            if (pedidos.length === 0) {
+                container.innerText = 'Não existem pedidos.';
+                return;
+            }
+            
+            let html = '<ul>';
+            pedidos.forEach(p => {
+                html += `<li>Pedido ID: ${p.id} - Data: ${p.created_at}</li>`;
+            });
+            html += '</ul>';
+            container.innerHTML = html;
+        }
 
-  async function abrirModal(id) {
-    const { data } = await supabase.from('pedidos').select('*').eq('id', id).single();
-    document.getElementById("editId").value = data.id;
-    document.getElementById("editTecnico").value = data.tecnico || '';
-    document.getElementById("editDataPedido").value = data.data_hora_pedido ? data.data_hora_pedido.slice(0, 16) : '';
-    document.getElementById("editRequerente").value = data.requerente || '';
-    document.getElementById("editEmpresa").value = data.empresa || '';
-    document.getElementById("editVia").value = data.via || '';
-    document.getElementById("editLocal").value = data.local_obra || '';
-    document.getElementById("editConcelho").value = data.concelho || '';
-    document.getElementById("editServico").value = data.servico || '';
-    document.getElementById("editObservacao").value = data.observacao || '';
-    document.getElementById("editTipoTrabalho").value = data.tipo_trabalho || '';
-    document.getElementById("editFrequencia").value = data.frequencia || '';
-    document.getElementById("editTempoDedicado").value = data.tempo_dedicado || '';
-    document.getElementById("editDataLimite").value = data.data_hora_limite ? data.data_hora_limite.slice(0, 16) : '';
-    document.getElementById("editEstado").value = data.estado || 'Pendente';
-    document.getElementById("editModal").style.display = "flex";
-  }
-
-  async function guardarEdicao() {
-    const id = document.getElementById("editId").value;
-    const { error } = await supabase.from('pedidos').update({
-      tecnico: document.getElementById("editTecnico").value,
-      data_hora_pedido: document.getElementById("editDataPedido").value,
-      requerente: document.getElementById("editRequerente").value,
-      empresa: document.getElementById("editEmpresa").value,
-      via: document.getElementById("editVia").value,
-      local_obra: document.getElementById("editLocal").value,
-      concelho: document.getElementById("editConcelho").value,
-      servico: document.getElementById("editServico").value,
-      observacao: document.getElementById("editObservacao").value,
-      tipo_trabalho: document.getElementById("editTipoTrabalho").value,
-      frequencia: document.getElementById("editFrequencia").value,
-      tempo_dedicado: document.getElementById("editTempoDedicado").value,
-      data_hora_limite: document.getElementById("editDataLimite").value,
-      estado: document.getElementById("editEstado").value
-    }).eq('id', id);
-
-    if (error) alert("Erro: " + error.message);
-    else { alert("Sucesso!"); document.getElementById('editModal').style.display='none'; carregarPedidos(); }
-  }
-</script>
+        // Executar ao carregar
+        carregarPedidos();
+    </script>
 </body>
 </html>
