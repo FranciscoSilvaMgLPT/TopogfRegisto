@@ -6,88 +6,101 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { background-color: #0f172a; color: white; font-family: sans-serif; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; color: #fff; font-size: 14px; }
-        th, td { border: 1px solid #444; padding: 10px; text-align: left; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; color: #fff; font-size: 13px; }
+        th, td { border: 1px solid #444; padding: 8px; text-align: left; }
         th { background-color: #1e293b; }
+        input { width: 90%; background: #334155; color: white; border: 1px solid #475569; padding: 4px; }
+        button { cursor: pointer; padding: 5px 10px; background: #3b82f6; border: none; color: white; border-radius: 4px; }
+        .btn-salvar { background: #22c55e; }
     </style>
 </head>
 <body>
 
-    <div>Utilizador: <strong id="utilizador-info">A verificar...</strong></div>
-    <h1>Histórico de Pedidos1</h1>
+    <div>Utilizador: <strong id="utilizador-info" style="font-weight: bold; color: #60a5fa;">A verificar...</strong></div>
+    <h1>Histórico de Pedidos</h1>
 
     <table id="tabela-pedidos">
         <thead>
             <tr>
-                <th>Técnico</th>
-                <th>Data Pedido</th>
-                <th>Requerente</th>
-                <th>Empresa</th>
-                <th>Via</th>
-                <th>Local</th>
-                <th>Concelho</th>
-                <th>Serviço</th>
-                <th>Observação</th>
-                <th>Tipo Trabalho</th>
-                <th>Frequência</th>
-                <th>Tempo Dedicado</th>
-                <th>Data Limite</th>
-                <th>Estado</th>
+                <th>Técnico</th><th>Data Pedido</th><th>Requerente</th><th>Empresa</th><th>Via</th>
+                <th>Local</th><th>Concelho</th><th>Serviço</th><th>Obs</th><th>Tipo</th><th>Freq</th>
+                <th>Tempo</th><th>Limite</th><th>Estado</th><th>Ações</th>
             </tr>
         </thead>
         <tbody id="corpo-tabela"></tbody>
     </table>
 
     <script>
-        // Configuração
         const supabaseUrl = 'https://dunondjiqawovisnwavg.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
-
-        // Inicialização global única
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro'; 
         const sbClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-        async function iniciarPagina() {
-            // 1. Verifica sessão
+        async function carregarDados() {
             const { data: { session } } = await sbClient.auth.getSession();
-            
-            if (!session) {
-                window.location.href = 'login.html';
-                return;
-            }
-
+            if (!session) { window.location.href = 'login.html'; return; }
             document.getElementById('utilizador-info').innerText = session.user.email;
 
-            // 2. Busca dados
-            const { data, error } = await sbClient
-                .from('pedidos')
-                .select('*');
+            const { data, error } = await sbClient.from('pedidos').select('*');
+            if (error) { console.error(error); return; }
 
-            if (error) {
-                console.error("Erro ao buscar:", error);
-                return;
-            }
-
-            // 3. Renderiza
             const tbody = document.getElementById('corpo-tabela');
-            tbody.innerHTML = (data || []).map(p => `<tr>
-                <td>${p.tecnico || ''}</td>
-                <td>${p.data_hora_pedido || ''}</td>
-                <td>${p.requerente || ''}</td>
-                <td>${p.empresa || ''}</td>
-                <td>${p.via || ''}</td>
-                <td>${p.local_obra || ''}</td>
-                <td>${p.concelho || ''}</td>
-                <td>${p.servico || ''}</td>
-                <td>${p.observacao || ''}</td>
-                <td>${p.tipo_trabalho || ''}</td>
-                <td>${p.frequencia || ''}</td>
-                <td>${p.tempo_dedicado || ''}</td>
-                <td>${p.data_hora_limite || ''}</td>
-                <td>${p.estado || ''}</td>
-            </tr>`).join('');
+            tbody.innerHTML = (data || []).map(p => `
+                <tr id="row-${p.id}">
+                    <td>${p.tecnico || ''}</td>
+                    <td>${p.data_hora_pedido || ''}</td>
+                    <td>${p.requerente || ''}</td>
+                    <td>${p.empresa || ''}</td>
+                    <td>${p.via || ''}</td>
+                    <td>${p.local_obra || ''}</td>
+                    <td>${p.concelho || ''}</td>
+                    <td>${p.servico || ''}</td>
+                    <td>${p.observacao || ''}</td>
+                    <td>${p.tipo_trabalho || ''}</td>
+                    <td>${p.frequencia || ''}</td>
+                    <td>${p.tempo_dedicado || ''}</td>
+                    <td>${p.data_hora_limite || ''}</td>
+                    <td>${p.estado || ''}</td>
+                    <td><button onclick="editarLinha(${p.id})">Editar</button></td>
+                </tr>`).join('');
         }
 
-        iniciarPagina();
+        window.editarLinha = function(id) {
+            const row = document.getElementById(`row-${id}`);
+            const cells = row.querySelectorAll('td');
+            // Transforma quase todas as células em inputs
+            for (let i = 0; i < cells.length - 1; i++) {
+                const val = cells[i].innerText;
+                cells[i].innerHTML = `<input type="text" value="${val}" id="input-${id}-${i}">`;
+            }
+            cells[cells.length - 1].innerHTML = `<button class="btn-salvar" onclick="salvarLinha(${id})">Salvar</button>`;
+        };
+
+        window.salvarLinha = async function(id) {
+            const row = document.getElementById(`row-${id}`);
+            const inputs = row.querySelectorAll('input');
+            
+            const updates = {
+                tecnico: inputs[0].value,
+                requerente: inputs[2].value,
+                empresa: inputs[3].value,
+                via: inputs[4].value,
+                local_obra: inputs[5].value,
+                concelho: inputs[6].value,
+                servico: inputs[7].value,
+                observacao: inputs[8].value,
+                tipo_trabalho: inputs[9].value,
+                frequencia: inputs[10].value,
+                tempo_dedicado: inputs[11].value,
+                estado: inputs[13].value
+            };
+
+            const { error } = await sbClient.from('pedidos').update(updates).eq('id', id);
+            
+            if (error) { alert('Erro ao salvar: ' + error.message); } 
+            else { alert('Guardado com sucesso!'); carregarDados(); }
+        };
+
+        carregarDados();
     </script>
 </body>
 </html>
