@@ -14,7 +14,7 @@
 <body>
 
     <div>Utilizador: <strong id="utilizador-info">A verificar...</strong></div>
-    <h1>Histórico de Pedidos</h1>
+    <h1>Histórico de Pedidos1</h1>
 
     <table id="tabela-pedidos">
         <thead>
@@ -35,24 +35,22 @@
                 <th>Estado</th>
             </tr>
         </thead>
-        <tbody id="corpo-tabela">
-            </tbody>
+        <tbody id="corpo-tabela"></tbody>
     </table>
 
     <script>
-        // Substitui pelas tuas credenciais REAIS após regenerar a chave
+        // Configuração
         const supabaseUrl = 'https://dunondjiqawovisnwavg.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro'; 
-        
-        // Inicialização correta
-        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
 
-        async function carregarDados() {
-            // 1. Verifica autenticação
-            const { data: { session } } = await supabase.auth.getSession();
+        // Inicialização global única
+        const sbClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        async function iniciarPagina() {
+            // 1. Verifica sessão
+            const { data: { session } } = await sbClient.auth.getSession();
             
             if (!session) {
-                console.warn("Sem sessão, redirecionando...");
                 window.location.href = 'login.html';
                 return;
             }
@@ -60,46 +58,36 @@
             document.getElementById('utilizador-info').innerText = session.user.email;
 
             // 2. Busca dados
-            const { data, error } = await supabase
+            const { data, error } = await sbClient
                 .from('pedidos')
                 .select('*');
 
             if (error) {
-                console.error("Erro ao buscar pedidos:", error);
-                alert("Erro ao carregar dados. Verifica a consola (F12).");
+                console.error("Erro ao buscar:", error);
                 return;
             }
 
-            // 3. Preenche tabela
+            // 3. Renderiza
             const tbody = document.getElementById('corpo-tabela');
-            tbody.innerHTML = '';
-
-            if (data && data.length > 0) {
-                data.forEach(p => {
-                    const row = `<tr>
-                        <td>${p.tecnico || ''}</td>
-                        <td>${p.data_hora_pedido || ''}</td>
-                        <td>${p.requerente || ''}</td>
-                        <td>${p.empresa || ''}</td>
-                        <td>${p.via || ''}</td>
-                        <td>${p.local_obra || ''}</td>
-                        <td>${p.concelho || ''}</td>
-                        <td>${p.servico || ''}</td>
-                        <td>${p.observacao || ''}</td>
-                        <td>${p.tipo_trabalho || ''}</td>
-                        <td>${p.frequencia || ''}</td>
-                        <td>${p.tempo_dedicado || ''}</td>
-                        <td>${p.data_hora_limite || ''}</td>
-                        <td>${p.estado || ''}</td>
-                    </tr>`;
-                    tbody.innerHTML += row;
-                });
-            } else {
-                tbody.innerHTML = '<tr><td colspan="14">Nenhum pedido encontrado.</td></tr>';
-            }
+            tbody.innerHTML = (data || []).map(p => `<tr>
+                <td>${p.tecnico || ''}</td>
+                <td>${p.data_hora_pedido || ''}</td>
+                <td>${p.requerente || ''}</td>
+                <td>${p.empresa || ''}</td>
+                <td>${p.via || ''}</td>
+                <td>${p.local_obra || ''}</td>
+                <td>${p.concelho || ''}</td>
+                <td>${p.servico || ''}</td>
+                <td>${p.observacao || ''}</td>
+                <td>${p.tipo_trabalho || ''}</td>
+                <td>${p.frequencia || ''}</td>
+                <td>${p.tempo_dedicado || ''}</td>
+                <td>${p.data_hora_limite || ''}</td>
+                <td>${p.estado || ''}</td>
+            </tr>`).join('');
         }
 
-        carregarDados();
+        iniciarPagina();
     </script>
 </body>
 </html>
