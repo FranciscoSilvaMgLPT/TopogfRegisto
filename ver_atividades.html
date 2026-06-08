@@ -90,12 +90,11 @@ window.salvarLinha = async function(id) {
     const row = document.getElementById(`row-${id}`);
     const inputs = row.querySelectorAll('input');
     
-    // Função auxiliar para validar datas
-    const formatarData = (valor) => (valor && valor.trim() !== '-' ? valor : null);
+    // Agora verifica se o valor é nulo, indefinido ou uma string vazia
+    const formatarData = (valor) => (valor && valor.trim() !== '' ? valor : null);
 
     const updates = {
         tecnico: inputs[0].value,
-        // Usamos a função para garantir que se for "-" ou vazio, envia null
         data_hora_inicio: formatarData(inputs[1].value),
         data_hora_fim: formatarData(inputs[2].value),
         local_obra: inputs[3].value,
