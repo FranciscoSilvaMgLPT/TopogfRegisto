@@ -49,7 +49,8 @@ async function carregarAtividades() {
     const { data, error } = await sbClient
         .from('atividades')
         .select('*')
-        .order('id', { ascending: false }); // Ordenar pelo ID mais recente
+        .order('id', { ascending: false })
+.range(0, 1000); // Ordenar pelo ID mais recente
 
     if (error) { console.error("Erro ao carregar:", error); return; }
 
@@ -61,18 +62,18 @@ async function carregarAtividades() {
         return;
     }
 
-    tbody.innerHTML = data.map(a => `
-        <tr id="row-${a.id}">
-            <td>${a.tecnico || '-'}</td>
-            <td>${a.data_hora_inicio || '-'}</td>
-            <td>${a.data_hora_fim || '-'}</td>
-            <td>${a.local_obra || '-'}</td>
-            <td>${a.servico || '-'}</td>
-            <td>
-                <button onclick="editarLinha(${a.id})">Editar</button>
-                <button class="btn-apagar" onclick="apagarLinha(${a.id})">Apagar</button>
-            </td>
-        </tr>`).join('');
+tbody.innerHTML = data.map(a => `
+    <tr id="row-${a.id}">
+        <td>${a.tecnico || ''}</td>
+        <td>${a.data_hora_inicio || ''}</td>
+        <td>${a.data_hora_fim || ''}</td>
+        <td>${a.local_obra || ''}</td>
+        <td>${a.servico || ''}</td>
+        <td>
+            <button onclick="editarLinha(${a.id})">Editar</button>
+            <button class="btn-apagar" onclick="apagarLinha(${a.id})">Apagar</button>
+        </td>
+    </tr>`).join('');
 }
 
         window.editarLinha = function(id) {
