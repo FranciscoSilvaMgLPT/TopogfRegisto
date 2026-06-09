@@ -21,6 +21,7 @@
     <div>Utilizador: <strong id="utilizador-info" style="font-weight: bold; color: #60a5fa;">A verificar...</strong></div>
 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
         <h1 style="margin: 0;">Histórico de Pedidos</h1>
+        <button onclick="exportarCSV()" style="background: #8b5cf6;">⬇ Exportar CSV</button>
         <a href="index.html" class="btn-voltar">⬅ Voltar</a>
     </div>
 
@@ -89,6 +90,37 @@
             carregarDados(); // Recarrega a tabela
         }
     };
+
+        window.exportarCSV = function() {
+    const tabela = document.getElementById('tabela-pedidos');
+    let csv = [];
+    
+    // Obter todas as linhas
+    const linhas = tabela.querySelectorAll('tr');
+    
+    for (let i = 0; i < linhas.length; i++) {
+        const linha = [];
+        const colunas = linhas[i].querySelectorAll('th, td');
+        
+        for (let j = 0; j < colunas.length - 1; j++) { // -1 para ignorar a coluna de "Ações"
+            let texto = colunas[j].innerText.replace(/"/g, '""'); // Escapar aspas
+            linha.push('"' + texto + '"'); // Envolver em aspas para segurança
+        }
+        csv.push(linha.join(';')); // Separador definido como ;
+    }
+    
+    // Criar o download
+    const csvContent = "\uFEFF" + csv.join('\n'); // \uFEFF garante compatibilidade com acentos no Excel
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", "historico_pedidos.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
 
         window.editarLinha = function(id) {
             const row = document.getElementById(`row-${id}`);
