@@ -4,28 +4,46 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel de Controlo - Login</title>
-<link rel="icon" type="image/jpeg" href="favicon.png">
+  <link rel="icon" type="image/jpeg" href="favicon.png">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <style>
-    body { background: #0f172a; font-family: 'Segoe UI', Arial, sans-serif; color: white; min-height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0; }
-    #login-box { background: #1e293b; padding: 40px; border-radius: 18px; text-align: center; width: 300px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+    body { background: #0f172a; font-family: 'Segoe UI', Arial, sans-serif; color: white; min-height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0; padding: 10px; }
+    
+    #login-box { background: #1e293b; padding: 40px; border-radius: 18px; text-align: center; width: 100%; max-width: 300px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+    
+    /* Regra responsiva para as imagens */
+    #login-box img, .menu-container img {
+        display: block;
+        margin: 0 auto 15px auto;
+        width: 100%;
+        max-width: 60px;
+        height: auto;
+    }
+
     input { padding: 12px; margin: 10px 0; border-radius: 5px; border: 1px solid #334155; width: 100%; box-sizing: border-box; background: #0f172a; color: white; }
     button { padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 5px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px; transition: background 0.3s; }
     button:hover { background: #2563eb; }
     button:disabled { background: #64748b; cursor: not-allowed; }
     
     #main-content { display: none; }
-    .menu-container { max-width: 600px; width: 90%; background: #1e293b; padding: 45px; border-radius: 18px; box-shadow: 0 0 30px rgba(0,0,0,0.4); text-align: center; }
+    .menu-container { max-width: 600px; width: 100%; background: #1e293b; padding: 30px; border-radius: 18px; box-shadow: 0 0 30px rgba(0,0,0,0.4); text-align: center; }
     .user-info { margin-bottom: 20px; color: #94a3b8; font-size: 0.9em; }
-    .grid-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top: 20px; }
-    .menu-card { background: #334155; padding: 25px; border-radius: 14px; text-decoration: none; color: white; display: flex; flex-direction: column; align-items: center; transition: transform 0.2s; font-size: 0.9em; }
+    .grid-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+    .menu-card { background: #334155; padding: 20px; border-radius: 14px; text-decoration: none; color: white; display: flex; flex-direction: column; align-items: center; transition: transform 0.2s; font-size: 0.9em; }
     .menu-card:hover { transform: scale(1.03); background: #475569; }
+
+    /* Ajuste para dispositivos móveis */
+    @media (max-width: 480px) {
+        .grid-menu { grid-template-columns: 1fr; }
+        .menu-container { padding: 20px; }
+    }
   </style>
 </head>
 <body>
 
   <div id="login-box">
+    <img src="favicon.png" alt="Logo">
     <h2>Login</h2>
     <input type="email" id="email" placeholder="Email">
     <input type="password" id="password" placeholder="Password">
@@ -33,6 +51,7 @@
   </div>
 
   <div id="main-content" class="menu-container">
+    <img src="favicon.png" alt="Logo">
     <div class="user-info">
       Logado como: <span id="user-email" style="font-weight: bold; color: #60a5fa;"></span>
     </div>
@@ -45,7 +64,7 @@
       <a href="ver_atividades.html" class="menu-card"><div>📈 Consultar Atividades</div></a>
     </div>
 
-    <button onclick="fazerLogout()" style="background:#ef4444; width: auto; margin-top:30px;">Sair da Conta</button>
+    <button onclick="fazerLogout()" style="background:#ef4444; width: auto; margin-top:30px; padding: 10px 20px;">Sair da Conta</button>
   </div>
 
   <script>
