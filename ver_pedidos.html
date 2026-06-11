@@ -91,26 +91,40 @@
         }
     };
 
-        window.exportarCSV = function() {
+window.exportarCSV = function() {
     const tabela = document.getElementById('tabela-pedidos');
     let csv = [];
     
-    // Obter todas as linhas
     const linhas = tabela.querySelectorAll('tr');
     
     for (let i = 0; i < linhas.length; i++) {
         const linha = [];
         const colunas = linhas[i].querySelectorAll('th, td');
         
-        for (let j = 0; j < colunas.length - 1; j++) { // -1 para ignorar a coluna de "Ações"
-            let texto = colunas[j].innerText.replace(/"/g, '""'); // Escapar aspas
-            linha.push('"' + texto + '"'); // Envolver em aspas para segurança
+        for (let j = 0; j < colunas.length - 1; j++) { 
+            let texto = colunas[j].innerText.trim().replace(/"/g, '""');
+            
+            if (j === 1 || j === 12) { 
+                if (i === 0) {
+                    linha.push('"Data"', '"Hora"');
+                } else {
+                    const partes = texto.split('T');
+                    const data = partes[0] || '';
+                    // Extrai apenas os 5 primeiros caracteres da hora (HH:mm)
+                    const horaCompleta = partes[1] || '';
+                    const horaFormatada = horaCompleta.substring(0, 5); 
+                    
+                    linha.push('"' + data + '"');
+                    linha.push('"' + horaFormatada + '"');
+                }
+            } else {
+                linha.push('"' + texto + '"');
+            }
         }
-        csv.push(linha.join(';')); // Separador definido como ;
+        csv.push(linha.join(';'));
     }
     
-    // Criar o download
-    const csvContent = "\uFEFF" + csv.join('\n'); // \uFEFF garante compatibilidade com acentos no Excel
+    const csvContent = "\uFEFF" + csv.join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
