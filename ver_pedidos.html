@@ -4,42 +4,37 @@
     <meta charset="UTF-8">
     <title>Histórico de Pedidos</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://unpkg.com/tabulator-tables@6.2.1/dist/css/tabulator_midnight.min.css" rel="stylesheet">
+    <script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.2.1/dist/js/tabulator.min.js"></script>
+    
     <style>
         body { background-color: #0f172a; color: white; font-family: sans-serif; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; color: #fff; font-size: 13px; }
-        th, td { border: 1px solid #444; padding: 8px; text-align: left; }
-        th { background-color: #1e293b; }
-        input { width: 90%; background: #334155; color: white; border: 1px solid #475569; padding: 4px; }
-        button { cursor: pointer; padding: 5px 10px; background: #3b82f6; border: none; color: white; border-radius: 4px; }
-        .btn-salvar { background: #22c55e; }
-         .btn-voltar { background: #334155; color: white; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: bold; }
-        .btn-apagar { background: #ef4444; margin-left: 5px; }
+        .btn-voltar { background: #334155; color: white; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: bold; }
+        #tabela-pedidos { margin-top: 20px; font-size: 12px; }
+        #filtro-pesquisa { width: 300px; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #475569; background: #1e293b; color: white; }
     </style>
 </head>
 <body>
 
     <div>Utilizador: <strong id="utilizador-info" style="font-weight: bold; color: #60a5fa;">A verificar...</strong></div>
-<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
         <h1 style="margin: 0;">Histórico de Pedidos</h1>
-        <button onclick="exportarCSV()" style="background: #8b5cf6;">⬇ Exportar CSV</button>
-        <a href="index.html" class="btn-voltar">⬅ Voltar</a>
+        <div>
+            <button onclick="downloadCSV()" style="background: #8b5cf6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">⬇ Exportar CSV</button>
+            <a href="index.html" class="btn-voltar">⬅ Voltar</a>
+        </div>
     </div>
 
-    <table id="tabela-pedidos">
-        <thead>
-            <tr>
-                <th>Técnico</th><th>Data Pedido</th><th>Requerente</th><th>Empresa</th><th>Via</th>
-                <th>Local</th><th>Concelho</th><th>Serviço</th><th>Obs</th><th>Tipo</th><th>Freq</th>
-                <th>Tempo</th><th>Limite</th><th>Estado</th><th>Ações</th>
-            </tr>
-        </thead>
-        <tbody id="corpo-tabela"></tbody>
-    </table>
+    <input type="text" id="filtro-pesquisa" placeholder="🔍 Pesquisar em todos os campos...">
+
+    <div id="tabela-pedidos"></div>
 
     <script>
         const supabaseUrl = 'https://dunondjiqawovisnwavg.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro'; 
         const sbClient = supabase.createClient(supabaseUrl, supabaseKey);
+        let table;
 
         async function carregarDados() {
             const { data: { session } } = await sbClient.auth.getSession();
@@ -49,128 +44,58 @@
             const { data, error } = await sbClient.from('pedidos').select('*');
             if (error) { console.error(error); return; }
 
-            const tbody = document.getElementById('corpo-tabela');
-            tbody.innerHTML = (data || []).map(p => `
-                <tr id="row-${p.id}">
-                    <td>${p.tecnico || ''}</td>
-                    <td>${p.data_hora_pedido || ''}</td>
-                    <td>${p.requerente || ''}</td>
-                    <td>${p.empresa || ''}</td>
-                    <td>${p.via || ''}</td>
-                    <td>${p.local_obra || ''}</td>
-                    <td>${p.concelho || ''}</td>
-                    <td>${p.servico || ''}</td>
-                    <td>${p.observacao || ''}</td>
-                    <td>${p.tipo_trabalho || ''}</td>
-                    <td>${p.frequencia || ''}</td>
-                    <td>${p.tempo_dedicado || ''}</td>
-                    <td>${p.data_hora_limite || ''}</td>
-                    <td>${p.estado || ''}</td>
-                    <td>
-    <button onclick="editarLinha(${p.id})">Editar</button>
-    <button class="btn-apagar" onclick="apagarLinha(${p.id})">Apagar</button>
-</td>
-                </tr>`).join('');
-        }
-
-        window.apagarLinha = async function(id) {
-        if (!confirm('Tem a certeza que deseja apagar este pedido? Esta ação não pode ser revertida.')) {
-            return;
-        }
-
-        const { error } = await sbClient
-            .from('pedidos')
-            .delete()
-            .eq('id', id);
-        
-        if (error) {
-            alert('Erro ao apagar: ' + error.message);
-        } else {
-            alert('Pedido apagado com sucesso!');
-            carregarDados(); // Recarrega a tabela
-        }
-    };
-
-window.exportarCSV = function() {
-    const tabela = document.getElementById('tabela-pedidos');
-    let csv = [];
-    
-    const linhas = tabela.querySelectorAll('tr');
-    
-    for (let i = 0; i < linhas.length; i++) {
-        const linha = [];
-        const colunas = linhas[i].querySelectorAll('th, td');
-        
-        for (let j = 0; j < colunas.length - 1; j++) { 
-            let texto = colunas[j].innerText.trim().replace(/"/g, '""');
-            
-            if (j === 1 || j === 12) { 
-                if (i === 0) {
-                    linha.push('"Data"', '"Hora"');
-                } else {
-                    const partes = texto.split('T');
-                    const data = partes[0] || '';
-                    // Extrai apenas os 5 primeiros caracteres da hora (HH:mm)
-                    const horaCompleta = partes[1] || '';
-                    const horaFormatada = horaCompleta.substring(0, 5); 
+            table = new Tabulator("#tabela-pedidos", {
+                data: data,
+                layout: "fitColumns",
+                pagination: "local",
+                paginationSize: 15,
+                columns: [
+                    {title: "Técnico", field: "tecnico", editor: "input"},
+                    {title: "Data Pedido", field: "data_hora_pedido", editor: "input"},
+                    {title: "Requerente", field: "requerente", editor: "input"},
+                    {title: "Empresa", field: "empresa", editor: "input"},
+                    {title: "Via", field: "via", editor: "input"},
+                    {title: "Local", field: "local_obra", editor: "input"},
+                    {title: "Concelho", field: "concelho", editor: "input"},
+                    {title: "Serviço", field: "servico", editor: "input"},
+                    {title: "Obs", field: "observacao", editor: "input"},
+                    {title: "Tipo", field: "tipo_trabalho", editor: "input"},
+                    {title: "Freq", field: "frequencia", editor: "input"},
+                    {title: "Tempo", field: "tempo_dedicado", editor: "input"},
+                    {title: "Limite", field: "data_hora_limite", editor: "input"},
+                    {title: "Estado", field: "estado", editor: "input"},
+                    {title: "Ações", formatter: function() { return "<button style='background:#ef4444; color:white; border:none; padding:2px 8px; border-radius:3px;'>Apagar</button>"; }, width: 80, hozAlign: "center", cellClick: function(e, cell) {
+                        if(confirm("Apagar este registo?")) {
+                            const id = cell.getRow().getData().id;
+                            sbClient.from('pedidos').delete().eq('id', id).then(() => cell.getRow().delete());
+                        }
+                    }}
+                ],
+                // Gravação Automática no Supabase ao editar
+                cellEdited: async function(cell) {
+                    const rowData = cell.getRow().getData();
+                    const field = cell.getField();
+                    const value = cell.getValue();
                     
-                    linha.push('"' + data + '"');
-                    linha.push('"' + horaFormatada + '"');
+                    const { error } = await sbClient.from('pedidos').update({ [field]: value }).eq('id', rowData.id);
+                    if (error) alert("Erro ao atualizar: " + error.message);
                 }
-            } else {
-                linha.push('"' + texto + '"');
-            }
+            });
+
+            // Filtro de Pesquisa Global
+            document.getElementById("filtro-pesquisa").addEventListener("keyup", function(){
+                table.setFilter(function(data){
+                    const termo = document.getElementById("filtro-pesquisa").value.toLowerCase();
+                    return Object.values(data).some(val => 
+                        String(val).toLowerCase().includes(termo)
+                    );
+                });
+            });
         }
-        csv.push(linha.join(';'));
-    }
-    
-    const csvContent = "\uFEFF" + csv.join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    
-    link.setAttribute("href", url);
-    link.setAttribute("download", "historico_pedidos.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-};
 
-        window.editarLinha = function(id) {
-            const row = document.getElementById(`row-${id}`);
-            const cells = row.querySelectorAll('td');
-            // Transforma quase todas as células em inputs
-            for (let i = 0; i < cells.length - 1; i++) {
-                const val = cells[i].innerText;
-                cells[i].innerHTML = `<input type="text" value="${val}" id="input-${id}-${i}">`;
-            }
-            cells[cells.length - 1].innerHTML = `<button class="btn-salvar" onclick="salvarLinha(${id})">Salvar</button>`;
-        };
-
-        window.salvarLinha = async function(id) {
-            const row = document.getElementById(`row-${id}`);
-            const inputs = row.querySelectorAll('input');
-            
-            const updates = {
-                tecnico: inputs[0].value,
-                requerente: inputs[2].value,
-                empresa: inputs[3].value,
-                via: inputs[4].value,
-                local_obra: inputs[5].value,
-                concelho: inputs[6].value,
-                servico: inputs[7].value,
-                observacao: inputs[8].value,
-                tipo_trabalho: inputs[9].value,
-                frequencia: inputs[10].value,
-                tempo_dedicado: inputs[11].value,
-                estado: inputs[13].value
-            };
-
-            const { error } = await sbClient.from('pedidos').update(updates).eq('id', id);
-            
-            if (error) { alert('Erro ao salvar: ' + error.message); } 
-            else { alert('Guardado com sucesso!'); carregarDados(); }
-        };
+        function downloadCSV() {
+            table.download("csv", "historico_pedidos.csv");
+        }
 
         carregarDados();
     </script>
