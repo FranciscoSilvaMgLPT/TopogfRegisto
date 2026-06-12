@@ -59,7 +59,7 @@
             <option value="Email">Email</option>
             <option value="Whatsapp">Whatsapp</option>
             <option value="Presencial">Presencial</option>
-            <option value="Outros">Outro</option>
+            <option value="Outros">Outros</option>
           </select>
         </div>
         <div id="campoOutroDiv" style="display: none;">
@@ -104,9 +104,9 @@
     const campoOutroDiv = document.getElementById("campoOutroDiv");
     const inputOutro = document.getElementById("inputOutro");
 
-    // Lógica mostrar/esconder "Outro"
+    // Lógica mostrar/esconder "Outros"
     viaSelect.addEventListener("change", (e) => {
-      if (e.target.value === "Outro") {
+      if (e.target.value === "Outros") {
         campoOutroDiv.style.display = "block";
         inputOutro.required = true;
       } else {
@@ -131,8 +131,8 @@
       const formData = new FormData(form);
       const supabaseData = Object.fromEntries(formData.entries());
       
-      // Lógica para combinar "Outro" no campo "via"
-      if (supabaseData.via === "Outro") {
+      // Lógica para combinar "Outros" no campo "via"
+      if (supabaseData.via === "Outros") {
         supabaseData.via = "Outro: " + supabaseData.via_outro;
       }
       delete supabaseData.via_outro;
