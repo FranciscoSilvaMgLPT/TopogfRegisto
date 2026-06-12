@@ -21,7 +21,8 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
         <h1 style="margin: 0;">Histórico de Pedidos</h1>
         <div>
-            <button onclick="downloadCSV()" style="background: #8b5cf6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">⬇ Exportar CSV</button>
+            <button onclick="guardarAlteracoes()" style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">💾 Guardar Alterações</button>
+            <button onclick="downloadCSV()" style="background: #8b5cf6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">⬇ Exportar CSV</button>
             <a href="index.html" class="btn-voltar">⬅ Voltar</a>
         </div>
     </div>
@@ -70,19 +71,9 @@
                             sbClient.from('pedidos').delete().eq('id', id).then(() => cell.getRow().delete());
                         }
                     }}
-                ],
-                // Gravação Automática no Supabase ao editar
-                cellEdited: async function(cell) {
-                    const rowData = cell.getRow().getData();
-                    const field = cell.getField();
-                    const value = cell.getValue();
-                    
-                    const { error } = await sbClient.from('pedidos').update({ [field]: value }).eq('id', rowData.id);
-                    if (error) alert("Erro ao atualizar: " + error.message);
-                }
+                ]
             });
 
-            // Filtro de Pesquisa Global
             document.getElementById("filtro-pesquisa").addEventListener("keyup", function(){
                 table.setFilter(function(data){
                     const termo = document.getElementById("filtro-pesquisa").value.toLowerCase();
@@ -91,6 +82,44 @@
                     );
                 });
             });
+        }
+
+        async function guardarAlteracoes() {
+            const dados = table.getData();
+            let sucesso = true;
+
+            for (const item of dados) {
+                const { error } = await sbClient
+                    .from('pedidos')
+                    .update({
+                        tecnico: item.tecnico,
+                        data_hora_pedido: item.data_hora_pedido,
+                        requerente: item.requerente,
+                        empresa: item.empresa,
+                        via: item.via,
+                        local_obra: item.local_obra,
+                        concelho: item.concelho,
+                        servico: item.servico,
+                        observacao: item.observacao,
+                        tipo_trabalho: item.tipo_trabalho,
+                        frequencia: item.frequencia,
+                        tempo_dedicado: item.tempo_dedicado,
+                        data_hora_limite: item.data_hora_limite,
+                        estado: item.estado
+                    })
+                    .eq('id', item.id);
+
+                if (error) {
+                    console.error("Erro ao atualizar ID " + item.id, error);
+                    sucesso = false;
+                }
+            }
+
+            if (sucesso) {
+                alert("Dados guardados com sucesso!");
+            } else {
+                alert("Ocorreu um erro ao guardar. Verifica a consola (F12).");
+            }
         }
 
         function downloadCSV() {
