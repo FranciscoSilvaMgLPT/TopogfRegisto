@@ -122,8 +122,39 @@
             }
         }
 
-        function downloadCSV() {
-            table.download("csv", "historico_pedidos.csv");
+     function downloadCSV() {
+            const dados = table.getData();
+            
+            // Cabeçalho com as colunas separadas
+            let csvContent = "\uFEFFTécnico,Data Pedido,Hora Pedido,Requerente,Empresa,Via,Local,Concelho,Serviço,Observação,Tipo,Frequência,Tempo,Data Limite,Hora Limite,Estado\n";
+
+            dados.forEach(row => {
+                // Separar Data e Hora do Pedido
+                const [dataPed, horaPed] = row.data_hora_pedido ? row.data_hora_pedido.split('T') : ["", ""];
+                // Separar Data e Hora Limite
+                const [dataLim, horaLim] = row.data_hora_limite ? row.data_hora_limite.split('T') : ["", ""];
+
+                // Montar a linha
+                const linha = [
+                    row.tecnico, dataPed, horaPed, row.requerente, row.empresa, 
+                    row.via, row.local_obra, row.concelho, row.servico, 
+                    row.observacao, row.tipo_trabalho, row.frequencia, 
+                    row.tempo_dedicado, dataLim, horaLim, row.estado
+                ].map(item => `"${(item || "").toString().replace(/"/g, '""')}"`).join(",");
+                
+                csvContent += linha + "\n";
+            });
+
+            // Criar o download
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", "historico_pedidos_separado.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         carregarDados();
