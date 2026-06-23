@@ -121,7 +121,7 @@
       else document.getElementById('user-display').innerText = data.session.user.email;
     });
 
-    form.addEventListener("submit", async (e) => {
+  form.addEventListener("submit", async (e) => {
       e.preventDefault();
       
       const btn = document.getElementById("btnEnviar");
@@ -135,16 +135,27 @@
       if (supabaseData.via === "Outros") {
         supabaseData.via = "Outro: " + supabaseData.via_outro;
       }
-      delete supabaseData.via_outro;
-      delete supabaseData.access_key;
+      
+      // 1. Gravar no Supabase
+      const dbData = { ...supabaseData };
+      delete dbData.via_outro;
+      delete dbData.access_key;
 
-      const { error } = await supabaseClient.from('pedidos').insert([supabaseData]);
+      const { error } = await supabaseClient.from('pedidos').insert([dbData]);
       
       if (error) { 
         alert("Erro DB: " + error.message); 
         btn.disabled = false; btn.innerText = "Enviar Pedido";
         return; 
       }
+
+      // 2. Preparar os dados para o Web3Forms
+      // Mantemos o formData original (que tem todos os campos para o email)
+      // E adicionamos o campo extra Linha_Excel
+      
+      const csvLine = `\uFEFF${supabaseData.tecnico},${supabaseData.data_hora_pedido},${supabaseData.requerente},${supabaseData.empresa},${supabaseData.via},${supabaseData.local_obra},${supabaseData.concelho},${supabaseData.servico},${supabaseData.observacao},${supabaseData.tipo_trabalho},${supabaseData.frequencia},${supabaseData.tempo_dedicado},${supabaseData.data_hora_limite}`;
+      
+      formData.append("Linha_Excel", csvLine);
 
       const response = await fetch("https://api.web3forms.com/submit", { 
         method: "POST", 
