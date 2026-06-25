@@ -46,15 +46,15 @@ function toggleConcluidos() {
     const btn = document.getElementById("btn-filtro-concluidos");
 
     if (mostrandoConcluidos) {
-        // Remove o filtro de estado
-        table.removeFilter("estado");
+        // Remove todos os filtros para voltar a mostrar tudo
+        table.clearFilter();
         btn.innerText = "✅ Ocultar Concluídos";
         btn.style.background = "#64748b";
     } else {
-        // Adiciona filtro para excluir variações de "concluido"
-        table.addFilter("estado", "function", function(dataValue, filterValue) {
-            const val = (dataValue || "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            return val !== "concluido";
+        // Aplica o filtro de exclusão
+        table.setFilter(function(data) {
+            const estado = (data.estado || "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            return estado !== "concluido";
         });
         btn.innerText = "👁️ Mostrar Tudo";
         btn.style.background = "#22c55e";
