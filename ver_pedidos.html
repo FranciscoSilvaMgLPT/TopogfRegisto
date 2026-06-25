@@ -18,14 +18,16 @@
 
     <div>Utilizador: <strong id="utilizador-info" style="font-weight: bold; color: #60a5fa;">A verificar...</strong></div>
     
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
-        <h1 style="margin: 0;">Histórico de Pedidos</h1>
-        <div>
-            <button onclick="guardarAlteracoes()" style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">💾 Guardar Alterações</button>
-            <button onclick="downloadCSV()" style="background: #8b5cf6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">⬇ Exportar CSV</button>
-            <a href="index.html" class="btn-voltar">⬅ Voltar</a>
-        </div>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+    <h1 style="margin: 0;">Histórico de Pedidos</h1>
+    <div>
+        <button onclick="window.location.href='https://franciscosilvamglpt.github.io/TopogfRegisto/registo_pedidos.html'" style="background: #3b82f6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">➕ Adicionar Pedido</button>
+        
+        <button onclick="guardarAlteracoes()" style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">💾 Guardar Alterações</button>
+        <button onclick="downloadCSV()" style="background: #8b5cf6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">⬇ Exportar CSV</button>
+        <a href="index.html" class="btn-voltar">⬅ Voltar</a>
     </div>
+</div>
 
     <input type="text" id="filtro-pesquisa" placeholder="🔍 Pesquisar">
 
