@@ -29,7 +29,7 @@
         </div>
     </div>
 
-    <input type="text" id="filtro-pesquisa" placeholder="🔍 Pesquisar">
+    <input type="text" id="filtro-pesquisa" placeholder="🔍 Pesquisar (ex: Francisco+Implantação)">
 
     <div id="tabela-pedidos"></div>
 
@@ -41,36 +41,25 @@
         let table;
         let mostrandoConcluidos = true;
 
-function aplicarFiltros() {
-    const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
-    
-    // Divide a pesquisa pelos sinais de "+"
-    const termos = input.split('+').map(t => t.trim()).filter(t => t !== "");
-    
-    table.setFilter(function(data) {
-        // 1. Filtro de Texto (Lógica "E" para múltiplos termos)
-        // A linha só passa se contiver TODOS os termos pesquisados
-        const matchTexto = termos.every(termo => 
-            Object.values(data).some(val => 
-                String(val).toLowerCase().includes(termo)
-            )
-        );
-        
-        // 2. Filtro de "Concluído"
-        const estado = (data.estado || "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        const matchEstado = mostrandoConcluidos ? true : (estado !== "concluido");
-        
-        return matchTexto && matchEstado;
-    });
-}
+        function aplicarFiltros() {
+            const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
+            const termos = input.split('+').map(t => t.trim()).filter(t => t !== "");
+            
+            table.setFilter(function(data) {
+                const matchTexto = termos.every(termo => 
+                    Object.values(data).some(val => String(val).toLowerCase().includes(termo))
+                );
+                const estado = (data.estado || "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const matchEstado = mostrandoConcluidos ? true : (estado !== "concluido");
+                return matchTexto && matchEstado;
+            });
+        }
 
         function toggleConcluidos() {
             mostrandoConcluidos = !mostrandoConcluidos;
             const btn = document.getElementById("btn-filtro-concluidos");
-            
             btn.innerText = mostrandoConcluidos ? "✅ Ocultar Concluídos" : "👁️ Mostrar Tudo";
             btn.style.background = mostrandoConcluidos ? "#64748b" : "#22c55e";
-            
             aplicarFiltros();
         }
 
@@ -92,6 +81,15 @@ function aplicarFiltros() {
                     {title: "Data Pedido", field: "data_hora_pedido", editor: "input"},
                     {title: "Requerente", field: "requerente", editor: "input"},
                     {title: "Empresa", field: "empresa", editor: "input"},
+                    {title: "Urgência", field: "urgencia", editor: "select", editorParams: {values: ["Baixa", "Média", "Alta"]}, formatter: function(cell) {
+                        const val = cell.getValue();
+                        let color = "";
+                        if (val === "Baixa") color = "rgba(34, 197, 94, 0.4)";
+                        if (val === "Média") color = "rgba(234, 179, 8, 0.4)";
+                        if (val === "Alta") color = "rgba(239, 68, 68, 0.4)";
+                        cell.getElement().style.backgroundColor = color;
+                        return val || "";
+                    }},
                     {title: "Via", field: "via", editor: "input"},
                     {title: "Local", field: "local_obra", editor: "input"},
                     {title: "Concelho", field: "concelho", editor: "input"},
@@ -110,14 +108,12 @@ function aplicarFiltros() {
                     }}
                 ]
             });
-
-            // O evento de pesquisa agora chama a função combinada
             document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
         }
+
         async function guardarAlteracoes() {
             const dados = table.getData();
             let sucesso = true;
-
             for (const item of dados) {
                 const { error } = await sbClient
                     .from('pedidos')
@@ -126,6 +122,7 @@ function aplicarFiltros() {
                         data_hora_pedido: item.data_hora_pedido,
                         requerente: item.requerente,
                         empresa: item.empresa,
+                        urgencia: item.urgencia, // Campo novo adicionado
                         via: item.via,
                         local_obra: item.local_obra,
                         concelho: item.concelho,
@@ -138,53 +135,26 @@ function aplicarFiltros() {
                         estado: item.estado
                     })
                     .eq('id', item.id);
-
-                if (error) {
-                    console.error("Erro ao atualizar ID " + item.id, error);
-                    sucesso = false;
-                }
+                if (error) { sucesso = false; }
             }
-
-            if (sucesso) {
-                alert("Dados guardados com sucesso!");
-            } else {
-                alert("Ocorreu um erro ao guardar. Verifica a consola (F12).");
-            }
+            sucesso ? alert("Dados guardados com sucesso!") : alert("Erro ao guardar.");
         }
 
-     function downloadCSV() {
+        function downloadCSV() {
             const dados = table.getData();
-            
-            // Cabeçalho com as colunas separadas
-            let csvContent = "\uFEFFTécnico,Data Pedido,Hora Pedido,Requerente,Empresa,Via,Local,Concelho,Serviço,Observação,Tipo,Frequência,Tempo,Data Limite,Hora Limite,Estado\n";
-
+            let csvContent = "\uFEFFTécnico,Data,Hora,Requerente,Empresa,Urgência,Via,Local,Concelho,Serviço,Obs,Tipo,Freq,Tempo,Data Limite,Hora Limite,Estado\n";
             dados.forEach(row => {
-                // Separar Data e Hora do Pedido
                 const [dataPed, horaPed] = row.data_hora_pedido ? row.data_hora_pedido.split('T') : ["", ""];
-                // Separar Data e Hora Limite
                 const [dataLim, horaLim] = row.data_hora_limite ? row.data_hora_limite.split('T') : ["", ""];
-
-                // Montar a linha
-                const linha = [
-                    row.tecnico, dataPed, horaPed, row.requerente, row.empresa, 
-                    row.via, row.local_obra, row.concelho, row.servico, 
-                    row.observacao, row.tipo_trabalho, row.frequencia, 
-                    row.tempo_dedicado, dataLim, horaLim, row.estado
-                ].map(item => `"${(item || "").toString().replace(/"/g, '""')}"`).join(",");
-                
+                const linha = [row.tecnico, dataPed, horaPed, row.requerente, row.empresa, row.urgencia, row.via, row.local_obra, row.concelho, row.servico, row.observacao, row.tipo_trabalho, row.frequencia, row.tempo_dedicado, dataLim, horaLim, row.estado].map(i => `"${(i || "").toString().replace(/"/g, '""')}"`).join(",");
                 csvContent += linha + "\n";
             });
-
-            // Criar o download
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
-            link.setAttribute("href", url);
-            link.setAttribute("download", "historico_pedidos_separado.csv");
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
+            link.href = url;
+            link.download = "pedidos.csv";
             link.click();
-            document.body.removeChild(link);
         }
 
         carregarDados();
