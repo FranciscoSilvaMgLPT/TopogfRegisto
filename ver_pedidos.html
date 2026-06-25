@@ -22,7 +22,7 @@
     <h1 style="margin: 0;">Histórico de Pedidos</h1>
     <div>
         <button onclick="window.location.href='https://franciscosilvamglpt.github.io/TopogfRegisto/registo_pedidos.html'" style="background: #3b82f6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">➕ Adicionar Pedido</button>
-        
+        <button id="btn-filtro-concluidos" onclick="toggleConcluidos()" style="background: #64748b; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">✅ Ocultar Concluídos</button>
         <button onclick="guardarAlteracoes()" style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">💾 Guardar Alterações</button>
         <button onclick="downloadCSV()" style="background: #8b5cf6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">⬇ Exportar CSV</button>
         <a href="index.html" class="btn-voltar">⬅ Voltar</a>
@@ -39,6 +39,28 @@
         const sbClient = supabase.createClient(supabaseUrl, supabaseKey);
         let table;
 
+let mostrandoConcluidos = true;
+
+function toggleConcluidos() {
+    mostrandoConcluidos = !mostrandoConcluidos;
+    const btn = document.getElementById("btn-filtro-concluidos");
+
+    if (mostrandoConcluidos) {
+        // Remove o filtro de estado
+        table.removeFilter("estado");
+        btn.innerText = "✅ Ocultar Concluídos";
+        btn.style.background = "#64748b";
+    } else {
+        // Adiciona filtro para excluir variações de "concluido"
+        table.addFilter("estado", "function", function(dataValue, filterValue) {
+            const val = (dataValue || "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            return val !== "concluido";
+        });
+        btn.innerText = "👁️ Mostrar Tudo";
+        btn.style.background = "#22c55e";
+    }
+}
+        
         async function carregarDados() {
             const { data: { session } } = await sbClient.auth.getSession();
             if (!session) { window.location.href = 'login.html'; return; }
