@@ -41,24 +41,31 @@
 
 let mostrandoConcluidos = true;
 
+function aplicarFiltros() {
+    const termo = document.getElementById("filtro-pesquisa").value.toLowerCase();
+    
+    table.setFilter(function(data) {
+        // 1. Filtro de Texto (Pesquisa)
+        const matchTexto = Object.values(data).some(val => 
+            String(val).toLowerCase().includes(termo)
+        );
+        
+        // 2. Filtro de Concluídos
+        const estado = (data.estado || "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const matchEstado = mostrandoConcluidos ? true : (estado !== "concluido");
+        
+        return matchTexto && matchEstado;
+    });
+}
+
 function toggleConcluidos() {
     mostrandoConcluidos = !mostrandoConcluidos;
     const btn = document.getElementById("btn-filtro-concluidos");
-
-    if (mostrandoConcluidos) {
-        // Remove todos os filtros para voltar a mostrar tudo
-        table.clearFilter();
-        btn.innerText = "✅ Ocultar Concluídos";
-        btn.style.background = "#64748b";
-    } else {
-        // Aplica o filtro de exclusão
-        table.setFilter(function(data) {
-            const estado = (data.estado || "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            return estado !== "concluido";
-        });
-        btn.innerText = "👁️ Mostrar Tudo";
-        btn.style.background = "#22c55e";
-    }
+    
+    btn.innerText = mostrandoConcluidos ? "✅ Ocultar Concluídos" : "👁️ Mostrar Tudo";
+    btn.style.background = mostrandoConcluidos ? "#64748b" : "#22c55e";
+    
+    aplicarFiltros();
 }
         
         async function carregarDados() {
