@@ -18,16 +18,16 @@
 
     <div>Utilizador: <strong id="utilizador-info" style="font-weight: bold; color: #60a5fa;">A verificar...</strong></div>
     
-<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
-    <h1 style="margin: 0;">Histórico de Pedidos</h1>
-    <div>
-        <button onclick="window.location.href='https://franciscosilvamglpt.github.io/TopogfRegisto/registo_pedidos.html'" style="background: #3b82f6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">➕ Adicionar Pedido</button>
-        <button id="btn-filtro-concluidos" onclick="toggleConcluidos()" style="background: #64748b; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">✅ Ocultar Concluídos</button>
-        <button onclick="guardarAlteracoes()" style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">💾 Guardar Alterações</button>
-        <button onclick="downloadCSV()" style="background: #8b5cf6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">⬇ Exportar CSV</button>
-        <a href="index.html" class="btn-voltar">⬅ Voltar</a>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+        <h1 style="margin: 0;">Histórico de Pedidos</h1>
+        <div>
+            <button onclick="window.location.href='https://franciscosilvamglpt.github.io/TopogfRegisto/registo_pedidos.html'" style="background: #3b82f6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">➕ Adicionar Pedido</button>
+            <button id="btn-filtro-concluidos" onclick="toggleConcluidos()" style="background: #64748b; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">✅ Ocultar Concluídos</button>
+            <button onclick="guardarAlteracoes()" style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">💾 Guardar Alterações</button>
+            <button onclick="downloadCSV()" style="background: #8b5cf6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">⬇ Exportar CSV</button>
+            <a href="index.html" class="btn-voltar">⬅ Voltar</a>
+        </div>
     </div>
-</div>
 
     <input type="text" id="filtro-pesquisa" placeholder="🔍 Pesquisar">
 
@@ -37,37 +37,38 @@
         const supabaseUrl = 'https://dunondjiqawovisnwavg.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro'; 
         const sbClient = supabase.createClient(supabaseUrl, supabaseKey);
+        
         let table;
+        let mostrandoConcluidos = true;
 
-let mostrandoConcluidos = true;
+        // Função única que aplica ambos os filtros em simultâneo
+        function aplicarFiltros() {
+            const termo = document.getElementById("filtro-pesquisa").value.toLowerCase();
+            
+            table.setFilter(function(data) {
+                // 1. Filtro de Texto
+                const matchTexto = Object.values(data).some(val => 
+                    String(val).toLowerCase().includes(termo)
+                );
+                
+                // 2. Filtro de "Concluído"
+                const estado = (data.estado || "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const matchEstado = mostrandoConcluidos ? true : (estado !== "concluido");
+                
+                return matchTexto && matchEstado;
+            });
+        }
 
-function aplicarFiltros() {
-    const termo = document.getElementById("filtro-pesquisa").value.toLowerCase();
-    
-    table.setFilter(function(data) {
-        // 1. Filtro de Texto (Pesquisa)
-        const matchTexto = Object.values(data).some(val => 
-            String(val).toLowerCase().includes(termo)
-        );
-        
-        // 2. Filtro de Concluídos
-        const estado = (data.estado || "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        const matchEstado = mostrandoConcluidos ? true : (estado !== "concluido");
-        
-        return matchTexto && matchEstado;
-    });
-}
+        function toggleConcluidos() {
+            mostrandoConcluidos = !mostrandoConcluidos;
+            const btn = document.getElementById("btn-filtro-concluidos");
+            
+            btn.innerText = mostrandoConcluidos ? "✅ Ocultar Concluídos" : "👁️ Mostrar Tudo";
+            btn.style.background = mostrandoConcluidos ? "#64748b" : "#22c55e";
+            
+            aplicarFiltros();
+        }
 
-function toggleConcluidos() {
-    mostrandoConcluidos = !mostrandoConcluidos;
-    const btn = document.getElementById("btn-filtro-concluidos");
-    
-    btn.innerText = mostrandoConcluidos ? "✅ Ocultar Concluídos" : "👁️ Mostrar Tudo";
-    btn.style.background = mostrandoConcluidos ? "#64748b" : "#22c55e";
-    
-    aplicarFiltros();
-}
-        
         async function carregarDados() {
             const { data: { session } } = await sbClient.auth.getSession();
             if (!session) { window.location.href = 'login.html'; return; }
@@ -105,16 +106,9 @@ function toggleConcluidos() {
                 ]
             });
 
-            document.getElementById("filtro-pesquisa").addEventListener("keyup", function(){
-                table.setFilter(function(data){
-                    const termo = document.getElementById("filtro-pesquisa").value.toLowerCase();
-                    return Object.values(data).some(val => 
-                        String(val).toLowerCase().includes(termo)
-                    );
-                });
-            });
+            // O evento de pesquisa agora chama a função combinada
+            document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
         }
-
         async function guardarAlteracoes() {
             const dados = table.getData();
             let sucesso = true;
