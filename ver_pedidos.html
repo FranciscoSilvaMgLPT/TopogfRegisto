@@ -41,23 +41,28 @@
         let table;
         let mostrandoConcluidos = true;
 
-        // Função única que aplica ambos os filtros em simultâneo
-        function aplicarFiltros() {
-            const termo = document.getElementById("filtro-pesquisa").value.toLowerCase();
-            
-            table.setFilter(function(data) {
-                // 1. Filtro de Texto
-                const matchTexto = Object.values(data).some(val => 
-                    String(val).toLowerCase().includes(termo)
-                );
-                
-                // 2. Filtro de "Concluído"
-                const estado = (data.estado || "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                const matchEstado = mostrandoConcluidos ? true : (estado !== "concluido");
-                
-                return matchTexto && matchEstado;
-            });
-        }
+function aplicarFiltros() {
+    const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
+    
+    // Divide a pesquisa pelos sinais de "+"
+    const termos = input.split('+').map(t => t.trim()).filter(t => t !== "");
+    
+    table.setFilter(function(data) {
+        // 1. Filtro de Texto (Lógica "E" para múltiplos termos)
+        // A linha só passa se contiver TODOS os termos pesquisados
+        const matchTexto = termos.every(termo => 
+            Object.values(data).some(val => 
+                String(val).toLowerCase().includes(termo)
+            )
+        );
+        
+        // 2. Filtro de "Concluído"
+        const estado = (data.estado || "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const matchEstado = mostrandoConcluidos ? true : (estado !== "concluido");
+        
+        return matchTexto && matchEstado;
+    });
+}
 
         function toggleConcluidos() {
             mostrandoConcluidos = !mostrandoConcluidos;
