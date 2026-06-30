@@ -237,20 +237,25 @@ async function exportarParaExcel() {
         dados.forEach((row, index) => {
             const rowNumber = startRow + index;
 
-            // Função auxiliar para separar data e hora ISO
+            // Função auxiliar para separar data e hora e formatar como DD/MM/AAAA
             const splitDateTime = (isoString) => {
                 if (!isoString) return { data: null, hora: null };
                 const dateObj = new Date(isoString);
-                // Formatar data como YYYY-MM-DD e hora como HH:MM
-                const data = dateObj.toISOString().split('T')[0];
+                
+                // Extração dos componentes
+                const dia = String(dateObj.getDate()).padStart(2, '0');
+                const mes = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const ano = dateObj.getFullYear();
+                
+                const dataFormatada = `${dia}/${mes}/${ano}`;
                 const hora = dateObj.toTimeString().split(' ')[0].substring(0, 5);
-                return { data, hora };
+                
+                return { data: dataFormatada, hora: hora };
             };
 
             const pedido = splitDateTime(row.data_hora_pedido);
             const limite = splitDateTime(row.data_hora_limite);
 
-            // Mapeamento seguindo estritamente a nova ordem fornecida:
             const valores = [
                 row.tecnico,           // C
                 pedido.data,           // D
@@ -284,7 +289,7 @@ async function exportarParaExcel() {
         link.click();
     } catch (error) {
         console.error("Erro:", error);
-        alert("Erro ao processar o Excel. Verifique se o template.xlsx está acessível.");
+        alert("Erro ao processar o Excel. Verifique o template.xlsx.");
     }
 }
     
