@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Histórico de Pedidos</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
     <link href="https://unpkg.com/tabulator-tables@6.2.1/dist/css/tabulator_midnight.min.css" rel="stylesheet">
     <script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.2.1/dist/js/tabulator.min.js"></script>
     
@@ -116,26 +116,31 @@
             try {
                 const response = await fetch('template.xlsx');
                 const arrayBuffer = await response.arrayBuffer();
-                const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-                const sheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[sheetName];
+                
+                const workbook = new ExcelJS.Workbook();
+                await workbook.xlsx.load(arrayBuffer);
+                const worksheet = workbook.getWorksheet(1); // Primeira aba
 
                 const dados = table.getData();
-                let startRow = 4; // C5 (índice 4)
-                let startCol = 2; // Coluna C (índice 2)
+                const startRow = 5; // Inicia na linha 5
+                const startCol = 3; // Inicia na coluna C (1=A, 2=B, 3=C)
 
                 dados.forEach((row, index) => {
-                    const linhaAtual = startRow + index;
-                    const campos = [row.tecnico, row.data_hora_pedido, row.requerente, row.empresa, row.urgencia, row.via, row.local_obra, row.concelho, row.servico, row.observacao, row.tipo_trabalho, row.frequencia, row.tempo_dedicado, row.data_hora_limite, row.estado];
-                    
+                    const rowNumber = startRow + index;
+                    const campos = [
+                        row.tecnico, row.data_hora_pedido, row.requerente, row.empresa, row.urgencia, 
+                        row.via, row.local_obra, row.concelho, row.servico, row.observacao, 
+                        row.tipo_trabalho, row.frequencia, row.tempo_dedicado, row.data_hora_limite, row.estado
+                    ];
+
                     campos.forEach((val, colIndex) => {
-                        const cellAddress = XLSX.utils.encode_cell({ r: linhaAtual, c: startCol + colIndex });
-                        worksheet[cellAddress] = { t: 's', v: val || "" };
+                        const cell = worksheet.getCell(rowNumber, startCol + colIndex);
+                        cell.value = val; // Preenche o valor mantendo o estilo original da célula
                     });
                 });
 
-                const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-                const blob = new Blob([wbout], { type: 'application/octet-stream' });
+                const buffer = await workbook.xlsx.writeBuffer();
+                const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement("a");
                 link.href = url;
