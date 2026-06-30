@@ -461,23 +461,25 @@ async function exportarParaExcel() {
         const startRow = 5; 
         const startCol = 3; // C = 3
 
-        // Função auxiliar para processar a data/hora e retornar o objeto correto para o Excel
-        const processarDataHora = (isoString) => {
-            if (!isoString) return { dataFormula: "", hora: "" };
-            const dateObj = new Date(isoString);
-            if (isNaN(dateObj.getTime())) return { dataFormula: "", hora: "" };
+   // Função auxiliar ajustada para garantir apenas a data
+const processarDataHora = (isoString) => {
+    if (!isoString) return { dataFormula: "", hora: "" };
+    
+    // Divide a string para garantir que pegamos apenas a parte da data (AAAA-MM-DD)
+    // O formato é 2026-06-19T09:28:00, logo o .split('T')[0] retorna 2026-06-19
+    const dataPart = isoString.split('T')[0];
+    const [ano, mes, dia] = dataPart.split('-').map(Number);
+    
+    // Extrai a hora separadamente
+    const horaPart = isoString.split('T')[1] || "";
+    const hora = horaPart.substring(0, 5); // HH:MM
 
-            const ano = dateObj.getFullYear();
-            const mes = dateObj.getMonth() + 1;
-            const dia = dateObj.getDate();
-            const hora = dateObj.toTimeString().split(' ')[0].substring(0, 5); // HH:MM
-
-            // Retorna a fórmula de data e a hora formatada
-            return {
-                dataFormula: { formula: `DATE(${ano};${mes};${dia})`, result: dateObj },
-                hora: hora
-            };
-        };
+    // Retorna a fórmula limpa apenas com os componentes da data
+    return {
+        dataFormula: { formula: `DATE(${ano};${mes};${dia})` },
+        hora: hora
+    };
+};
 
         dados.forEach((row, index) => {
             const rowNumber = startRow + index;
