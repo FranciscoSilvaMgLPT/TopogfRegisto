@@ -459,33 +459,39 @@ async function exportarParaExcel() {
 
         const dados = table.getData();
         const startRow = 5; 
-        const startCol = 3; 
+        const startCol = 3; // C = 3
+
+        // Função auxiliar para processar a data/hora e retornar o objeto correto para o Excel
+        const processarDataHora = (isoString) => {
+            if (!isoString) return { dataFormula: "", hora: "" };
+            const dateObj = new Date(isoString);
+            if (isNaN(dateObj.getTime())) return { dataFormula: "", hora: "" };
+
+            const ano = dateObj.getFullYear();
+            const mes = dateObj.getMonth() + 1;
+            const dia = dateObj.getDate();
+            const hora = dateObj.toTimeString().split(' ')[0].substring(0, 5); // HH:MM
+
+            // Retorna a fórmula de data e a hora formatada
+            return {
+                dataFormula: { formula: `DATE(${ano};${mes};${dia})`, result: dateObj },
+                hora: hora
+            };
+        };
 
         dados.forEach((row, index) => {
             const rowNumber = startRow + index;
+            
+            // Processamento específico das datas
+            const pedido = processarDataHora(row.data_hora_pedido);
+            const limite = processarDataHora(row.data_hora_limite);
 
-            // Função auxiliar para converter formato 2026-06-19T09:28:00
-            const formatarDataExcel = (isoString) => {
-                if (!isoString) return "";
-                const [data, tempo] = isoString.split('T');
-                const [ano, mes, dia] = data.split('-');
-                const [horas, minutos] = tempo.split(':');
-                
-                // Retorna objeto para a coluna de Data e string simples para a de Hora
-                return {
-                    dataForm: `=DATA(${parseInt(dia)};${parseInt(mes)};${parseInt(ano)})`,
-                    horaForm: `${horas}:${minutos}`
-                };
-            };
-
-            const dataPedido = formatarDataExcel(row.data_hora_pedido);
-            const dataLimite = formatarDataExcel(row.data_hora_limite);
-
-            // Mapeamento dos campos (ajustado para colunas separadas conforme pedido)
+            // Mapeamento das colunas (ajustado para separar data e hora conforme seu pedido)
+            // Ordem: Técnico, Data Pedido (Fórmula), Hora Pedido, Requerente, Empresa, Urgência, Via, Local, Concelho, Serviço, Obs, Tipo, Freq, Tempo, Data Limite (Fórmula), Hora Limite, Estado
             const campos = [
                 row.tecnico, 
-                dataPedido.dataForm,   // Coluna E (Data Pedido)
-                dataPedido.horaForm,   // Coluna F (Hora Pedido - Nova coluna)
+                pedido.dataFormula, // Coluna C (Fórmula)
+                pedido.hora,        // Coluna D
                 row.requerente, 
                 row.empresa, 
                 row.urgencia,
@@ -497,14 +503,19 @@ async function exportarParaExcel() {
                 row.tipo_trabalho, 
                 row.frequencia, 
                 row.tempo_dedicado, 
-                dataLimite.dataForm,   // Coluna R (Data Limite)
-                dataLimite.horaForm,   // Coluna S (Hora Limite - Nova coluna)
+                limite.dataFormula, // Coluna Q (Fórmula)
+                limite.hora,        // Coluna R
                 row.estado
             ];
 
             campos.forEach((val, colIndex) => {
                 const cell = worksheet.getCell(rowNumber, startCol + colIndex);
-                cell.value = val;
+                if (typeof val === 'object' && val !== null && val.formula) {
+                    cell.value = val; // Aplica a fórmula
+                    cell.numFmt = 'yyyy-mm-dd'; // Formata a visualização da data no Excel
+                } else {
+                    cell.value = val;
+                }
             });
         });
 
@@ -513,14 +524,13 @@ async function exportarParaExcel() {
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = "Pedidos_Exportados.xlsx";
+        link.download = "Pedidos.xlsx";
         link.click();
     } catch (error) {
         console.error("Erro:", error);
-        alert("Erro ao processar o Excel. Certifique-se que o template.xlsx existe.");
+        alert("Erro ao gerar o Excel. Certifique-se de que o ficheiro template.xlsx existe.");
     }
 }
-
 
 
 
