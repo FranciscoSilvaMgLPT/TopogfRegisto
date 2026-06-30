@@ -112,60 +112,61 @@
             document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
         }
 
-      async function exportarParaExcel() {
-    try {
-        const response = await fetch('template.xlsx');
-        const arrayBuffer = await response.arrayBuffer();
-        
-        const workbook = new ExcelJS.Workbook();
-        await workbook.xlsx.load(arrayBuffer);
-        const worksheet = workbook.getWorksheet(1);
+    async function exportarParaExcel() {
+            try {
+                const response = await fetch('template.xlsx');
+                const arrayBuffer = await response.arrayBuffer();
+                const workbook = new ExcelJS.Workbook();
+                await workbook.xlsx.load(arrayBuffer);
+                const worksheet = workbook.getWorksheet(1);
 
-        const dados = table.getData();
-        const startRow = 5; // Linha 5
+                const dados = table.getData();
+                const startRow = 5;
 
-        dados.forEach((row, index) => {
-            const rowNumber = startRow + index;
+                dados.forEach((row, index) => {
+                    const rowNumber = startRow + index;
+                    
+                    // Separação de Data/Hora
+                    const [dataPed, horaPed] = separarDataHora(row.data_hora_pedido);
+                    const [dataLim, horaLim] = separarDataHora(row.data_hora_limite);
 
-            // Função auxiliar para separar data e hora
-            const separar = (str) => {
-                if (!str) return ["", ""];
-                // Converte para string e remove o 'T' se existir
-                const dataHora = str.toString().replace('T', ' '); 
-                const [data, hora] = dataHora.split(' ');
-                return [data, hora ? hora.substring(0, 5) : ""]; // Hora com HH:MM
-            };
+                    // Mapeamento para o Excel:
+                    // Coluna C (3): Técnico
+                    // Coluna D (4): Data Pedido
+                    // Coluna E (5): Hora Pedido
+                    // ... e assim por diante ...
+                    
+                    worksheet.getCell(rowNumber, 3).value = row.tecnico;
+                    worksheet.getCell(rowNumber, 4).value = dataPed;
+                    worksheet.getCell(rowNumber, 5).value = horaPed;
+                    worksheet.getCell(rowNumber, 6).value = row.requerente;
+                    worksheet.getCell(rowNumber, 7).value = row.empresa;
+                    worksheet.getCell(rowNumber, 8).value = row.urgencia;
+                    worksheet.getCell(rowNumber, 9).value = row.via;
+                    worksheet.getCell(rowNumber, 10).value = row.local_obra;
+                    worksheet.getCell(rowNumber, 11).value = row.concelho;
+                    worksheet.getCell(rowNumber, 12).value = row.servico;
+                    worksheet.getCell(rowNumber, 13).value = row.observacao;
+                    worksheet.getCell(rowNumber, 14).value = row.tipo_trabalho;
+                    worksheet.getCell(rowNumber, 15).value = row.frequencia;
+                    worksheet.getCell(rowNumber, 16).value = row.tempo_dedicado;
+                    worksheet.getCell(rowNumber, 17).value = dataLim; // Coluna P
+                    worksheet.getCell(rowNumber, 18).value = horaLim; // Coluna Q
+                    worksheet.getCell(rowNumber, 19).value = row.estado;
+                });
 
-            const [dataPedido, horaPedido] = separar(row.data_hora_pedido);
-            const [dataLimite, horaLimite] = separar(row.data_hora_limite);
-
-            // Preenchimento de acordo com as colunas pedidas (1-based index)
-            // D = 4, E = 5, P = 16, Q = 17
-            worksheet.getCell(rowNumber, 4).value = dataPedido;
-            worksheet.getCell(rowNumber, 5).value = horaPedido;
-            
-            worksheet.getCell(rowNumber, 3).value = row.tecnico; // Coluna C
-            worksheet.getCell(rowNumber, 6).value = row.requerente;
-            worksheet.getCell(rowNumber, 7).value = row.empresa;
-            // ... (Continue a mapear as outras colunas conforme a ordem do seu template)
-            
-            worksheet.getCell(rowNumber, 16).value = dataLimite; // Coluna P
-            worksheet.getCell(rowNumber, 17).value = horaLimite; // Coluna Q
-            worksheet.getCell(rowNumber, 18).value = row.estado; // Coluna R (Exemplo)
-        });
-
-        const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "Pedidos_Exportados.xlsx";
-        link.click();
-    } catch (error) {
-        console.error("Erro:", error);
-        alert("Erro ao exportar. Verifique o template.");
-    }
-}
+                const buffer = await workbook.xlsx.writeBuffer();
+                const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = "Pedidos_Exportados.xlsx";
+                link.click();
+            } catch (error) {
+                console.error("Erro:", error);
+                alert("Erro ao exportar. Verifique se o template.xlsx está acessível.");
+            }
+        }
 
         function aplicarFiltros() {
             const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
