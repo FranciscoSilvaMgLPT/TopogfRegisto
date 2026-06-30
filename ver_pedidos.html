@@ -275,10 +275,25 @@ async function exportarParaExcel() {
                 limite.hora            // R
             ];
 
-            valores.forEach((val, colIndex) => {
-                worksheet.getCell(rowNumber, 3 + colIndex).value = val;
+            // Dentro do loop, ao preencher as células (valores.forEach):
+valores.forEach((val, colIndex) => {
+                const cell = worksheet.getCell(rowNumber, 3 + colIndex);
+
+                // Índices das colunas de Data: D (index 1) e Q (index 14)
+                if ((colIndex === 1 || colIndex === 14) && val) {
+                    const [d, m, a] = val.split('/');
+                    // Define como fórmula: =DATA(ano;mês;dia)
+                    cell.value = { formula: `DATA(${a};${m};${d})` };
+                    cell.numFmt = 'dd/mm/yyyy'; 
+                } 
+                // Colunas de Hora (E=index 2, R=index 15) - Mantemos como valor decimal para o Excel
+                else if ((colIndex === 2 || colIndex === 15) && val) {
+                    cell.value = val; 
+                } 
+                else {
+                    cell.value = val;
+                }
             });
-        });
 
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
