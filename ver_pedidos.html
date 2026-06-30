@@ -484,7 +484,7 @@ const processarDataHora = (isoString) => {
 
     return {
         // Usamos o formato internacional DATE(ano,mes,dia) que o Excel converte automaticamente para =DATA()
-        dataFormula: { formula: `DATE(${ano};${mes};${dia})` },
+        dataFormula: { formula: `DATE(${ano},${mes},${dia})` },
         hora: hora
     };
 };
