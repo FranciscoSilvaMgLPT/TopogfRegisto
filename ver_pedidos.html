@@ -250,10 +250,7 @@ async function exportarParaExcel() {
             const pedido = splitDateTime(row.data_hora_pedido);
             const limite = splitDateTime(row.data_hora_limite);
 
-            // Mapeamento baseado na ordem visual que descreveste:
-            // C: Técnico | D: Pedido Data | E: Pedido Hora | F: Requerente | G: Empresa | H: Urgência
-            // I: Limite Data | J: Limite Hora | K: Via | L: Local | M: Concelho | N: Serviço | O: Obs | P: Tipo | Q: Freq | R: Tempo
-            
+            // Mapeamento seguindo estritamente a nova ordem fornecida:
             const valores = [
                 row.tecnico,           // C
                 pedido.data,           // D
@@ -261,16 +258,16 @@ async function exportarParaExcel() {
                 row.requerente,        // F
                 row.empresa,           // G
                 row.urgencia,          // H
-                limite.data,           // I
-                limite.hora,           // J
-                row.via,               // K
-                row.local_obra,        // L
-                row.concelho,          // M
-                row.servico,           // N
-                row.observacao,        // O
-                row.tipo_trabalho,     // P
-                row.frequencia,        // Q
-                row.tempo_dedicado     // R
+                row.via,               // I
+                row.local_obra,        // J
+                row.concelho,          // K
+                row.servico,           // L
+                row.observacao,        // M
+                row.tipo_trabalho,     // N
+                row.frequencia,        // O
+                row.tempo_dedicado,    // P
+                limite.data,           // Q
+                limite.hora            // R
             ];
 
             valores.forEach((val, colIndex) => {
@@ -287,10 +284,10 @@ async function exportarParaExcel() {
         link.click();
     } catch (error) {
         console.error("Erro:", error);
-        alert("Erro ao processar o Excel. Verifique o template.xlsx.");
+        alert("Erro ao processar o Excel. Verifique se o template.xlsx está acessível.");
     }
 }
-
+    
 function aplicarFiltros() {
 
 const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
