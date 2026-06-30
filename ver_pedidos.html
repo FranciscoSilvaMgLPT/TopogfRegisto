@@ -102,7 +102,22 @@
                     {title: "Freq", field: "frequencia", editor: "input"},
                     {title: "Tempo", field: "tempo_dedicado", editor: "input"},
                     {title: "Limite", field: "data_hora_limite", editor: "input"},
-                    {title: "Estado", field: "estado", editor: "input"},
+                    {title: "Estado", 
+                        field: "estado",
+                        formatter: function(cell) {
+                            const select = document.createElement("select");
+                            select.className = "select-custom";
+                            ["Pendente", "Concluido"].forEach(opt => {
+                                const el = document.createElement("option");
+                                el.value = opt.toLowerCase(); 
+                                el.textContent = opt;
+                                if ((cell.getValue() || "").toLowerCase() === opt.toLowerCase()) el.selected = true;
+                                select.appendChild(el);
+                            });
+                            select.onchange = (e) => { cell.setValue(e.target.value); };
+                            return select;
+                        }
+                    },
                     {title: "🗑️", formatter: function() { return "<button style='background:#ef4444; color:white; border:none; padding:2px 8px; border-radius:3px;'>❌</button>"; }, width: 80, hozAlign: "center", cellClick: function(e, cell) {
                         if(confirm("Apagar este registo?")) {
                             const id = cell.getRow().getData().id;
