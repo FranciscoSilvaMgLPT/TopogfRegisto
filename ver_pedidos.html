@@ -463,20 +463,28 @@ async function exportarParaExcel() {
 
    // Função auxiliar ajustada para garantir apenas a data
 const processarDataHora = (isoString) => {
+    // Se estiver vazio, retorna valores nulos para evitar erros
     if (!isoString) return { dataFormula: "", hora: "" };
-    
-    // Divide a string para garantir que pegamos apenas a parte da data (AAAA-MM-DD)
-    // O formato é 2026-06-19T09:28:00, logo o .split('T')[0] retorna 2026-06-19
-    const dataPart = isoString.split('T')[0];
-    const [ano, mes, dia] = dataPart.split('-').map(Number);
-    
-    // Extrai a hora separadamente
-    const horaPart = isoString.split('T')[1] || "";
-    const hora = horaPart.substring(0, 5); // HH:MM
 
-    // Retorna a fórmula limpa apenas com os componentes da data
+    // Converte para string para garantir que podemos manipular
+    const str = String(isoString);
+    
+    // Tenta encontrar a parte da data antes do T ou espaço
+    const dataPart = str.split('T')[0].split(' ')[0];
+    const partes = dataPart.split('-'); 
+    
+    // Se não encontrar o formato AAAA-MM-DD, tenta salvar o dado bruto
+    if (partes.length !== 3) return { dataFormula: isoString, hora: "" };
+
+    const [ano, mes, dia] = partes.map(Number);
+    
+    // Extrai hora
+    const horaPart = str.includes('T') ? str.split('T')[1] : (str.includes(' ') ? str.split(' ')[1] : "");
+    const hora = horaPart.substring(0, 5); 
+
     return {
-        dataFormula: { formula: `DATE(${ano};${mes};${dia})` },
+        // Usamos o formato internacional DATE(ano,mes,dia) que o Excel converte automaticamente para =DATA()
+        dataFormula: { formula: `DATE(${ano},${mes},${dia})` },
         hora: hora
     };
 };
