@@ -495,7 +495,7 @@ const processarDataHora = (isoString) => {
             // Processamento específico das datas
             const pedido = processarDataHora(row.data_hora_pedido);
             const limite = processarDataHora(row.data_hora_limite);
-
+console.log("Linha:", index, "Data Calculada:", pedido.dataFormula);
             // Mapeamento das colunas (ajustado para separar data e hora conforme seu pedido)
             // Ordem: Técnico, Data Pedido (Fórmula), Hora Pedido, Requerente, Empresa, Urgência, Via, Local, Concelho, Serviço, Obs, Tipo, Freq, Tempo, Data Limite (Fórmula), Hora Limite, Estado
             const campos = [
