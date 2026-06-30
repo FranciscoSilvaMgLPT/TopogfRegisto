@@ -1,167 +1,364 @@
 <!DOCTYPE html>
+
 <html lang="pt">
+
 <head>
-    <meta charset="UTF-8">
-    <title>Histórico de Pedidos</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
-    <link href="https://unpkg.com/tabulator-tables@6.2.1/dist/css/tabulator_midnight.min.css" rel="stylesheet">
-    <script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.2.1/dist/js/tabulator.min.js"></script>
-    
-    <style>
-        body { background-color: #0f172a; color: white; font-family: sans-serif; padding: 20px; }
-        .btn-voltar { background: #334155; color: white; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: bold; }
-        #tabela-pedidos { margin-top: 20px; font-size: 12px; }
-        #filtro-pesquisa { width: 300px; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #475569; background: #1e293b; color: white; }
-        .urgencia-select, .select-custom { width: 100%; background: transparent; color: white; border: none; cursor: pointer; font-size: 12px; text-align: center; }
-        .urgencia-select option, .select-custom option { background: #1e293b; color: white; }
-    </style>
+
+<meta charset="UTF-8">
+
+<title>Histórico de Pedidos</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+
+<link href="https://unpkg.com/tabulator-tables@6.2.1/dist/css/tabulator_midnight.min.css" rel="stylesheet">
+
+<script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.2.1/dist/js/tabulator.min.js"></script>
+
+
+<style>
+
+body { background-color: #0f172a; color: white; font-family: sans-serif; padding: 20px; }
+
+.btn-voltar { background: #334155; color: white; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: bold; }
+
+#tabela-pedidos { margin-top: 20px; font-size: 12px; }
+
+#filtro-pesquisa { width: 300px; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #475569; background: #1e293b; color: white; }
+
+.urgencia-select, .select-custom { width: 100%; background: transparent; color: white; border: none; cursor: pointer; font-size: 12px; text-align: center; }
+
+.urgencia-select option, .select-custom option { background: #1e293b; color: white; }
+
+</style>
+
 </head>
+
 <body>
 
-    <div>Utilizador: <strong id="utilizador-info" style="font-weight: bold; color: #60a5fa;">A verificar...</strong></div>
-    
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
-        <h1 style="margin: 0;">Histórico de Pedidos</h1>
-        <div>
-            <button onclick="window.location.href='https://franciscosilvamglpt.github.io/TopogfRegisto/registo_pedidos.html'" style="background: #3b82f6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">➕ Adicionar Pedido</button>
-            <button id="btn-filtro-concluidos" onclick="toggleConcluidos()" style="background: #64748b; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">✅ Ocultar Concluídos</button>
-            <button onclick="guardarAlteracoes()" style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">💾 Guardar Alterações</button>
-            <button onclick="exportarParaExcel()" style="background: #8b5cf6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">⬇ Exportar Excel</button>
-            <a href="index.html" class="btn-voltar">⬅ Voltar</a>
-        </div>
-    </div>
 
-    <input type="text" id="filtro-pesquisa" placeholder="🔍 Pesquisar">
-    <div id="tabela-pedidos"></div>
 
-    <script>
-        const supabaseUrl = 'https://dunondjiqawovisnwavg.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro'; 
-        const sbClient = supabase.createClient(supabaseUrl, supabaseKey);
-        
-        let table;
-        let mostrandoConcluidos = true;
+<div>Utilizador: <strong id="utilizador-info" style="font-weight: bold; color: #60a5fa;">A verificar...</strong></div>
 
-        async function carregarDados() {
-            const { data: { session } } = await sbClient.auth.getSession();
-            if (!session) { window.location.href = 'login.html'; return; }
-            document.getElementById('utilizador-info').innerText = session.user.email;
 
-            const { data, error } = await sbClient.from('pedidos').select('*');
-            if (error) { console.error(error); return; }
+<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
 
-            table = new Tabulator("#tabela-pedidos", {
-                data: data,
-                layout: "fitColumns",
-                pagination: "local",
-                paginationSize: 15,
-                columns: [
-                    {title: "Técnico", field: "tecnico", editor: "input"},
-                    {title: "Data Pedido", field: "data_hora_pedido", editor: "input"},
-                    {title: "Requerente", field: "requerente", editor: "input"},
-                    {title: "Empresa", field: "empresa", editor: "input"},
-                    {title: "Urgência", field: "urgencia", editor: "input"},
-                    {title: "Via", field: "via", editor: "input"},
-                    {title: "Local", field: "local_obra", editor: "input"},
-                    {title: "Concelho", field: "concelho", editor: "input"},
-                    {title: "Serviço", field: "servico", editor: "input"},
-                    {title: "Obs", field: "observacao", editor: "input"},
-                    {title: "Tipo", field: "tipo_trabalho", editor: "input"},
-                    {title: "Freq", field: "frequencia", editor: "input"},
-                    {title: "Tempo", field: "tempo_dedicado", editor: "input"},
-                    {title: "Limite", field: "data_hora_limite", editor: "input"},
-                    {title: "Estado", field: "estado", editor: "input"}
-                ]
+<h1 style="margin: 0;">Histórico de Pedidos</h1>
+
+<div>
+
+<button onclick="window.location.href='https://franciscosilvamglpt.github.io/TopogfRegisto/registo_pedidos.html'" style="background: #3b82f6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">➕ Adicionar Pedido</button>
+
+<button id="btn-filtro-concluidos" onclick="toggleConcluidos()" style="background: #64748b; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">✅ Ocultar Concluídos</button>
+
+<button onclick="guardarAlteracoes()" style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">💾 Guardar Alterações</button>
+
+<button onclick="exportarParaExcel()" style="background: #8b5cf6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">⬇ Exportar Excel</button>
+
+<a href="index.html" class="btn-voltar">⬅ Voltar</a>
+
+</div>
+
+</div>
+
+
+
+<input type="text" id="filtro-pesquisa" placeholder="🔍 Pesquisar">
+
+<div id="tabela-pedidos"></div>
+
+
+
+<script>
+
+const supabaseUrl = 'https://dunondjiqawovisnwavg.supabase.co';
+
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
+
+const sbClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+
+let table;
+
+let mostrandoConcluidos = true;
+
+
+
+async function carregarDados() {
+
+const { data: { session } } = await sbClient.auth.getSession();
+
+if (!session) { window.location.href = 'login.html'; return; }
+
+document.getElementById('utilizador-info').innerText = session.user.email;
+
+
+
+const { data, error } = await sbClient.from('pedidos').select('*');
+
+if (error) { console.error(error); return; }
+
+
+
+table = new Tabulator("#tabela-pedidos", {
+
+data: data,
+
+layout: "fitColumns",
+
+pagination: "local",
+
+paginationSize: 15,
+
+rowFormatter: function(row) {
+
+const urgencia = row.getData().urgencia;
+
+if (urgencia === "Baixa") row.getElement().style.backgroundColor = "rgba(34, 197, 94, 0.2)";
+
+else if (urgencia === "Média") row.getElement().style.backgroundColor = "rgba(234, 179, 8, 0.2)";
+
+else if (urgencia === "Alta") row.getElement().style.backgroundColor = "rgba(239, 68, 68, 0.2)";
+
+},
+
+columns: [
+
+{title: "Técnico", field: "tecnico", editor: "input"},
+
+{title: "Data Pedido", field: "data_hora_pedido", editor: "input"},
+
+{title: "Requerente", field: "requerente", editor: "input"},
+
+{title: "Empresa", field: "empresa", editor: "input"},
+
+{title: "Urgência", field: "urgencia", formatter: function(cell) {
+
+const val = cell.getValue();
+
+const select = document.createElement("select");
+
+select.className = "urgencia-select";
+
+["Baixa", "Média", "Alta"].forEach(opt => {
+
+const el = document.createElement("option");
+
+el.value = opt; el.textContent = opt;
+
+if (val === opt) el.selected = true;
+
+select.appendChild(el);
+
+});
+
+select.addEventListener("change", function() { cell.setValue(this.value); table.redraw(); });
+
+return select;
+
+}},
+
+{title: "Via", field: "via", editor: "input"},
+
+{title: "Local", field: "local_obra", editor: "input"},
+
+{title: "Concelho", field: "concelho", editor: "input"},
+
+{title: "Serviço", field: "servico", editor: "input"},
+
+{title: "Obs", field: "observacao", editor: "input"},
+
+{title: "Tipo", field: "tipo_trabalho", editor: "input"},
+
+{title: "Freq", field: "frequencia", editor: "input"},
+
+{title: "Tempo", field: "tempo_dedicado", editor: "input"},
+
+{title: "Limite", field: "data_hora_limite", editor: "input"},
+
+{title: "Estado", field: "estado", formatter: function(cell) {
+
+const select = document.createElement("select");
+
+select.className = "select-custom";
+
+["Pendente", "Concluido"].forEach(opt => {
+
+const el = document.createElement("option");
+
+el.value = opt.toLowerCase(); el.textContent = opt;
+
+if ((cell.getValue() || "").toLowerCase() === opt.toLowerCase()) el.selected = true;
+
+select.appendChild(el);
+
+});
+
+select.onchange = (e) => { cell.setValue(e.target.value); };
+
+return select;
+
+}},
+
+{title: "🗑️", formatter: function() { return "<button style='background:#ef4444; color:white; border:none; padding:2px 8px; border-radius:3px;'>❌</button>"; }, width: 80, hozAlign: "center", cellClick: function(e, cell) {
+
+if(confirm("Apagar este registo?")) {
+
+const id = cell.getRow().getData().id;
+
+sbClient.from('pedidos').delete().eq('id', id).then(() => cell.getRow().delete());
+
+}
+
+}}
+
+]
+
+});
+
+document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
+
+}
+
+
+async function exportarParaExcel() {
+    try {
+        const response = await fetch('template.xlsx');
+        const arrayBuffer = await response.arrayBuffer();
+
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(arrayBuffer);
+        const worksheet = workbook.getWorksheet(1);
+
+        const dados = table.getData();
+        const startRow = 5; 
+
+        dados.forEach((row, index) => {
+            const rowNumber = startRow + index;
+
+            // Função auxiliar para separar data e hora ISO
+            const splitDateTime = (isoString) => {
+                if (!isoString) return { data: null, hora: null };
+                const dateObj = new Date(isoString);
+                // Formatar data como YYYY-MM-DD e hora como HH:MM
+                const data = dateObj.toISOString().split('T')[0];
+                const hora = dateObj.toTimeString().split(' ')[0].substring(0, 5);
+                return { data, hora };
+            };
+
+            const pedido = splitDateTime(row.data_hora_pedido);
+            const limite = splitDateTime(row.data_hora_limite);
+
+            // Mapeamento baseado na ordem visual que descreveste:
+            // C: Técnico | D: Pedido Data | E: Pedido Hora | F: Requerente | G: Empresa | H: Urgência
+            // I: Limite Data | J: Limite Hora | K: Via | L: Local | M: Concelho | N: Serviço | O: Obs | P: Tipo | Q: Freq | R: Tempo
+            
+            const valores = [
+                row.tecnico,           // C
+                pedido.data,           // D
+                pedido.hora,           // E
+                row.requerente,        // F
+                row.empresa,           // G
+                row.urgencia,          // H
+                limite.data,           // I
+                limite.hora,           // J
+                row.via,               // K
+                row.local_obra,        // L
+                row.concelho,          // M
+                row.servico,           // N
+                row.observacao,        // O
+                row.tipo_trabalho,     // P
+                row.frequencia,        // Q
+                row.tempo_dedicado     // R
+            ];
+
+            valores.forEach((val, colIndex) => {
+                worksheet.getCell(rowNumber, 3 + colIndex).value = val;
             });
-            document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
-        }
+        });
 
-        async function exportarParaExcel() {
-            try {
-                const workbook = new ExcelJS.Workbook();
-                const worksheet = workbook.addWorksheet('Pedidos');
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "Pedidos_Exportados.xlsx";
+        link.click();
+    } catch (error) {
+        console.error("Erro:", error);
+        alert("Erro ao processar o Excel. Verifique o template.xlsx.");
+    }
+}
 
-                // Define as colunas do Excel
-                worksheet.columns = [
-                    { header: 'Técnico', key: 'tecnico', width: 15 },
-                    { header: 'Data/Hora Pedido', key: 'data_pedido', width: 20 },
-                    { header: 'Requerente', key: 'requerente', width: 20 },
-                    { header: 'Empresa', key: 'empresa', width: 20 },
-                    { header: 'Urgência', key: 'urgencia', width: 12 },
-                    { header: 'Via', key: 'via', width: 12 },
-                    { header: 'Local/Obra', key: 'local', width: 20 },
-                    { header: 'Concelho', key: 'concelho', width: 15 },
-                    { header: 'Serviço', key: 'servico', width: 20 },
-                    { header: 'Observação', key: 'obs', width: 20 },
-                    { header: 'Tipo Trabalho', key: 'tipo', width: 15 },
-                    { header: 'Frequência', key: 'freq', width: 12 },
-                    { header: 'Tempo Dedicado', key: 'tempo', width: 15 },
-                    { header: 'Data/Hora Limite', key: 'limite', width: 20 },
-                    { header: 'Estado', key: 'estado', width: 12 }
-                ];
+function aplicarFiltros() {
 
-                // Adiciona os dados
-                table.getData().forEach(row => {
-                    worksheet.addRow({
-                        tecnico: row.tecnico,
-                        data_pedido: row.data_hora_pedido,
-                        requerente: row.requerente,
-                        empresa: row.empresa,
-                        urgencia: row.urgencia,
-                        via: row.via,
-                        local: row.local_obra,
-                        concelho: row.concelho,
-                        servico: row.servico,
-                        obs: row.observacao,
-                        tipo: row.tipo_trabalho,
-                        freq: row.frequencia,
-                        tempo: row.tempo_dedicado,
-                        limite: row.data_hora_limite,
-                        estado: row.estado
-                    });
-                });
+const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
 
-                // Gera o ficheiro
-                const buffer = await workbook.xlsx.writeBuffer();
-                const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                link.href = url;
-                link.download = "Pedidos_Exportados.xlsx";
-                link.click();
-            } catch (error) {
-                console.error("Erro:", error);
-                alert("Ocorreu um erro ao gerar o Excel.");
-            }
-        }
+const termos = input.split('+').map(t => t.trim()).filter(t => t !== "");
 
-        function aplicarFiltros() {
-            const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
-            table.setFilter(data => Object.values(data).some(val => String(val).toLowerCase().includes(input)));
-        }
+table.setFilter(function(data) {
 
-        function toggleConcluidos() {
-            mostrandoConcluidos = !mostrandoConcluidos;
-            document.getElementById("btn-filtro-concluidos").innerText = mostrandoConcluidos ? "✅ Ocultar Concluídos" : "👁️ Mostrar Tudo";
-            table.setFilter(data => mostrandoConcluidos ? true : data.estado !== "concluido");
-        }
+const matchTexto = termos.every(termo => Object.values(data).some(val => String(val).toLowerCase().includes(termo)));
 
-        async function guardarAlteracoes() {
-            const dados = table.getData();
-            for (const item of dados) {
-                await sbClient.from('pedidos').update({
-                    tecnico: item.tecnico, data_hora_pedido: item.data_hora_pedido, requerente: item.requerente,
-                    empresa: item.empresa, urgencia: item.urgencia, via: item.via, local_obra: item.local_obra,
-                    concelho: item.concelho, servico: item.servico, observacao: item.observacao,
-                    tipo_trabalho: item.tipo_trabalho, frequencia: item.frequencia, tempo_dedicado: item.tempo_dedicado,
-                    data_hora_limite: item.data_hora_limite, estado: item.estado
-                }).eq('id', item.id);
-            }
-            alert("Dados guardados com sucesso!");
-        }
+const estado = (data.estado || "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-        carregarDados();
-    </script>
+const matchEstado = mostrandoConcluidos ? true : (estado !== "concluido");
+
+return matchTexto && matchEstado;
+
+});
+
+}
+
+
+
+function toggleConcluidos() {
+
+mostrandoConcluidos = !mostrandoConcluidos;
+
+const btn = document.getElementById("btn-filtro-concluidos");
+
+btn.innerText = mostrandoConcluidos ? "✅ Ocultar Concluídos" : "👁️ Mostrar Tudo";
+
+btn.style.background = mostrandoConcluidos ? "#64748b" : "#22c55e";
+
+aplicarFiltros();
+
+}
+
+
+
+async function guardarAlteracoes() {
+
+const dados = table.getData();
+
+let sucesso = true;
+
+for (const item of dados) {
+
+const { error } = await sbClient.from('pedidos').update({
+
+tecnico: item.tecnico, data_hora_pedido: item.data_hora_pedido, requerente: item.requerente, empresa: item.empresa, urgencia: item.urgencia, via: item.via, local_obra: item.local_obra, concelho: item.concelho, servico: item.servico, observacao: item.observacao, tipo_trabalho: item.tipo_trabalho, frequencia: item.frequencia, tempo_dedicado: item.tempo_dedicado, data_hora_limite: item.data_hora_limite, estado: item.estado
+
+}).eq('id', item.id);
+
+if (error) sucesso = false;
+
+}
+
+if (sucesso) { alert("Dados guardados!"); const { data } = await sbClient.from('pedidos').select('*'); table.replaceData(data); }
+
+else alert("Erro ao guardar.");
+
+}
+
+
+
+carregarDados();
+
+</script>
+
 </body>
+
 </html>
