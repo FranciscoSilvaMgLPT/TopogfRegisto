@@ -103,7 +103,7 @@
                     {title: "Tempo", field: "tempo_dedicado", editor: "input"},
                     {title: "Limite", field: "data_hora_limite", editor: "input"},
                     {title: "Estado", field: "estado", editor: "input"},
-                    {title: "Ações", formatter: function() { return "<button style='background:#ef4444; color:white; border:none; padding:2px 8px; border-radius:3px;'>Apagar</button>"; }, width: 80, hozAlign: "center", cellClick: function(e, cell) {
+                    {title: "🗑️", formatter: function() { return "<button style='background:#ef4444; color:white; border:none; padding:2px 8px; border-radius:3px;'>❌</button>"; }, width: 80, hozAlign: "center", cellClick: function(e, cell) {
                         if(confirm("Apagar este registo?")) {
                             const id = cell.getRow().getData().id;
                             sbClient.from('pedidos').delete().eq('id', id).then(() => cell.getRow().delete());
