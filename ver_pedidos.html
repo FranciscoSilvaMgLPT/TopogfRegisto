@@ -82,27 +82,27 @@
                 const workbook = new ExcelJS.Workbook();
                 const worksheet = workbook.addWorksheet('Pedidos');
 
-                // Cabeçalhos (A, B, C...)
+                // Define as colunas do Excel
                 worksheet.columns = [
-                    { header: 'Técnico', key: 'tecnico', width: 20 },
-                    { header: 'Data Pedido', key: 'data_pedido', width: 20 },
+                    { header: 'Técnico', key: 'tecnico', width: 15 },
+                    { header: 'Data/Hora Pedido', key: 'data_pedido', width: 20 },
                     { header: 'Requerente', key: 'requerente', width: 20 },
                     { header: 'Empresa', key: 'empresa', width: 20 },
-                    { header: 'Urgência', key: 'urgencia', width: 15 },
-                    { header: 'Via', key: 'via', width: 15 },
-                    { header: 'Local', key: 'local', width: 20 },
-                    { header: 'Concelho', key: 'concelho', width: 20 },
-                    { header: 'Serviço', key: 'servico', width: 25 },
-                    { header: 'Observação', key: 'obs', width: 25 },
-                    { header: 'Tipo', key: 'tipo', width: 20 },
-                    { header: 'Frequência', key: 'freq', width: 15 },
-                    { header: 'Tempo', key: 'tempo', width: 15 },
-                    { header: 'Limite', key: 'limite', width: 20 },
-                    { header: 'Estado', key: 'estado', width: 15 }
+                    { header: 'Urgência', key: 'urgencia', width: 12 },
+                    { header: 'Via', key: 'via', width: 12 },
+                    { header: 'Local/Obra', key: 'local', width: 20 },
+                    { header: 'Concelho', key: 'concelho', width: 15 },
+                    { header: 'Serviço', key: 'servico', width: 20 },
+                    { header: 'Observação', key: 'obs', width: 20 },
+                    { header: 'Tipo Trabalho', key: 'tipo', width: 15 },
+                    { header: 'Frequência', key: 'freq', width: 12 },
+                    { header: 'Tempo Dedicado', key: 'tempo', width: 15 },
+                    { header: 'Data/Hora Limite', key: 'limite', width: 20 },
+                    { header: 'Estado', key: 'estado', width: 12 }
                 ];
 
-                const dados = table.getData();
-                dados.forEach(row => {
+                // Adiciona os dados
+                table.getData().forEach(row => {
                     worksheet.addRow({
                         tecnico: row.tecnico,
                         data_pedido: row.data_hora_pedido,
@@ -122,6 +122,7 @@
                     });
                 });
 
+                // Gera o ficheiro
                 const buffer = await workbook.xlsx.writeBuffer();
                 const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
                 const url = URL.createObjectURL(blob);
@@ -131,13 +132,34 @@
                 link.click();
             } catch (error) {
                 console.error("Erro:", error);
-                alert("Erro ao gerar o ficheiro Excel.");
+                alert("Ocorreu um erro ao gerar o Excel.");
             }
         }
 
-        function aplicarFiltros() { /* ... lógica de filtros mantida ... */ }
-        function toggleConcluidos() { /* ... lógica de concluidos mantida ... */ }
-        async function guardarAlteracoes() { /* ... lógica de salvar mantida ... */ }
+        function aplicarFiltros() {
+            const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
+            table.setFilter(data => Object.values(data).some(val => String(val).toLowerCase().includes(input)));
+        }
+
+        function toggleConcluidos() {
+            mostrandoConcluidos = !mostrandoConcluidos;
+            document.getElementById("btn-filtro-concluidos").innerText = mostrandoConcluidos ? "✅ Ocultar Concluídos" : "👁️ Mostrar Tudo";
+            table.setFilter(data => mostrandoConcluidos ? true : data.estado !== "concluido");
+        }
+
+        async function guardarAlteracoes() {
+            const dados = table.getData();
+            for (const item of dados) {
+                await sbClient.from('pedidos').update({
+                    tecnico: item.tecnico, data_hora_pedido: item.data_hora_pedido, requerente: item.requerente,
+                    empresa: item.empresa, urgencia: item.urgencia, via: item.via, local_obra: item.local_obra,
+                    concelho: item.concelho, servico: item.servico, observacao: item.observacao,
+                    tipo_trabalho: item.tipo_trabalho, frequencia: item.frequencia, tempo_dedicado: item.tempo_dedicado,
+                    data_hora_limite: item.data_hora_limite, estado: item.estado
+                }).eq('id', item.id);
+            }
+            alert("Dados guardados com sucesso!");
+        }
 
         carregarDados();
     </script>
