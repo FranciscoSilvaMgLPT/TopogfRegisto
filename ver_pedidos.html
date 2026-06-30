@@ -2,7 +2,7 @@
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
-    <title>Histórico de Pedidos222</title>
+    <title>Histórico de Pedidos</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://unpkg.com/tabulator-tables@6.2.1/dist/css/tabulator_midnight.min.css" rel="stylesheet">
     <script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.2.1/dist/js/tabulator.min.js"></script>
@@ -12,8 +12,8 @@
         .btn-voltar { background: #334155; color: white; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: bold; }
         #tabela-pedidos { margin-top: 20px; font-size: 12px; }
         #filtro-pesquisa { width: 300px; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #475569; background: #1e293b; color: white; }
-        /* Garante que o dropdown de edição fique visível acima de outros elementos */
-        .tabulator-edit-select { z-index: 10000 !important; }
+        .urgencia-select { width: 100%; background: transparent; color: white; border: none; cursor: pointer; font-size: 12px; text-align: center; }
+        .urgencia-select option { background: #1e293b; color: white; }
     </style>
 </head>
 <body>
@@ -32,7 +32,6 @@
     </div>
 
     <input type="text" id="filtro-pesquisa" placeholder="🔍 Pesquisar">
-
     <div id="tabela-pedidos"></div>
 
     <script>
@@ -42,28 +41,6 @@
         
         let table;
         let mostrandoConcluidos = true;
-
-        function aplicarFiltros() {
-            const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
-            const termos = input.split('+').map(t => t.trim()).filter(t => t !== "");
-            
-            table.setFilter(function(data) {
-                const matchTexto = termos.every(termo => 
-                    Object.values(data).some(val => String(val).toLowerCase().includes(termo))
-                );
-                const estado = (data.estado || "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                const matchEstado = mostrandoConcluidos ? true : (estado !== "concluido");
-                return matchTexto && matchEstado;
-            });
-        }
-
-        function toggleConcluidos() {
-            mostrandoConcluidos = !mostrandoConcluidos;
-            const btn = document.getElementById("btn-filtro-concluidos");
-            btn.innerText = mostrandoConcluidos ? "✅ Ocultar Concluídos" : "👁️ Mostrar Tudo";
-            btn.style.background = mostrandoConcluidos ? "#64748b" : "#22c55e";
-            aplicarFiltros();
-        }
 
         async function carregarDados() {
             const { data: { session } } = await sbClient.auth.getSession();
@@ -78,6 +55,14 @@
                 layout: "fitColumns",
                 pagination: "local",
                 paginationSize: 15,
+                // Lógica para colorir a linha inteira
+                rowFormatter: function(row) {
+                    const urgencia = row.getData().urgencia;
+                    if (urgencia === "Baixa") row.getElement().style.backgroundColor = "rgba(34, 197, 94, 0.2)";
+                    else if (urgencia === "Média") row.getElement().style.backgroundColor = "rgba(234, 179, 8, 0.2)";
+                    else if (urgencia === "Alta") row.getElement().style.backgroundColor = "rgba(239, 68, 68, 0.2)";
+                    else row.getElement().style.backgroundColor = "";
+                },
                 columns: [
                     {title: "Técnico", field: "tecnico", editor: "input"},
                     {title: "Data Pedido", field: "data_hora_pedido", editor: "input"},
@@ -85,22 +70,27 @@
                     {title: "Empresa", field: "empresa", editor: "input"},
                     {
                         title: "Urgência", 
-                        field: "urgencia", 
-                        editor: "select", 
-                        editable: true,
-                        editorParams: {
-                            values: ["Baixa", "Média", "Alta"],
-                            listOnEmpty: true,
-                            showListOnEmpty: true
-                        }, 
+                        field: "urgencia",
+                        sorter: function(a, b) {
+                            const ordem = { "Alta": 3, "Média": 2, "Baixa": 1 };
+                            return (ordem[a] || 0) - (ordem[b] || 0);
+                        },
                         formatter: function(cell) {
                             const val = cell.getValue();
-                            let color = "";
-                            if (val === "Baixa") color = "rgba(34, 197, 94, 0.4)";
-                            if (val === "Média") color = "rgba(234, 179, 8, 0.4)";
-                            if (val === "Alta") color = "rgba(239, 68, 68, 0.4)";
-                            cell.getElement().style.backgroundColor = color;
-                            return val || "";
+                            const select = document.createElement("select");
+                            select.className = "urgencia-select";
+                            ["Baixa", "Média", "Alta"].forEach(opt => {
+                                const el = document.createElement("option");
+                                el.value = opt; el.textContent = opt;
+                                if (val === opt) el.selected = true;
+                                select.appendChild(el);
+                            });
+                            // Ao mudar, atualiza o valor e força a tabela a redesenhar a linha para aplicar a cor
+                            select.addEventListener("change", function() {
+                                cell.setValue(this.value);
+                                table.redraw(); 
+                            });
+                            return select;
                         }
                     },
                     {title: "Via", field: "via", editor: "input"},
@@ -124,42 +114,70 @@
             document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
         }
 
-        async function guardarAlteracoes() {
+        function aplicarFiltros() {
+            const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
+            const termos = input.split('+').map(t => t.trim()).filter(t => t !== "");
+            table.setFilter(function(data) {
+                const matchTexto = termos.every(termo => Object.values(data).some(val => String(val).toLowerCase().includes(termo)));
+                const estado = (data.estado || "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const matchEstado = mostrandoConcluidos ? true : (estado !== "concluido");
+                return matchTexto && matchEstado;
+            });
+        }
+
+        function toggleConcluidos() {
+            mostrandoConcluidos = !mostrandoConcluidos;
+            const btn = document.getElementById("btn-filtro-concluidos");
+            btn.innerText = mostrandoConcluidos ? "✅ Ocultar Concluídos" : "👁️ Mostrar Tudo";
+            btn.style.background = mostrandoConcluidos ? "#64748b" : "#22c55e";
+            aplicarFiltros();
+        }
+
+async function guardarAlteracoes() {
             const dados = table.getData();
             let sucesso = true;
+            
             for (const item of dados) {
-                const { error } = await sbClient
-                    .from('pedidos')
-                    .update({
-                        tecnico: item.tecnico,
-                        data_hora_pedido: item.data_hora_pedido,
-                        requerente: item.requerente,
-                        empresa: item.empresa,
-                        urgencia: item.urgencia,
-                        via: item.via,
-                        local_obra: item.local_obra,
-                        concelho: item.concelho,
-                        servico: item.servico,
-                        observacao: item.observacao,
-                        tipo_trabalho: item.tipo_trabalho,
-                        frequencia: item.frequencia,
-                        tempo_dedicado: item.tempo_dedicado,
-                        data_hora_limite: item.data_hora_limite,
-                        estado: item.estado
-                    })
-                    .eq('id', item.id);
-                if (error) { sucesso = false; }
+                const { error } = await sbClient.from('pedidos').update({
+                    tecnico: item.tecnico, 
+                    data_hora_pedido: item.data_hora_pedido, 
+                    requerente: item.requerente,
+                    empresa: item.empresa, 
+                    urgencia: item.urgencia, 
+                    via: item.via, 
+                    local_obra: item.local_obra,
+                    concelho: item.concelho, 
+                    servico: item.servico, 
+                    observacao: item.observacao,
+                    tipo_trabalho: item.tipo_trabalho, 
+                    frequencia: item.frequencia, 
+                    tempo_dedicado: item.tempo_dedicado,
+                    data_hora_limite: item.data_hora_limite, 
+                    estado: item.estado
+                }).eq('id', item.id);
+                
+                if (error) {
+                    console.error("Erro ao atualizar ID " + item.id, error);
+                    sucesso = false;
+                }
             }
-            sucesso ? alert("Dados guardados com sucesso!") : alert("Erro ao guardar.");
+
+            if (sucesso) {
+                alert("Dados guardados com sucesso!");
+                // --- AQUI ESTÁ O REFRESH ---
+                // Voltamos a buscar os dados frescos ao Supabase e atualizamos a tabela
+                const { data: novosDados } = await sbClient.from('pedidos').select('*');
+                table.replaceData(novosDados); 
+            } else {
+                alert("Erro ao guardar algumas alterações.");
+            }
         }
 
         function downloadCSV() {
             const dados = table.getData();
-            let csvContent = "\uFEFFTécnico,Data,Hora,Requerente,Empresa,Urgência,Via,Local,Concelho,Serviço,Obs,Tipo,Freq,Tempo,Data Limite,Hora Limite,Estado\n";
+            let csvContent = "\uFEFFTécnico,Data,Requerente,Empresa,Urgência,Via,Local,Concelho,Serviço,Obs,Tipo,Freq,Tempo,Data Limite,Estado\n";
             dados.forEach(row => {
-                const [dataPed, horaPed] = row.data_hora_pedido ? row.data_hora_pedido.split('T') : ["", ""];
-                const [dataLim, horaLim] = row.data_hora_limite ? row.data_hora_limite.split('T') : ["", ""];
-                const linha = [row.tecnico, dataPed, horaPed, row.requerente, row.empresa, row.urgencia, row.via, row.local_obra, row.concelho, row.servico, row.observacao, row.tipo_trabalho, row.frequencia, row.tempo_dedicado, dataLim, horaLim, row.estado].map(i => `"${(i || "").toString().replace(/"/g, '""')}"`).join(",");
+                const linha = [row.tecnico, row.data_hora_pedido, row.requerente, row.empresa, row.urgencia, row.via, row.local_obra, row.concelho, row.servico, row.observacao, row.tipo_trabalho, row.frequencia, row.tempo_dedicado, row.data_hora_limite, row.estado].map(i => `"${(i || "").toString().replace(/"/g, '""')}"`).join(",");
                 csvContent += linha + "\n";
             });
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
