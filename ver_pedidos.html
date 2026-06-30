@@ -67,19 +67,7 @@
                     {title: "Data Pedido", field: "data_hora_pedido", editor: "input"},
                     {title: "Requerente", field: "requerente", editor: "input"},
                     {title: "Empresa", field: "empresa", editor: "input"},
-                    {title: "Urgência", field: "urgencia", formatter: function(cell) {
-                        const val = cell.getValue();
-                        const select = document.createElement("select");
-                        select.className = "urgencia-select";
-                        ["Baixa", "Média", "Alta"].forEach(opt => {
-                            const el = document.createElement("option");
-                            el.value = opt; el.textContent = opt;
-                            if (val === opt) el.selected = true;
-                            select.appendChild(el);
-                        });
-                        select.addEventListener("change", function() { cell.setValue(this.value); table.redraw(); });
-                        return select;
-                    }},
+                    {title: "Urgência", field: "urgencia", editor: "input"},
                     {title: "Via", field: "via", editor: "input"},
                     {title: "Local", field: "local_obra", editor: "input"},
                     {title: "Concelho", field: "concelho", editor: "input"},
@@ -89,18 +77,7 @@
                     {title: "Freq", field: "frequencia", editor: "input"},
                     {title: "Tempo", field: "tempo_dedicado", editor: "input"},
                     {title: "Limite", field: "data_hora_limite", editor: "input"},
-                    {title: "Estado", field: "estado", formatter: function(cell) {
-                        const select = document.createElement("select");
-                        select.className = "select-custom";
-                        ["Pendente", "Concluido"].forEach(opt => {
-                            const el = document.createElement("option");
-                            el.value = opt.toLowerCase(); el.textContent = opt;
-                            if ((cell.getValue() || "").toLowerCase() === opt.toLowerCase()) el.selected = true;
-                            select.appendChild(el);
-                        });
-                        select.onchange = (e) => { cell.setValue(e.target.value); };
-                        return select;
-                    }},
+                    {title: "Estado", field: "estado", editor: "input"},
                     {title: "🗑️", formatter: function() { return "<button style='background:#ef4444; color:white; border:none; padding:2px 8px; border-radius:3px;'>❌</button>"; }, width: 80, hozAlign: "center", cellClick: function(e, cell) {
                         if(confirm("Apagar este registo?")) {
                             const id = cell.getRow().getData().id;
@@ -112,7 +89,7 @@
             document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
         }
 
-    async function exportarParaExcel() {
+        async function exportarParaExcel() {
             try {
                 const response = await fetch('template.xlsx');
                 const arrayBuffer = await response.arrayBuffer();
@@ -121,38 +98,37 @@
                 const worksheet = workbook.getWorksheet(1);
 
                 const dados = table.getData();
-                const startRow = 5;
+                const startRow = 5; 
 
                 dados.forEach((row, index) => {
                     const rowNumber = startRow + index;
-                    
-                    // Separação de Data/Hora
-                    const [dataPed, horaPed] = separarDataHora(row.data_hora_pedido);
-                    const [dataLim, horaLim] = separarDataHora(row.data_hora_limite);
+                    const separar = (str) => {
+                        if (!str) return ["", ""];
+                        const dataHora = str.toString().replace('T', ' '); 
+                        const [data, hora] = dataHora.split(' ');
+                        return [data, hora ? hora.substring(0, 5) : ""];
+                    };
 
-                    // Mapeamento para o Excel:
-                    // Coluna C (3): Técnico
-                    // Coluna D (4): Data Pedido
-                    // Coluna E (5): Hora Pedido
-                    // ... e assim por diante ...
-                    
-                    worksheet.getCell(rowNumber, 3).value = row.tecnico;
-                    worksheet.getCell(rowNumber, 4).value = dataPed;
-                    worksheet.getCell(rowNumber, 5).value = horaPed;
-                    worksheet.getCell(rowNumber, 6).value = row.requerente;
-                    worksheet.getCell(rowNumber, 7).value = row.empresa;
-                    worksheet.getCell(rowNumber, 8).value = row.urgencia;
-                    worksheet.getCell(rowNumber, 9).value = row.via;
-                    worksheet.getCell(rowNumber, 10).value = row.local_obra;
-                    worksheet.getCell(rowNumber, 11).value = row.concelho;
-                    worksheet.getCell(rowNumber, 12).value = row.servico;
-                    worksheet.getCell(rowNumber, 13).value = row.observacao;
-                    worksheet.getCell(rowNumber, 14).value = row.tipo_trabalho;
-                    worksheet.getCell(rowNumber, 15).value = row.frequencia;
-                    worksheet.getCell(rowNumber, 16).value = row.tempo_dedicado;
-                    worksheet.getCell(rowNumber, 17).value = dataLim; // Coluna P
-                    worksheet.getCell(rowNumber, 18).value = horaLim; // Coluna Q
-                    worksheet.getCell(rowNumber, 19).value = row.estado;
+                    const [dataPedido, horaPedido] = separar(row.data_hora_pedido);
+                    const [dataLimite, horaLimite] = separar(row.data_hora_limite);
+
+                    // Mapeamento baseado na sua estrutura visual:
+                    worksheet.getCell(rowNumber, 3).value = row.tecnico;       // C
+                    worksheet.getCell(rowNumber, 4).value = dataPedido;       // D
+                    worksheet.getCell(rowNumber, 5).value = horaPedido;       // E
+                    worksheet.getCell(rowNumber, 6).value = row.requerente;   // F
+                    worksheet.getCell(rowNumber, 7).value = row.empresa;      // G
+                    worksheet.getCell(rowNumber, 8).value = row.urgencia;     // H
+                    worksheet.getCell(rowNumber, 9).value = row.via;          // I
+                    worksheet.getCell(rowNumber, 10).value = row.local_obra;  // J
+                    worksheet.getCell(rowNumber, 11).value = row.concelho;    // K
+                    worksheet.getCell(rowNumber, 12).value = row.servico;     // L
+                    worksheet.getCell(rowNumber, 13).value = row.observacao;  // M
+                    worksheet.getCell(rowNumber, 14).value = row.tipo_trabalho;// N
+                    worksheet.getCell(rowNumber, 15).value = row.frequencia;  // O
+                    worksheet.getCell(rowNumber, 16).value = row.tempo_dedicado; // P
+                    worksheet.getCell(rowNumber, 17).value = dataLimite;      // Q
+                    worksheet.getCell(rowNumber, 18).value = horaLimite;      // R
                 });
 
                 const buffer = await workbook.xlsx.writeBuffer();
@@ -164,18 +140,14 @@
                 link.click();
             } catch (error) {
                 console.error("Erro:", error);
-                alert("Erro ao exportar. Verifique se o template.xlsx está acessível.");
+                alert("Erro ao exportar. Verifique se o 'template.xlsx' existe.");
             }
         }
 
         function aplicarFiltros() {
             const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
-            const termos = input.split('+').map(t => t.trim()).filter(t => t !== "");
             table.setFilter(function(data) {
-                const matchTexto = termos.every(termo => Object.values(data).some(val => String(val).toLowerCase().includes(termo)));
-                const estado = (data.estado || "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                const matchEstado = mostrandoConcluidos ? true : (estado !== "concluido");
-                return matchTexto && matchEstado;
+                return Object.values(data).some(val => String(val).toLowerCase().includes(input));
             });
         }
 
@@ -183,21 +155,21 @@
             mostrandoConcluidos = !mostrandoConcluidos;
             const btn = document.getElementById("btn-filtro-concluidos");
             btn.innerText = mostrandoConcluidos ? "✅ Ocultar Concluídos" : "👁️ Mostrar Tudo";
-            btn.style.background = mostrandoConcluidos ? "#64748b" : "#22c55e";
-            aplicarFiltros();
+            table.setFilter(data => mostrandoConcluidos ? true : data.estado !== "Concluido");
         }
 
         async function guardarAlteracoes() {
             const dados = table.getData();
-            let sucesso = true;
             for (const item of dados) {
-                const { error } = await sbClient.from('pedidos').update({
-                    tecnico: item.tecnico, data_hora_pedido: item.data_hora_pedido, requerente: item.requerente, empresa: item.empresa, urgencia: item.urgencia, via: item.via, local_obra: item.local_obra, concelho: item.concelho, servico: item.servico, observacao: item.observacao, tipo_trabalho: item.tipo_trabalho, frequencia: item.frequencia, tempo_dedicado: item.tempo_dedicado, data_hora_limite: item.data_hora_limite, estado: item.estado
+                await sbClient.from('pedidos').update({
+                    tecnico: item.tecnico, data_hora_pedido: item.data_hora_pedido, requerente: item.requerente, 
+                    empresa: item.empresa, urgencia: item.urgencia, via: item.via, local_obra: item.local_obra, 
+                    concelho: item.concelho, servico: item.servico, observacao: item.observacao, 
+                    tipo_trabalho: item.tipo_trabalho, frequencia: item.frequencia, tempo_dedicado: item.tempo_dedicado, 
+                    data_hora_limite: item.data_hora_limite, estado: item.estado
                 }).eq('id', item.id);
-                if (error) sucesso = false;
             }
-            if (sucesso) { alert("Dados guardados!"); const { data } = await sbClient.from('pedidos').select('*'); table.replaceData(data); }
-            else alert("Erro ao guardar.");
+            alert("Dados guardados!");
         }
 
         carregarDados();
