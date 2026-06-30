@@ -112,45 +112,60 @@
             document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
         }
 
-        async function exportarParaExcel() {
-            try {
-                const response = await fetch('template.xlsx');
-                const arrayBuffer = await response.arrayBuffer();
-                
-                const workbook = new ExcelJS.Workbook();
-                await workbook.xlsx.load(arrayBuffer);
-                const worksheet = workbook.getWorksheet(1); // Primeira aba
+      async function exportarParaExcel() {
+    try {
+        const response = await fetch('template.xlsx');
+        const arrayBuffer = await response.arrayBuffer();
+        
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(arrayBuffer);
+        const worksheet = workbook.getWorksheet(1);
 
-                const dados = table.getData();
-                const startRow = 5; // Inicia na linha 5
-                const startCol = 3; // Inicia na coluna C (1=A, 2=B, 3=C)
+        const dados = table.getData();
+        const startRow = 5; // Linha 5
 
-                dados.forEach((row, index) => {
-                    const rowNumber = startRow + index;
-                    const campos = [
-                        row.tecnico, row.data_hora_pedido, row.requerente, row.empresa, row.urgencia, 
-                        row.via, row.local_obra, row.concelho, row.servico, row.observacao, 
-                        row.tipo_trabalho, row.frequencia, row.tempo_dedicado, row.data_hora_limite, row.estado
-                    ];
+        dados.forEach((row, index) => {
+            const rowNumber = startRow + index;
 
-                    campos.forEach((val, colIndex) => {
-                        const cell = worksheet.getCell(rowNumber, startCol + colIndex);
-                        cell.value = val; // Preenche o valor mantendo o estilo original da célula
-                    });
-                });
+            // Função auxiliar para separar data e hora
+            const separar = (str) => {
+                if (!str) return ["", ""];
+                // Converte para string e remove o 'T' se existir
+                const dataHora = str.toString().replace('T', ' '); 
+                const [data, hora] = dataHora.split(' ');
+                return [data, hora ? hora.substring(0, 5) : ""]; // Hora com HH:MM
+            };
 
-                const buffer = await workbook.xlsx.writeBuffer();
-                const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                link.href = url;
-                link.download = "Pedidos_Exportados.xlsx";
-                link.click();
-            } catch (error) {
-                console.error("Erro:", error);
-                alert("Erro ao carregar o template.xlsx. Verifique se o ficheiro está na mesma pasta.");
-            }
-        }
+            const [dataPedido, horaPedido] = separar(row.data_hora_pedido);
+            const [dataLimite, horaLimite] = separar(row.data_hora_limite);
+
+            // Preenchimento de acordo com as colunas pedidas (1-based index)
+            // D = 4, E = 5, P = 16, Q = 17
+            worksheet.getCell(rowNumber, 4).value = dataPedido;
+            worksheet.getCell(rowNumber, 5).value = horaPedido;
+            
+            worksheet.getCell(rowNumber, 3).value = row.tecnico; // Coluna C
+            worksheet.getCell(rowNumber, 6).value = row.requerente;
+            worksheet.getCell(rowNumber, 7).value = row.empresa;
+            // ... (Continue a mapear as outras colunas conforme a ordem do seu template)
+            
+            worksheet.getCell(rowNumber, 16).value = dataLimite; // Coluna P
+            worksheet.getCell(rowNumber, 17).value = horaLimite; // Coluna Q
+            worksheet.getCell(rowNumber, 18).value = row.estado; // Coluna R (Exemplo)
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "Pedidos_Exportados.xlsx";
+        link.click();
+    } catch (error) {
+        console.error("Erro:", error);
+        alert("Erro ao exportar. Verifique o template.");
+    }
+}
 
         function aplicarFiltros() {
             const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
