@@ -111,16 +111,29 @@
         document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
     }
 
-    const processarDataHora = (isoString) => {
-        if (!isoString) return { dateValue: null, hora: "" };
-        const str = String(isoString);
-        const dataPart = str.split('T')[0].split(' ')[0];
-        const partes = dataPart.split('-'); 
-        if (partes.length !== 3) return { dateValue: null, hora: "" };
-        const [ano, mes, dia] = partes.map(Number);
-        return { dateValue: new Date(ano, mes - 1, dia), hora: str.includes('T') ? str.split('T')[1].substring(0, 5) : (str.includes(' ') ? str.split(' ')[1].substring(0, 5) : "") };
-    };
+  const processarDataHora = (isoString) => {
+    if (!isoString) return { dateValue: null, hora: "" };
+    
+    // Converte para string e remove qualquer resto de hora (tudo após o espaço ou T)
+    // O objetivo aqui é manter apenas a parte AAAA-MM-DD
+    let str = String(isoString);
+    let dataLimpa = str.split('T')[0].split(' ')[0]; // Pega apenas a parte da data
+    
+    // Divide a data (assumindo formato AAAA-MM-DD)
+    const partes = dataLimpa.split('-');
+    if (partes.length !== 3) return { dateValue: null, hora: "" };
+    
+    const [ano, mes, dia] = partes.map(Number);
+    
+    // Cria um objeto Date apenas com ano, mês e dia (hora é ignorada automaticamente)
+    const dateValue = new Date(ano, mes - 1, dia);
 
+    // Extrai a hora separadamente apenas para a coluna da hora
+    const horaPart = str.includes('T') ? str.split('T')[1] : (str.includes(' ') ? str.split(' ')[1] : "");
+    const hora = horaPart.substring(0, 5); 
+
+    return { dateValue, hora };
+};
     async function exportarParaExcel() {
         try {
             const response = await fetch('template.xlsx');
