@@ -68,15 +68,16 @@
                 {title: "Requerente", field: "requerente", editor: "input"},
                 {title: "Empresa", field: "empresa", editor: "input"},
                 {title: "Urgência", field: "urgencia", formatter: function(cell) {
+                    const val = cell.getValue();
                     const select = document.createElement("select");
                     select.className = "urgencia-select";
                     ["Baixa", "Média", "Alta"].forEach(opt => {
                         const el = document.createElement("option");
                         el.value = opt; el.textContent = opt;
-                        if (cell.getValue() === opt) el.selected = true;
+                        if (val === opt) el.selected = true;
                         select.appendChild(el);
                     });
-                    select.onchange = (e) => { cell.setValue(e.target.value); table.redraw(); };
+                    select.addEventListener("change", function() { cell.setValue(this.value); table.redraw(); });
                     return select;
                 }},
                 {title: "Via", field: "via", editor: "input"},
@@ -111,29 +112,24 @@
         document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
     }
 
-const processarDataHora = (isoString) => {
-    if (!isoString) return { dateValue: null, hora: "" };
-    
-    let str = String(isoString);
-    // Isola apenas a parte da data: AAAA-MM-DD
-    let dataPart = str.split('T')[0].split(' ')[0];
-    
-    const partes = dataPart.split('-');
-    if (partes.length !== 3) return { dateValue: null, hora: "" };
-    
-    const [ano, mes, dia] = partes.map(Number);
-    
-    // CORREÇÃO: Criar uma string UTC no formato YYYY-MM-DD
-    // Isso impede que o navegador aplique qualquer conversão de fuso horário local
-    const dateValue = new Date(`${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}T00:00:00Z`);
+    // Função corrigida: tratamento UTC para evitar erro de um dia a menos
+    const processarDataHora = (isoString) => {
+        if (!isoString) return { dateValue: null, hora: "" };
+        const str = String(isoString);
+        const dataPart = str.split('T')[0].split(' ')[0];
+        const partes = dataPart.split('-');
+        if (partes.length !== 3) return { dateValue: null, hora: "" };
+        
+        const [ano, mes, dia] = partes.map(Number);
+        // Criação de data como string UTC para evitar desvios de fuso horário
+        const dateValue = new Date(`${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}T00:00:00Z`);
+        
+        const horaPart = str.includes('T') ? str.split('T')[1] : (str.includes(' ') ? str.split(' ')[1] : "");
+        const hora = horaPart.substring(0, 5); 
 
-    // Extrai hora para a coluna separada
-    const horaPart = str.includes('T') ? str.split('T')[1] : (str.includes(' ') ? str.split(' ')[1] : "");
-    const hora = horaPart.substring(0, 5); 
+        return { dateValue, hora };
+    };
 
-    return { dateValue, hora };
-};
-    
     async function exportarParaExcel() {
         try {
             const response = await fetch('template.xlsx');
@@ -149,13 +145,19 @@ const processarDataHora = (isoString) => {
                 const rowNumber = startRow + index;
                 const pedido = processarDataHora(row.data_hora_pedido);
                 const limite = processarDataHora(row.data_hora_limite);
-                const campos = [row.tecnico, pedido.dateValue, pedido.hora, row.requerente, row.empresa, row.urgencia, row.via, row.local_obra, row.concelho, row.servico, row.observacao, row.tipo_trabalho, row.frequencia, row.tempo_dedicado, limite.dateValue, limite.hora, row.estado];
+                
+                const campos = [
+                    row.tecnico, pedido.dateValue, pedido.hora, row.requerente, 
+                    row.empresa, row.urgencia, row.via, row.local_obra, 
+                    row.concelho, row.servico, row.observacao, row.tipo_trabalho, 
+                    row.frequencia, row.tempo_dedicado, limite.dateValue, limite.hora, row.estado
+                ];
 
                 campos.forEach((val, colIndex) => {
                     const cell = worksheet.getCell(rowNumber, startCol + colIndex);
                     if (val instanceof Date) {
                         cell.value = val;
-                        cell.numFmt = 'yyyy-mm-dd';
+                        cell.numFmt = 'dd/mm/yyyy'; // Formato correto para Portugal
                     } else {
                         cell.value = val;
                     }
@@ -190,7 +192,6 @@ const processarDataHora = (isoString) => {
         mostrandoConcluidos = !mostrandoConcluidos;
         const btn = document.getElementById("btn-filtro-concluidos");
         btn.innerText = mostrandoConcluidos ? "✅ Ocultar Concluídos" : "👁️ Mostrar Tudo";
-        btn.style.background = mostrandoConcluidos ? "#64748b" : "#22c55e";
         aplicarFiltros();
     }
 
@@ -198,7 +199,12 @@ const processarDataHora = (isoString) => {
         const dados = table.getData();
         for (const item of dados) {
             await sbClient.from('pedidos').update({
-                tecnico: item.tecnico, data_hora_pedido: item.data_hora_pedido, requerente: item.requerente, empresa: item.empresa, urgencia: item.urgencia, via: item.via, local_obra: item.local_obra, concelho: item.concelho, servico: item.servico, observacao: item.observacao, tipo_trabalho: item.tipo_trabalho, frequencia: item.frequencia, tempo_dedicado: item.tempo_dedicado, data_hora_limite: item.data_hora_limite, estado: item.estado
+                tecnico: item.tecnico, data_hora_pedido: item.data_hora_pedido, 
+                requerente: item.requerente, empresa: item.empresa, urgencia: item.urgencia, 
+                via: item.via, local_obra: item.local_obra, concelho: item.concelho, 
+                servico: item.servico, observacao: item.observacao, tipo_trabalho: item.tipo_trabalho, 
+                frequencia: item.frequencia, tempo_dedicado: item.tempo_dedicado, 
+                data_hora_limite: item.data_hora_limite, estado: item.estado
             }).eq('id', item.id);
         }
         alert("Dados guardados!");
