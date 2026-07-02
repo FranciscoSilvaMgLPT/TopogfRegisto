@@ -125,46 +125,77 @@
         document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
     }
 
-    async function exportarParaExcel() {
-        try {
-            const response = await fetch('template.xlsx');
-            const arrayBuffer = await response.arrayBuffer();
-            const workbook = new ExcelJS.Workbook();
-            await workbook.xlsx.load(arrayBuffer);
-            const worksheet = workbook.getWorksheet(1);
-            const dados = table.getData();
-            const startRow = 5; 
-            const startCol = 3;
+  async function exportarParaExcel() {
+    try {
+        const response = await fetch('template.xlsx');
+        const arrayBuffer = await response.arrayBuffer();
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(arrayBuffer);
+        const worksheet = workbook.getWorksheet(1);
+        const dados = table.getData();
+        const startRow = 5;
 
-            const normalizarData = (val) => {
-                if (!val) return null;
-                const data = new Date(val);
-                return isNaN(data.getTime()) ? val : data;
-            };
+        // Função que gera a fórmula =DATA(AAAA;MM;DD)
+        const formatarDataFormula = (val) => {
+            if (!val || val === "") return null;
+            const d = new Date(val);
+            if (isNaN(d.getTime())) return null;
+            return `DATA(${d.getFullYear()};${d.getMonth() + 1};${d.getDate()})`;
+        };
 
-            dados.forEach((row, index) => {
-                const rowNumber = startRow + index;
-                const campos = [
-                    row.tecnico, normalizarData(row.data_hora_pedido), row.requerente, row.empresa, 
-                    row.urgencia, row.via, row.local_obra, row.concelho, row.servico, 
-                    row.observacao, row.tipo_trabalho, row.frequencia, normalizarData(row.data_hora_limite), 
-                    row.estado, normalizarData(row.data_conclusao)
-                ];
-                campos.forEach((val, colIndex) => {
-                    const cell = worksheet.getCell(rowNumber, startCol + colIndex);
-                    cell.value = val;
-                    if (val instanceof Date) cell.numFmt = 'dd/mm/yyyy hh:mm';
-                });
-            });
+        // Função que extrai apenas a hora como texto "HH:MM"
+        const formatarHora = (val) => {
+            if (!val || val === "") return null;
+            const d = new Date(val);
+            return isNaN(d.getTime()) ? null : 
+                   (d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0'));
+        };
 
-            const buffer = await workbook.xlsx.writeBuffer();
-            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "Pedidos_Exportados.xlsx";
-            link.click();
-        } catch (error) { console.error(error); alert("Erro na exportação."); }
+        dados.forEach((row, index) => {
+            const r = startRow + index;
+            
+            // Coluna 3: Técnico
+            worksheet.getCell(r, 3).value = row.tecnico;
+
+            // Coluna 4 (Data Pedido) e 5 (Hora Pedido)
+            if (formatarDataFormula(row.data_hora_pedido)) worksheet.getCell(r, 4).formula = formatarDataFormula(row.data_hora_pedido);
+            worksheet.getCell(r, 5).value = formatarHora(row.data_hora_pedido);
+
+            // Colunas 6 a 15 (Dados fixos)
+            worksheet.getCell(r, 6).value = row.requerente;
+            worksheet.getCell(r, 7).value = row.empresa;
+            worksheet.getCell(r, 8).value = row.urgencia;
+            worksheet.getCell(r, 9).value = row.via;
+            worksheet.getCell(r, 10).value = row.local_obra;
+            worksheet.getCell(r, 11).value = row.concelho;
+            worksheet.getCell(r, 12).value = row.servico;
+            worksheet.getCell(r, 13).value = row.observacao;
+            worksheet.getCell(r, 14).value = row.tipo_trabalho;
+            worksheet.getCell(r, 15).value = row.frequencia;
+
+            // Coluna 16 (Data Limite) e 17 (Hora Limite)
+            if (formatarDataFormula(row.data_hora_limite)) worksheet.getCell(r, 16).formula = formatarDataFormula(row.data_hora_limite);
+            worksheet.getCell(r, 17).value = formatarHora(row.data_hora_limite);
+
+            // Coluna 18: Estado
+            worksheet.getCell(r, 18).value = row.estado;
+
+            // Coluna 19 (Data Conclusão) e 20 (Hora Conclusão)
+            if (formatarDataFormula(row.data_conclusao)) worksheet.getCell(r, 19).formula = formatarDataFormula(row.data_conclusao);
+            worksheet.getCell(r, 20).value = formatarHora(row.data_conclusao);
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "Pedidos_Exportados.xlsx";
+        link.click();
+    } catch (error) { 
+        console.error(error); 
+        alert("Erro na exportação: " + error.message); 
     }
+}
 
     function aplicarFiltros() {
         const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
