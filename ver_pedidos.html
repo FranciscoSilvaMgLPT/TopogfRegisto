@@ -115,7 +115,7 @@
         document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
     }
 
- async function exportarParaExcel() {
+async function exportarParaExcel() {
     try {
         const response = await fetch('template.xlsx');
         const arrayBuffer = await response.arrayBuffer();
@@ -125,26 +125,35 @@
         const dados = table.getData();
         const startRow = 5;
 
-        // Função para separar Data e Hora estritamente
-        const prepararDataHora = (val) => {
-            const data = new Date(val);
-            if (isNaN(data.getTime())) return { d: "", h: "" };
-            
-            // Retorna a mesma data para ambos, o segredo está no numFmt que aplicaremos depois
-            return { d: data, h: data };
-        };
-
         dados.forEach((row, index) => {
             const rowNumber = startRow + index;
             
-            const p = prepararDataHora(row.data_hora_pedido);
-            const l = prepararDataHora(row.data_hora_limite);
-            const c = prepararDataHora(row.data_conclusao);
+            // Função interna para separar
+            const splitVal = (val) => {
+                const d = new Date(val);
+                if (isNaN(d.getTime())) return { data: null, hora: null };
+                
+                // data: cria um novo objeto Date apenas com o ano, mes, dia (hora zero)
+                const dataPura = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                
+                // hora: envia como string ou float formatado (0.5 para meio dia, etc)
+                // Usar string no formato 'HH:MM' é o mais seguro para o Excel não misturar
+                const horaPura = d.getHours().toString().padStart(2, '0') + ':' + 
+                                 d.getMinutes().toString().padStart(2, '0');
+                
+                return { data: dataPura, hora: horaPura };
+            };
 
-            // Preenchimento das células
+            const p = splitVal(row.data_hora_pedido);
+            const l = splitVal(row.data_hora_limite);
+            const c = splitVal(row.data_conclusao);
+
+            // Preenchimento
             worksheet.getCell(rowNumber, 3).value = row.tecnico;
-            worksheet.getCell(rowNumber, 4).value = p.d; // Data Pedido
-            worksheet.getCell(rowNumber, 5).value = p.h; // Hora Pedido
+            
+            worksheet.getCell(rowNumber, 4).value = p.data; // Apenas Data
+            worksheet.getCell(rowNumber, 5).value = p.hora; // Apenas Hora (String)
+            
             worksheet.getCell(rowNumber, 6).value = row.requerente;
             worksheet.getCell(rowNumber, 7).value = row.empresa;
             worksheet.getCell(rowNumber, 8).value = row.urgencia;
@@ -155,22 +164,18 @@
             worksheet.getCell(rowNumber, 13).value = row.observacao;
             worksheet.getCell(rowNumber, 14).value = row.tipo_trabalho;
             worksheet.getCell(rowNumber, 15).value = row.frequencia;
-            worksheet.getCell(rowNumber, 16).value = l.d; // Data Limite
-            worksheet.getCell(rowNumber, 17).value = l.h; // Hora Limite
+            
+            worksheet.getCell(rowNumber, 16).value = l.data; // Apenas Data
+            worksheet.getCell(rowNumber, 17).value = l.hora; // Apenas Hora (String)
+            
             worksheet.getCell(rowNumber, 18).value = row.estado;
-            worksheet.getCell(rowNumber, 19).value = c.d; // Data Conclusão
-            worksheet.getCell(rowNumber, 20).value = c.h; // Hora Conclusão
+            
+            worksheet.getCell(rowNumber, 19).value = c.data; // Apenas Data
+            worksheet.getCell(rowNumber, 20).value = c.hora; // Apenas Hora (String)
 
-            // Formatação estrita
-            // Colunas de Data (4, 16, 19)
+            // Formatar apenas as colunas de data
             [4, 16, 19].forEach(col => {
-                const cell = worksheet.getCell(rowNumber, col);
-                cell.numFmt = 'dd/mm/yyyy';
-            });
-            // Colunas de Hora (5, 17, 20)
-            [5, 17, 20].forEach(col => {
-                const cell = worksheet.getCell(rowNumber, col);
-                cell.numFmt = 'hh:mm';
+                worksheet.getCell(rowNumber, col).numFmt = 'dd/mm/yyyy';
             });
         });
 
