@@ -6,7 +6,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
     
-    <!-- Flatpickr (Calendário) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
@@ -46,6 +45,14 @@
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
     const sbClient = supabase.createClient(supabaseUrl, supabaseKey);
 
+    // Formatar data para visualização (remover o T)
+    const dataFormatter = (cell) => {
+        const val = cell.getValue();
+        if (!val) return "";
+        const data = new Date(val);
+        return data.toLocaleDateString("pt-PT") + " " + data.toLocaleTimeString("pt-PT", {hour: '2-digit', minute:'2-digit'});
+    };
+
     // Editor de Data com Flatpickr
     const dateEditor = function(cell, onRendered, success, cancel) {
         const input = document.createElement("input");
@@ -81,7 +88,7 @@
             },
             columns: [
                 {title: "Técnico", field: "tecnico", editor: "input"},
-                {title: "Data Pedido", field: "data_hora_pedido", editor: dateEditor},
+                {title: "Data Pedido", field: "data_hora_pedido", editor: dateEditor, formatter: dataFormatter},
                 {title: "Requerente", field: "requerente", editor: "input"},
                 {title: "Empresa", field: "empresa", editor: "input"},
                 {title: "Urgência", field: "urgencia", formatter: function(cell) {
@@ -103,7 +110,7 @@
                 {title: "Obs", field: "observacao", editor: "input"},
                 {title: "Tipo", field: "tipo_trabalho", editor: "input"},
                 {title: "Freq", field: "frequencia", editor: "input"},
-                {title: "Limite", field: "data_hora_limite", editor: dateEditor},
+                {title: "Limite", field: "data_hora_limite", editor: dateEditor, formatter: dataFormatter},
                 {title: "Estado", field: "estado", formatter: function(cell) {
                     const select = document.createElement("select");
                     select.className = "select-custom";
@@ -116,7 +123,7 @@
                     select.onchange = (e) => { cell.setValue(e.target.value); };
                     return select;
                 }},
-                {title: "Data Conclusão", field: "data_conclusao", editor: dateEditor},
+                {title: "Data Conclusão", field: "data_conclusao", editor: dateEditor, formatter: dataFormatter},
                 {title: "🗑️", formatter: function() { return "<button style='background:#ef4444; color:white; border:none; padding:2px 8px; border-radius:3px;'>❌</button>"; }, width: 60, hozAlign: "center", cellClick: function(e, cell) {
                     if(confirm("Apagar?")) { const id = cell.getRow().getData().id; sbClient.from('pedidos').delete().eq('id', id).then(() => cell.getRow().delete()); }
                 }}
