@@ -129,26 +129,17 @@ async function exportarParaExcel() {
         dados.forEach((row, index) => {
             const rowNumber = startRow + index;
             
-            // 1. Extração de valores puros
             const processar = (val) => {
-                if (!val || val === "") return { d: null, h: null };
+                if (!val || val === "") return null;
                 const d = new Date(val);
-                if (isNaN(d.getTime())) return { d: null, h: null };
-                
-                // Retorna componentes para a fórmula e para a hora
-                return {
-                    ano: d.getFullYear(),
-                    mes: d.getMonth() + 1,
-                    dia: d.getDate(),
-                    hora: d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0')
-                };
+                return isNaN(d.getTime()) ? null : d;
             };
 
             const p = processar(row.data_hora_pedido);
             const l = processar(row.data_hora_limite);
             const c = processar(row.data_conclusao);
 
-            // 2. Preenchimento de texto/outros
+            // 1. Preenchimento de dados
             worksheet.getCell(rowNumber, 3).value = row.tecnico;
             worksheet.getCell(rowNumber, 6).value = row.requerente;
             worksheet.getCell(rowNumber, 7).value = row.empresa;
@@ -162,16 +153,22 @@ async function exportarParaExcel() {
             worksheet.getCell(rowNumber, 15).value = row.frequencia;
             worksheet.getCell(rowNumber, 18).value = row.estado;
 
-            // 3. Aplicação FORÇADA da fórmula
-            // Usamos .formula para que o ExcelJS entenda que é uma instrução
-            if (p.ano) worksheet.getCell(rowNumber, 4).formula = `DATA(${p.ano};${p.mes};${p.dia})`;
-            if (l.ano) worksheet.getCell(rowNumber, 16).formula = `DATA(${l.ano};${l.mes};${l.dia})`;
-            if (c.ano) worksheet.getCell(rowNumber, 19).formula = `DATA(${c.ano};${c.mes};${c.dia})`;
+            // 2. DATA: Enviamos o objeto Date e aplicamos o formato de data do Excel
+            const formatarData = (cell, data) => {
+                if (data) {
+                    cell.value = data; 
+                    cell.numFmt = 'dd/mm/yyyy'; // Isto faz o Excel mostrar a data corretamente
+                }
+            };
+            formatarData(worksheet.getCell(rowNumber, 4), p);
+            formatarData(worksheet.getCell(rowNumber, 16), l);
+            formatarData(worksheet.getCell(rowNumber, 19), c);
 
-            // 4. Preenchimento de horas
-            worksheet.getCell(rowNumber, 5).value = p.hora;
-            worksheet.getCell(rowNumber, 17).value = l.hora;
-            worksheet.getCell(rowNumber, 20).value = c.hora;
+            // 3. HORA: Enviamos como string formatada
+            const formatarHora = (d) => d ? (d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0')) : null;
+            worksheet.getCell(rowNumber, 5).value = formatarHora(p);
+            worksheet.getCell(rowNumber, 17).value = formatarHora(l);
+            worksheet.getCell(rowNumber, 20).value = formatarHora(c);
         });
 
         const buffer = await workbook.xlsx.writeBuffer();
@@ -181,8 +178,8 @@ async function exportarParaExcel() {
         link.download = "Pedidos_Exportados.xlsx";
         link.click();
     } catch (error) { 
-        console.error("Erro na exportação:", error); 
-        alert("Erro ao gerar o Excel."); 
+        console.error("Erro:", error); 
+        alert("Erro na exportação."); 
     }
 }
     
