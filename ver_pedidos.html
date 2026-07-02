@@ -135,16 +135,15 @@ async function exportarParaExcel() {
         const dados = table.getData();
         const startRow = 5;
 
-        // Função para gerar a fórmula de data (sem converter para texto)
-        const getFormulaData = (val) => {
+        // Função que retorna objeto Date ou null (o que garante que o Excel reconhece o tipo)
+        const processarData = (val) => {
             if (!val || val === "") return null;
             const d = new Date(val);
-            if (isNaN(d.getTime())) return null;
-            return `DATE(${d.getFullYear()},${d.getMonth() + 1},${d.getDate()})`;
+            return isNaN(d.getTime()) ? null : d;
         };
 
-        // Função para extrair apenas hora
-        const getHora = (val) => {
+        // Função que retorna apenas a hora como string
+        const extrairHora = (val) => {
             if (!val || val === "") return null;
             const d = new Date(val);
             return isNaN(d.getTime()) ? null : 
@@ -154,16 +153,14 @@ async function exportarParaExcel() {
         dados.forEach((row, index) => {
             const r = startRow + index;
 
-            // 1. Técnico - Coluna 3
+            // Mapeamento exato solicitado:
             worksheet.getCell(r, 3).value = row.tecnico;
             
-            // 2. Data/Hora Pedido - Colunas 4 e 5
-            if (row.data_hora_pedido) {
-                worksheet.getCell(r, 4).formula = getFormulaData(row.data_hora_pedido);
-                worksheet.getCell(r, 5).value = getHora(row.data_hora_pedido);
-            }
-
-            // 3. Dados Gerais - Colunas 6 a 15
+            // Pedido
+            worksheet.getCell(r, 4).value = processarData(row.data_hora_pedido);
+            worksheet.getCell(r, 5).value = extrairHora(row.data_hora_pedido);
+            
+            // Dados intermédios
             worksheet.getCell(r, 6).value = row.requerente;
             worksheet.getCell(r, 7).value = row.empresa;
             worksheet.getCell(r, 8).value = row.urgencia;
@@ -174,21 +171,23 @@ async function exportarParaExcel() {
             worksheet.getCell(r, 13).value = row.observacao;
             worksheet.getCell(r, 14).value = row.tipo_trabalho;
             worksheet.getCell(r, 15).value = row.frequencia;
-
-            // 4. Data/Hora Limite - Colunas 16 e 17
-            if (row.data_hora_limite) {
-                worksheet.getCell(r, 16).formula = getFormulaData(row.data_hora_limite);
-                worksheet.getCell(r, 17).value = getHora(row.data_hora_limite);
-            }
-
-            // 5. Estado - Coluna 18
+            
+            // Limite
+            worksheet.getCell(r, 16).value = processarData(row.data_hora_limite);
+            worksheet.getCell(r, 17).value = extrairHora(row.data_hora_limite);
+            
+            // Estado
             worksheet.getCell(r, 18).value = row.estado;
+            
+            // Conclusão
+            worksheet.getCell(r, 19).value = processarData(row.data_conclusao);
+            worksheet.getCell(r, 20).value = extrairHora(row.data_conclusao);
 
-            // 6. Data/Hora Conclusão - Colunas 19 e 20
-            if (row.data_conclusao) {
-                worksheet.getCell(r, 19).formula = getFormulaData(row.data_conclusao);
-                worksheet.getCell(r, 20).value = getHora(row.data_conclusao);
-            }
+            // Formatação obrigatória para o Excel reconhecer como Data
+            [4, 16, 19].forEach(col => {
+                const cell = worksheet.getCell(r, col);
+                if (cell.value) cell.numFmt = 'dd/mm/yyyy';
+            });
         });
 
         const buffer = await workbook.xlsx.writeBuffer();
@@ -198,8 +197,8 @@ async function exportarParaExcel() {
         link.download = "Pedidos_Exportados.xlsx";
         link.click();
     } catch (error) { 
-        console.error(error); 
-        alert("Erro na exportação. Verifica se o template existe."); 
+        console.error("Erro na exportação:", error); 
+        alert("Erro ao exportar."); 
     }
 }
 
