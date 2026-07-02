@@ -115,7 +115,7 @@
         document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
     }
 
-  async function exportarParaExcel() {
+ async function exportarParaExcel() {
     try {
         const response = await fetch('template.xlsx');
         const arrayBuffer = await response.arrayBuffer();
@@ -125,24 +125,26 @@
         const dados = table.getData();
         const startRow = 5;
 
-        // Função para separar Data e Hora de um campo
-        const separarDataHora = (val) => {
+        // Função para separar Data e Hora estritamente
+        const prepararDataHora = (val) => {
             const data = new Date(val);
             if (isNaN(data.getTime())) return { d: "", h: "" };
+            
+            // Retorna a mesma data para ambos, o segredo está no numFmt que aplicaremos depois
             return { d: data, h: data };
         };
 
         dados.forEach((row, index) => {
             const rowNumber = startRow + index;
             
-            const p = separarDataHora(row.data_hora_pedido);
-            const l = separarDataHora(row.data_hora_limite);
-            const c = separarDataHora(row.data_conclusao);
+            const p = prepararDataHora(row.data_hora_pedido);
+            const l = prepararDataHora(row.data_hora_limite);
+            const c = prepararDataHora(row.data_conclusao);
 
-            // Mapeamento rigoroso para as colunas do teu template:
+            // Preenchimento das células
             worksheet.getCell(rowNumber, 3).value = row.tecnico;
-            worksheet.getCell(rowNumber, 4).value = p.d;  // data_pedido
-            worksheet.getCell(rowNumber, 5).value = p.h;  // hora_pedido
+            worksheet.getCell(rowNumber, 4).value = p.d; // Data Pedido
+            worksheet.getCell(rowNumber, 5).value = p.h; // Hora Pedido
             worksheet.getCell(rowNumber, 6).value = row.requerente;
             worksheet.getCell(rowNumber, 7).value = row.empresa;
             worksheet.getCell(rowNumber, 8).value = row.urgencia;
@@ -153,19 +155,22 @@
             worksheet.getCell(rowNumber, 13).value = row.observacao;
             worksheet.getCell(rowNumber, 14).value = row.tipo_trabalho;
             worksheet.getCell(rowNumber, 15).value = row.frequencia;
-            worksheet.getCell(rowNumber, 16).value = l.d; // data_limite
-            worksheet.getCell(rowNumber, 17).value = l.h; // hora_limite
+            worksheet.getCell(rowNumber, 16).value = l.d; // Data Limite
+            worksheet.getCell(rowNumber, 17).value = l.h; // Hora Limite
             worksheet.getCell(rowNumber, 18).value = row.estado;
-            worksheet.getCell(rowNumber, 19).value = c.d; // data_conclusao
-            worksheet.getCell(rowNumber, 20).value = c.h; // hora_conclusao
+            worksheet.getCell(rowNumber, 19).value = c.d; // Data Conclusão
+            worksheet.getCell(rowNumber, 20).value = c.h; // Hora Conclusão
 
-            // Formatação das células (Data e Hora)
-            const colunasData = [4, 5, 16, 17, 19, 20];
-            colunasData.forEach(col => {
+            // Formatação estrita
+            // Colunas de Data (4, 16, 19)
+            [4, 16, 19].forEach(col => {
                 const cell = worksheet.getCell(rowNumber, col);
-                if (cell.value instanceof Date) {
-                    cell.numFmt = (col === 4 || col === 16 || col === 19) ? 'dd/mm/yyyy' : 'hh:mm';
-                }
+                cell.numFmt = 'dd/mm/yyyy';
+            });
+            // Colunas de Hora (5, 17, 20)
+            [5, 17, 20].forEach(col => {
+                const cell = worksheet.getCell(rowNumber, col);
+                cell.numFmt = 'hh:mm';
             });
         });
 
@@ -180,7 +185,6 @@
         alert("Erro ao gerar o Excel."); 
     }
 }
-
     function aplicarFiltros() {
         const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
         table.setFilter(data => Object.values(data).some(v => String(v).toLowerCase().includes(input)) && (mostrandoConcluidos || data.estado !== "concluido"));
