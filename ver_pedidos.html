@@ -125,7 +125,7 @@
         document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
     }
 
-  async function exportarParaExcel() {
+async function exportarParaExcel() {
     try {
         const response = await fetch('template.xlsx');
         const arrayBuffer = await response.arrayBuffer();
@@ -133,51 +133,59 @@
         await workbook.xlsx.load(arrayBuffer);
         const worksheet = workbook.getWorksheet(1);
         const dados = table.getData();
-        const startRow = 5; 
-        const startCol = 3;
+        const startRow = 5;
 
-        const normalizarData = (val) => {
+        // Função que gera a string exata que o Excel quer: DATA(AAAA;MM;DD)
+        const formatarParaDataExcel = (val) => {
             if (!val) return null;
-            const data = new Date(val);
-            return isNaN(data.getTime()) ? val : data;
+            const d = new Date(val);
+            if (isNaN(d.getTime())) return null;
+            // Retorna a string pronta a ser usada como fórmula
+            return `DATA(${d.getFullYear()};${d.getMonth() + 1};${d.getDate()})`;
+        };
+
+        const extrairHora = (val) => {
+            if (!val) return null;
+            const d = new Date(val);
+            return isNaN(d.getTime()) ? null : 
+                   (d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0'));
         };
 
         dados.forEach((row, index) => {
-            const rowNumber = startRow + index;
-            
-            // Ordem das colunas conforme solicitado:
-            // 3: Técnico, 4: Data Pedido, 5: Hora Pedido, 6: Requerente, 7: Empresa, 8: Urgencia, 
-            // 9: Via, 10: Local, 11: Concelho, 12: Serviço, 13: Obs, 14: Tipo, 15: Freq, 
-            // 16: Data Limite, 17: Hora Limite, 18: Estado, 19: Data Conclusão, 20: Hora Conclusão
-            
-            const campos = [
-                row.tecnico, 
-                normalizarData(row.data_hora_pedido), // Col 4 (Data)
-                normalizarData(row.data_hora_pedido), // Col 5 (Hora)
-                row.requerente, row.empresa, row.urgencia, row.via, 
-                row.local_obra, row.concelho, row.servico, row.observacao, 
-                row.tipo_trabalho, row.frequencia,
-                normalizarData(row.data_hora_limite), // Col 16 (Data)
-                normalizarData(row.data_hora_limite), // Col 17 (Hora)
-                row.estado,
-                normalizarData(row.data_conclusao),  // Col 19 (Data)
-                normalizarData(row.data_conclusao)   // Col 20 (Hora)
-            ];
+            const r = startRow + index;
 
-            campos.forEach((val, colIndex) => {
-                const cell = worksheet.getCell(rowNumber, startCol + colIndex);
-                cell.value = val;
-                
-                // Formatação: Data para colunas 4, 16, 19 | Hora para colunas 5, 17, 20
-                if (val instanceof Date) {
-                    const col = startCol + colIndex;
-                    if (col === 4 || col === 16 || col === 19) {
-                        cell.numFmt = 'dd/mm/yyyy';
-                    } else if (col === 5 || col === 17 || col === 20) {
-                        cell.numFmt = 'hh:mm';
-                    }
-                }
-            });
+            // 1. Técnico (Col 3)
+            worksheet.getCell(r, 3).value = row.tecnico;
+            
+            // 2. Data/Hora Pedido (Col 4=DATA(...) / Col 5=Hora)
+            const fPedido = formatarParaDataExcel(row.data_hora_pedido);
+            if (fPedido) worksheet.getCell(r, 4).value = "=" + fPedido;
+            worksheet.getCell(r, 5).value = extrairHora(row.data_hora_pedido);
+            
+            // 3. Dados Gerais (Col 6 a 15)
+            worksheet.getCell(r, 6).value = row.requerente;
+            worksheet.getCell(r, 7).value = row.empresa;
+            worksheet.getCell(r, 8).value = row.urgencia;
+            worksheet.getCell(r, 9).value = row.via;
+            worksheet.getCell(r, 10).value = row.local_obra;
+            worksheet.getCell(r, 11).value = row.concelho;
+            worksheet.getCell(r, 12).value = row.servico;
+            worksheet.getCell(r, 13).value = row.observacao;
+            worksheet.getCell(r, 14).value = row.tipo_trabalho;
+            worksheet.getCell(r, 15).value = row.frequencia;
+            
+            // 4. Data/Hora Limite (Col 16=DATA(...) / Col 17=Hora)
+            const fLimite = formatarParaDataExcel(row.data_hora_limite);
+            if (fLimite) worksheet.getCell(r, 16).value = "=" + fLimite;
+            worksheet.getCell(r, 17).value = extrairHora(row.data_hora_limite);
+            
+            // 5. Estado (Col 18)
+            worksheet.getCell(r, 18).value = row.estado;
+            
+            // 6. Data/Hora Conclusão (Col 19=DATA(...) / Col 20=Hora)
+            const fConclusao = formatarParaDataExcel(row.data_conclusao);
+            if (fConclusao) worksheet.getCell(r, 19).value = "=" + fConclusao;
+            worksheet.getCell(r, 20).value = extrairHora(row.data_conclusao);
         });
 
         const buffer = await workbook.xlsx.writeBuffer();
@@ -186,8 +194,12 @@
         link.href = URL.createObjectURL(blob);
         link.download = "Pedidos_Exportados.xlsx";
         link.click();
-    } catch (error) { console.error(error); alert("Erro na exportação."); }
+    } catch (error) { 
+        console.error("Erro na exportação:", error); 
+        alert("Erro ao gerar o Excel."); 
+    }
 }
+    
     function aplicarFiltros() {
         const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
         table.setFilter(function(data) {
