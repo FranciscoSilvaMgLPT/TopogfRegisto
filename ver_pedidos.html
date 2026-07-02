@@ -1,204 +1,66 @@
-<!DOCTYPE html>
-<html lang="pt">
-<head>
-    <meta charset="UTF-8">
-    <title>Histórico de Pedidos</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
-    
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
-
-    <link href="https://unpkg.com/tabulator-tables@6.2.1/dist/css/tabulator_midnight.min.css" rel="stylesheet">
-    <script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.2.1/dist/js/tabulator.min.js"></script>
-
-    <style>
-        body { background-color: #0f172a; color: white; font-family: sans-serif; padding: 20px; }
-        .btn-voltar { background: #334155; color: white; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: bold; }
-        #tabela-pedidos { margin-top: 20px; font-size: 12px; }
-        #filtro-pesquisa { width: 300px; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #475569; background: #1e293b; color: white; }
-        .urgencia-select, .select-custom { width: 100%; background: transparent; color: white; border: none; cursor: pointer; font-size: 12px; text-align: center; }
-        .urgencia-select option, .select-custom option { background: #1e293b; color: white; }
-    </style>
-</head>
-<body>
-
-<div>Utilizador: <strong id="utilizador-info" style="font-weight: bold; color: #60a5fa;">A verificar...</strong></div>
-
-<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
-    <h1 style="margin: 0;">Histórico de Pedidos</h1>
-    <div>
-        <button onclick="window.location.href='https://franciscosilvamglpt.github.io/TopogfRegisto/registo_pedidos.html'" style="background: #3b82f6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">➕ Adicionar Pedido</button>
-        <button id="btn-filtro-concluidos" onclick="toggleConcluidos()" style="background: #64748b; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">✅ Ocultar Concluídos</button>
-        <button onclick="guardarAlteracoes()" style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">💾 Guardar Alterações</button>
-        <button onclick="exportarParaExcel()" style="background: #8b5cf6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">⬇ Exportar Excel</button>
-        <a href="index.html" class="btn-voltar">⬅ Voltar</a>
-    </div>
-</div>
-
-<input type="text" id="filtro-pesquisa" placeholder="🔍 Pesquisar">
-<div id="tabela-pedidos"></div>
-
-<script>
-    const supabaseUrl = 'https://dunondjiqawovisnwavg.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
-    const sbClient = supabase.createClient(supabaseUrl, supabaseKey);
-
-    const dateEditor = function(cell, onRendered, success, cancel) {
-        const input = document.createElement("input");
-        input.style.width = "100%";
-        input.value = cell.getValue();
-        onRendered(function() {
-            input.focus();
-            flatpickr(input, { enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, locale: "pt", onClose: (sd, ds) => success(ds) });
-        });
-        return input;
-    };
-
-    let table;
-    let mostrandoConcluidos = true;
-
-    async function carregarDados() {
-        const { data: { session } } = await sbClient.auth.getSession();
-        if (!session) { window.location.href = 'login.html'; return; }
-        document.getElementById('utilizador-info').innerText = session.user.email;
-
-        const { data } = await sbClient.from('pedidos').select('*');
-
-        table = new Tabulator("#tabela-pedidos", {
-            data: data,
-            layout: "fitColumns",
-            pagination: "local",
-            paginationSize: 15,
-    rowFormatter: function(row) {
-    const data = row.getData();
-    const el = row.getElement();
-    
-    if (data.estado === "concluido") {
-        el.style.backgroundColor = "#334155";
-        el.style.opacity = "0.6";
-        // Forçamos a cor e o risco
-        el.style.textDecoration = "line-through";
-        el.style.color = "#94a3b8"; // Cor cinzenta para o texto ficar mais visível com o risco
-    } else {
-        el.style.textDecoration = "none";
-        el.style.opacity = "1";
-        el.style.color = "white"; // Reset para branco
-        
-        if (data.urgencia === "Baixa") el.style.backgroundColor = "rgba(34, 197, 94, 0.2)";
-        else if (data.urgencia === "Média") el.style.backgroundColor = "rgba(234, 179, 8, 0.2)";
-        else if (data.urgencia === "Alta") el.style.backgroundColor = "rgba(239, 68, 68, 0.2)";
-        else el.style.backgroundColor = "transparent";
-    }
-},
-            columns: [
-                {title: "Técnico", field: "tecnico", editor: "input"},
-                {title: "Data Pedido", field: "data_hora_pedido", editor: dateEditor},
-                {title: "Requerente", field: "requerente", editor: "input"},
-                {title: "Empresa", field: "empresa", editor: "input"},
-                {title: "Urgência", field: "urgencia", formatter: function(cell) {
-                    const select = document.createElement("select");
-                    select.className = "urgencia-select";
-                    ["Baixa", "Média", "Alta"].forEach(opt => {
-                        const el = document.createElement("option");
-                        el.value = opt; el.textContent = opt;
-                        if (cell.getValue() === opt) el.selected = true;
-                        select.appendChild(el);
-                    });
-                    select.onchange = (e) => { cell.setValue(e.target.value); cell.getRow().reformat(); };
-                    return select;
-                }},
-                {title: "Via", field: "via", editor: "input"},
-                {title: "Local", field: "local_obra", editor: "input"},
-                {title: "Concelho", field: "concelho", editor: "input"},
-                {title: "Serviço", field: "servico", editor: "input"},
-                {title: "Obs", field: "observacao", editor: "input"},
-                {title: "Tipo", field: "tipo_trabalho", editor: "input"},
-                {title: "Freq", field: "frequencia", editor: "input"},
-                {title: "Limite", field: "data_hora_limite", editor: dateEditor},
-                {title: "Estado", field: "estado", formatter: function(cell) {
-                    const select = document.createElement("select");
-                    select.className = "select-custom";
-                    ["Pendente", "Concluido"].forEach(opt => {
-                        const el = document.createElement("option");
-                        el.value = opt.toLowerCase(); el.textContent = opt;
-                        if ((cell.getValue() || "").toLowerCase() === opt.toLowerCase()) el.selected = true;
-                        select.appendChild(el);
-                    });
-                    select.onchange = (e) => { cell.setValue(e.target.value); cell.getRow().reformat(); };
-                    return select;
-                }},
-                {title: "Data Conclusão", field: "data_conclusao", editor: dateEditor},
-                {title: "🗑️", formatter: function() { return "<button style='background:#ef4444; color:white; border:none; padding:2px 8px; border-radius:3px;'>❌</button>"; }, width: 60, hozAlign: "center", cellClick: function(e, cell) {
-                    if(confirm("Apagar?")) { const id = cell.getRow().getData().id; sbClient.from('pedidos').delete().eq('id', id).then(() => cell.getRow().delete()); }
-                }}
-            ]
-        });
-        document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
-    }
-
-    async function exportarParaExcel() {
-        try {
-            const response = await fetch('template.xlsx');
-            const arrayBuffer = await response.arrayBuffer();
-            const workbook = new ExcelJS.Workbook();
-            await workbook.xlsx.load(arrayBuffer);
-            const worksheet = workbook.getWorksheet(1);
-            const dados = table.getData();
-            const startRow = 5; 
-            const startCol = 3;
-
-            const normalizarData = (val) => { if (!val) return null; const data = new Date(val); return isNaN(data.getTime()) ? val : data; };
-
-            dados.forEach((row, index) => {
-                const rowNumber = startRow + index;
-                const campos = [row.tecnico, normalizarData(row.data_hora_pedido), row.requerente, row.empresa, row.urgencia, row.via, row.local_obra, row.concelho, row.servico, row.observacao, row.tipo_trabalho, row.frequencia, normalizarData(row.data_hora_limite), row.estado, normalizarData(row.data_conclusao)];
-                campos.forEach((val, colIndex) => {
-                    const cell = worksheet.getCell(rowNumber, startCol + colIndex);
-                    cell.value = val;
-                    if (val instanceof Date) cell.numFmt = 'dd/mm/yyyy hh:mm';
-                });
-            });
-
-            const buffer = await workbook.xlsx.writeBuffer();
-            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "Pedidos_Exportados.xlsx";
-            link.click();
-        } catch (error) { console.error(error); alert("Erro na exportação."); }
-    }
-
-    function aplicarFiltros() {
-        const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
-        table.setFilter(function(data) {
-            const matchTexto = Object.values(data).some(val => String(val).toLowerCase().includes(input));
-            return matchTexto && (mostrandoConcluidos ? true : data.estado !== "concluido");
-        });
-    }
-
-    function toggleConcluidos() {
-        mostrandoConcluidos = !mostrandoConcluidos;
-        document.getElementById("btn-filtro-concluidos").innerText = mostrandoConcluidos ? "✅ Ocultar Concluídos" : "👁️ Mostrar Tudo";
-        aplicarFiltros();
-    }
-
-    async function guardarAlteracoes() {
+async function exportarParaExcel() {
+    try {
+        const response = await fetch('template.xlsx');
+        const arrayBuffer = await response.arrayBuffer();
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(arrayBuffer);
+        const worksheet = workbook.getWorksheet(1);
         const dados = table.getData();
-        for (const item of dados) {
-            await sbClient.from('pedidos').update({
-                tecnico: item.tecnico, data_hora_pedido: item.data_hora_pedido, requerente: item.requerente,
-                empresa: item.empresa, urgencia: item.urgencia, via: item.via, local_obra: item.local_obra,
-                concelho: item.concelho, servico: item.servico, observacao: item.observacao,
-                tipo_trabalho: item.tipo_trabalho, frequencia: item.frequencia, data_hora_limite: item.data_hora_limite,
-                estado: item.estado, data_conclusao: item.data_conclusao
-            }).eq('id', item.id);
-        }
-        alert("Guardado com sucesso!");
-    }
+        const startRow = 5; 
 
-    carregarDados();
-</script>
-</body>
-</html>
+        // Função para separar Data e Hora de um campo
+        const separarDataHora = (val) => {
+            const data = new Date(val);
+            if (isNaN(data.getTime())) return { d: "", h: "" };
+            return { d: data, h: data };
+        };
+
+        dados.forEach((row, index) => {
+            const rowNumber = startRow + index;
+            
+            const p = separarDataHora(row.data_hora_pedido);
+            const l = separarDataHora(row.data_hora_limite);
+            const c = separarDataHora(row.data_conclusao);
+
+            // Mapeamento baseado nas colunas que forneceste:
+            // Coluna 3 = C, 4 = D, ..., 20 = T
+            worksheet.getCell(rowNumber, 3).value = row.tecnico;
+            worksheet.getCell(rowNumber, 4).value = p.d; // data_pedido
+            worksheet.getCell(rowNumber, 5).value = p.h; // hora_pedido
+            worksheet.getCell(rowNumber, 6).value = row.requerente;
+            worksheet.getCell(rowNumber, 7).value = row.empresa;
+            worksheet.getCell(rowNumber, 8).value = row.urgencia;
+            worksheet.getCell(rowNumber, 9).value = row.via;
+            worksheet.getCell(rowNumber, 10).value = row.local_obra;
+            worksheet.getCell(rowNumber, 11).value = row.concelho;
+            worksheet.getCell(rowNumber, 12).value = row.servico;
+            worksheet.getCell(rowNumber, 13).value = row.observacao;
+            worksheet.getCell(rowNumber, 14).value = row.tipo_trabalho;
+            worksheet.getCell(rowNumber, 15).value = row.frequencia;
+            worksheet.getCell(rowNumber, 16).value = l.d; // data_limite
+            worksheet.getCell(rowNumber, 17).value = l.h; // hora_limite
+            worksheet.getCell(rowNumber, 18).value = row.estado;
+            worksheet.getCell(rowNumber, 19).value = c.d; // data_conclusao
+            worksheet.getCell(rowNumber, 20).value = c.h; // hora_conclusao
+
+            // Formatação das células (Data e Hora)
+            const colunasData = [4, 5, 16, 17, 19, 20];
+            colunasData.forEach(col => {
+                const cell = worksheet.getCell(rowNumber, col);
+                if (cell.value instanceof Date) {
+                    cell.numFmt = (col === 4 || col === 16 || col === 19) ? 'dd/mm/yyyy' : 'hh:mm';
+                }
+            });
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "Pedidos_Exportados.xlsx";
+        link.click();
+    } catch (error) { 
+        console.error("Erro na exportação:", error); 
+        alert("Erro ao gerar o Excel."); 
+    }
+}
