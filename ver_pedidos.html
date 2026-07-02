@@ -135,17 +135,17 @@ async function exportarParaExcel() {
         const dados = table.getData();
         const startRow = 5;
 
-        // Função que gera a string exata que o Excel quer: DATA(AAAA;MM;DD)
-        const formatarParaDataExcel = (val) => {
-            if (!val) return null;
+        // Função para fórmula =DATA(AAAA;MM;DD)
+        const getFormulaData = (val) => {
+            if (!val || val === "") return null;
             const d = new Date(val);
             if (isNaN(d.getTime())) return null;
-            // Retorna a string pronta a ser usada como fórmula
-            return `DATA(${d.getFullYear()};${d.getMonth() + 1};${d.getDate()})`;
+            return `=DATA(${d.getFullYear()};${d.getMonth() + 1};${d.getDate()})`;
         };
 
-        const extrairHora = (val) => {
-            if (!val) return null;
+        // Função para hora
+        const getHora = (val) => {
+            if (!val || val === "") return null;
             const d = new Date(val);
             return isNaN(d.getTime()) ? null : 
                    (d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0'));
@@ -154,15 +154,9 @@ async function exportarParaExcel() {
         dados.forEach((row, index) => {
             const r = startRow + index;
 
-            // 1. Técnico (Col 3)
             worksheet.getCell(r, 3).value = row.tecnico;
-            
-            // 2. Data/Hora Pedido (Col 4=DATA(...) / Col 5=Hora)
-            const fPedido = formatarParaDataExcel(row.data_hora_pedido);
-            if (fPedido) worksheet.getCell(r, 4).value = "=" + fPedido;
-            worksheet.getCell(r, 5).value = extrairHora(row.data_hora_pedido);
-            
-            // 3. Dados Gerais (Col 6 a 15)
+            worksheet.getCell(r, 4).value = getFormulaData(row.data_hora_pedido);
+            worksheet.getCell(r, 5).value = getHora(row.data_hora_pedido);
             worksheet.getCell(r, 6).value = row.requerente;
             worksheet.getCell(r, 7).value = row.empresa;
             worksheet.getCell(r, 8).value = row.urgencia;
@@ -173,19 +167,11 @@ async function exportarParaExcel() {
             worksheet.getCell(r, 13).value = row.observacao;
             worksheet.getCell(r, 14).value = row.tipo_trabalho;
             worksheet.getCell(r, 15).value = row.frequencia;
-            
-            // 4. Data/Hora Limite (Col 16=DATA(...) / Col 17=Hora)
-            const fLimite = formatarParaDataExcel(row.data_hora_limite);
-            if (fLimite) worksheet.getCell(r, 16).value = "=" + fLimite;
-            worksheet.getCell(r, 17).value = extrairHora(row.data_hora_limite);
-            
-            // 5. Estado (Col 18)
+            worksheet.getCell(r, 16).value = getFormulaData(row.data_hora_limite);
+            worksheet.getCell(r, 17).value = getHora(row.data_hora_limite);
             worksheet.getCell(r, 18).value = row.estado;
-            
-            // 6. Data/Hora Conclusão (Col 19=DATA(...) / Col 20=Hora)
-            const fConclusao = formatarParaDataExcel(row.data_conclusao);
-            if (fConclusao) worksheet.getCell(r, 19).value = "=" + fConclusao;
-            worksheet.getCell(r, 20).value = extrairHora(row.data_conclusao);
+            worksheet.getCell(r, 19).value = getFormulaData(row.data_conclusao);
+            worksheet.getCell(r, 20).value = getHora(row.data_conclusao);
         });
 
         const buffer = await workbook.xlsx.writeBuffer();
@@ -195,8 +181,8 @@ async function exportarParaExcel() {
         link.download = "Pedidos_Exportados.xlsx";
         link.click();
     } catch (error) { 
-        console.error("Erro na exportação:", error); 
-        alert("Erro ao gerar o Excel."); 
+        console.error(error); 
+        alert("Erro na exportação."); 
     }
 }
     
