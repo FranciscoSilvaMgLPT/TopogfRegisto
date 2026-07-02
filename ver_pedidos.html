@@ -6,7 +6,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
     
-    <!-- Flatpickr (Calendário) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
@@ -46,7 +45,6 @@
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
     const sbClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-    // Editor de Data com Flatpickr
     const dateEditor = function(cell, onRendered, success, cancel) {
         const input = document.createElement("input");
         input.style.width = "100%";
@@ -73,12 +71,27 @@
             layout: "fitColumns",
             pagination: "local",
             paginationSize: 15,
-            rowFormatter: function(row) {
-                const urgencia = row.getData().urgencia;
-                if (urgencia === "Baixa") row.getElement().style.backgroundColor = "rgba(34, 197, 94, 0.2)";
-                else if (urgencia === "Média") row.getElement().style.backgroundColor = "rgba(234, 179, 8, 0.2)";
-                else if (urgencia === "Alta") row.getElement().style.backgroundColor = "rgba(239, 68, 68, 0.2)";
-            },
+    rowFormatter: function(row) {
+    const data = row.getData();
+    const el = row.getElement();
+    
+    if (data.estado === "concluido") {
+        el.style.backgroundColor = "#334155";
+        el.style.opacity = "0.6";
+        // Forçamos a cor e o risco
+        el.style.textDecoration = "line-through";
+        el.style.color = "#94a3b8"; // Cor cinzenta para o texto ficar mais visível com o risco
+    } else {
+        el.style.textDecoration = "none";
+        el.style.opacity = "1";
+        el.style.color = "white"; // Reset para branco
+        
+        if (data.urgencia === "Baixa") el.style.backgroundColor = "rgba(34, 197, 94, 0.2)";
+        else if (data.urgencia === "Média") el.style.backgroundColor = "rgba(234, 179, 8, 0.2)";
+        else if (data.urgencia === "Alta") el.style.backgroundColor = "rgba(239, 68, 68, 0.2)";
+        else el.style.backgroundColor = "transparent";
+    }
+},
             columns: [
                 {title: "Técnico", field: "tecnico", editor: "input"},
                 {title: "Data Pedido", field: "data_hora_pedido", editor: dateEditor},
@@ -93,7 +106,7 @@
                         if (cell.getValue() === opt) el.selected = true;
                         select.appendChild(el);
                     });
-                    select.onchange = (e) => { cell.setValue(e.target.value); table.redraw(); };
+                    select.onchange = (e) => { cell.setValue(e.target.value); cell.getRow().reformat(); };
                     return select;
                 }},
                 {title: "Via", field: "via", editor: "input"},
@@ -113,7 +126,7 @@
                         if ((cell.getValue() || "").toLowerCase() === opt.toLowerCase()) el.selected = true;
                         select.appendChild(el);
                     });
-                    select.onchange = (e) => { cell.setValue(e.target.value); };
+                    select.onchange = (e) => { cell.setValue(e.target.value); cell.getRow().reformat(); };
                     return select;
                 }},
                 {title: "Data Conclusão", field: "data_conclusao", editor: dateEditor},
@@ -136,20 +149,11 @@
             const startRow = 5; 
             const startCol = 3;
 
-            const normalizarData = (val) => {
-                if (!val) return null;
-                const data = new Date(val);
-                return isNaN(data.getTime()) ? val : data;
-            };
+            const normalizarData = (val) => { if (!val) return null; const data = new Date(val); return isNaN(data.getTime()) ? val : data; };
 
             dados.forEach((row, index) => {
                 const rowNumber = startRow + index;
-                const campos = [
-                    row.tecnico, normalizarData(row.data_hora_pedido), row.requerente, row.empresa, 
-                    row.urgencia, row.via, row.local_obra, row.concelho, row.servico, 
-                    row.observacao, row.tipo_trabalho, row.frequencia, normalizarData(row.data_hora_limite), 
-                    row.estado, normalizarData(row.data_conclusao)
-                ];
+                const campos = [row.tecnico, normalizarData(row.data_hora_pedido), row.requerente, row.empresa, row.urgencia, row.via, row.local_obra, row.concelho, row.servico, row.observacao, row.tipo_trabalho, row.frequencia, normalizarData(row.data_hora_limite), row.estado, normalizarData(row.data_conclusao)];
                 campos.forEach((val, colIndex) => {
                     const cell = worksheet.getCell(rowNumber, startCol + colIndex);
                     cell.value = val;
