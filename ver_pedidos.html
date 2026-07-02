@@ -47,12 +47,8 @@
 
     const dateEditor = function(cell, onRendered, success, cancel) {
         const input = document.createElement("input");
-        input.style.width = "100%";
         input.value = cell.getValue();
-        onRendered(function() {
-            input.focus();
-            flatpickr(input, { enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, locale: "pt", onClose: (sd, ds) => success(ds) });
-        });
+        onRendered(() => { input.focus(); flatpickr(input, { enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, locale: "pt", onClose: (sd, ds) => success(ds) }); });
         return input;
     };
 
@@ -63,7 +59,6 @@
         const { data: { session } } = await sbClient.auth.getSession();
         if (!session) { window.location.href = 'login.html'; return; }
         document.getElementById('utilizador-info').innerText = session.user.email;
-
         const { data } = await sbClient.from('pedidos').select('*');
 
         table = new Tabulator("#tabela-pedidos", {
@@ -71,43 +66,33 @@
             layout: "fitColumns",
             pagination: "local",
             paginationSize: 15,
-    rowFormatter: function(row) {
-    const data = row.getData();
-    const el = row.getElement();
-    
-    if (data.estado === "concluido") {
-        el.style.backgroundColor = "#334155";
-        el.style.opacity = "0.6";
-        // Forçamos a cor e o risco
-        el.style.textDecoration = "line-through";
-        el.style.color = "#94a3b8"; // Cor cinzenta para o texto ficar mais visível com o risco
-    } else {
-        el.style.textDecoration = "none";
-        el.style.opacity = "1";
-        el.style.color = "white"; // Reset para branco
-        
-        if (data.urgencia === "Baixa") el.style.backgroundColor = "rgba(34, 197, 94, 0.2)";
-        else if (data.urgencia === "Média") el.style.backgroundColor = "rgba(234, 179, 8, 0.2)";
-        else if (data.urgencia === "Alta") el.style.backgroundColor = "rgba(239, 68, 68, 0.2)";
-        else el.style.backgroundColor = "transparent";
-    }
-},
+            rowFormatter: function(row) {
+                const data = row.getData();
+                const el = row.getElement();
+                if (data.estado === "concluido") {
+                    el.style.backgroundColor = "#334155";
+                    el.style.color = "#94a3b8";
+                    el.style.textDecoration = "line-through";
+                    el.style.opacity = "0.6";
+                } else {
+                    el.style.textDecoration = "none";
+                    el.style.opacity = "1";
+                    el.style.color = "white";
+                    if (data.urgencia === "Baixa") el.style.backgroundColor = "rgba(34, 197, 94, 0.2)";
+                    else if (data.urgencia === "Média") el.style.backgroundColor = "rgba(234, 179, 8, 0.2)";
+                    else if (data.urgencia === "Alta") el.style.backgroundColor = "rgba(239, 68, 68, 0.2)";
+                }
+            },
             columns: [
                 {title: "Técnico", field: "tecnico", editor: "input"},
-                {title: "Data Pedido", field: "data_hora_pedido", editor: dateEditor},
+                {title: "Pedido (Data/Hora)", field: "data_hora_pedido", editor: dateEditor},
                 {title: "Requerente", field: "requerente", editor: "input"},
                 {title: "Empresa", field: "empresa", editor: "input"},
                 {title: "Urgência", field: "urgencia", formatter: function(cell) {
-                    const select = document.createElement("select");
-                    select.className = "urgencia-select";
-                    ["Baixa", "Média", "Alta"].forEach(opt => {
-                        const el = document.createElement("option");
-                        el.value = opt; el.textContent = opt;
-                        if (cell.getValue() === opt) el.selected = true;
-                        select.appendChild(el);
-                    });
-                    select.onchange = (e) => { cell.setValue(e.target.value); cell.getRow().reformat(); };
-                    return select;
+                    const sel = document.createElement("select"); sel.className = "urgencia-select";
+                    ["Baixa", "Média", "Alta"].forEach(o => { const op = document.createElement("option"); op.value = o; op.textContent = o; if(cell.getValue()===o) op.selected=true; sel.appendChild(op); });
+                    sel.onchange = (e) => { cell.setValue(e.target.value); cell.getRow().reformat(); };
+                    return sel;
                 }},
                 {title: "Via", field: "via", editor: "input"},
                 {title: "Local", field: "local_obra", editor: "input"},
@@ -118,99 +103,66 @@
                 {title: "Freq", field: "frequencia", editor: "input"},
                 {title: "Limite", field: "data_hora_limite", editor: dateEditor},
                 {title: "Estado", field: "estado", formatter: function(cell) {
-                    const select = document.createElement("select");
-                    select.className = "select-custom";
-                    ["Pendente", "Concluido"].forEach(opt => {
-                        const el = document.createElement("option");
-                        el.value = opt.toLowerCase(); el.textContent = opt;
-                        if ((cell.getValue() || "").toLowerCase() === opt.toLowerCase()) el.selected = true;
-                        select.appendChild(el);
-                    });
-                    select.onchange = (e) => { cell.setValue(e.target.value); cell.getRow().reformat(); };
-                    return select;
+                    const sel = document.createElement("select"); sel.className = "select-custom";
+                    ["Pendente", "Concluido"].forEach(o => { const op = document.createElement("option"); op.value = o.toLowerCase(); op.textContent = o; if((cell.getValue()||"").toLowerCase()===o.toLowerCase()) op.selected=true; sel.appendChild(op); });
+                    sel.onchange = (e) => { cell.setValue(e.target.value); cell.getRow().reformat(); };
+                    return sel;
                 }},
-                {title: "Data Conclusão", field: "data_conclusao", editor: dateEditor},
-                {title: "🗑️", formatter: function() { return "<button style='background:#ef4444; color:white; border:none; padding:2px 8px; border-radius:3px;'>❌</button>"; }, width: 60, hozAlign: "center", cellClick: function(e, cell) {
-                    if(confirm("Apagar?")) { const id = cell.getRow().getData().id; sbClient.from('pedidos').delete().eq('id', id).then(() => cell.getRow().delete()); }
-                }}
+                {title: "Conclusão", field: "data_conclusao", editor: dateEditor},
+                {title: "🗑️", formatter: function() { return "<button style='background:#ef4444; color:white; border:none; padding:2px 8px; border-radius:3px;'>❌</button>"; }, width: 60, hozAlign: "center", cellClick: function(e, cell) { if(confirm("Apagar?")) { sbClient.from('pedidos').delete().eq('id', cell.getRow().getData().id).then(() => cell.getRow().delete()); } }}
             ]
         });
         document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
     }
 
-  async function exportarParaExcel() {
-    try {
-        const response = await fetch('template.xlsx');
-        const arrayBuffer = await response.arrayBuffer();
-        const workbook = new ExcelJS.Workbook();
-        await workbook.xlsx.load(arrayBuffer);
-        const worksheet = workbook.getWorksheet(1);
-        const dados = table.getData();
-        const startRow = 5; 
+    async function exportarParaExcel() {
+        try {
+            const response = await fetch('template.xlsx');
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.load(await response.arrayBuffer());
+            const worksheet = workbook.getWorksheet(1);
+            const dados = table.getData();
+            const startRow = 5;
 
-        // Função para separar Data e Hora de um campo
-        const separarDataHora = (val) => {
-            const data = new Date(val);
-            if (isNaN(data.getTime())) return { d: "", h: "" };
-            return { d: data, h: data };
-        };
+            const splitDate = (val) => { const d = new Date(val); return isNaN(d.getTime()) ? {d: "", h: ""} : {d: d, h: d}; };
 
-        dados.forEach((row, index) => {
-            const rowNumber = startRow + index;
-            
-            const p = separarDataHora(row.data_hora_pedido);
-            const l = separarDataHora(row.data_hora_limite);
-            const c = separarDataHora(row.data_conclusao);
+            dados.forEach((row, i) => {
+                const r = startRow + i;
+                const p = splitDate(row.data_hora_pedido);
+                const l = splitDate(row.data_hora_limite);
+                const c = splitDate(row.data_conclusao);
 
-            // Mapeamento baseado nas colunas que forneceste:
-            // Coluna 3 = C, 4 = D, ..., 20 = T
-            worksheet.getCell(rowNumber, 3).value = row.tecnico;
-            worksheet.getCell(rowNumber, 4).value = p.d; // data_pedido
-            worksheet.getCell(rowNumber, 5).value = p.h; // hora_pedido
-            worksheet.getCell(rowNumber, 6).value = row.requerente;
-            worksheet.getCell(rowNumber, 7).value = row.empresa;
-            worksheet.getCell(rowNumber, 8).value = row.urgencia;
-            worksheet.getCell(rowNumber, 9).value = row.via;
-            worksheet.getCell(rowNumber, 10).value = row.local_obra;
-            worksheet.getCell(rowNumber, 11).value = row.concelho;
-            worksheet.getCell(rowNumber, 12).value = row.servico;
-            worksheet.getCell(rowNumber, 13).value = row.observacao;
-            worksheet.getCell(rowNumber, 14).value = row.tipo_trabalho;
-            worksheet.getCell(rowNumber, 15).value = row.frequencia;
-            worksheet.getCell(rowNumber, 16).value = l.d; // data_limite
-            worksheet.getCell(rowNumber, 17).value = l.h; // hora_limite
-            worksheet.getCell(rowNumber, 18).value = row.estado;
-            worksheet.getCell(rowNumber, 19).value = c.d; // data_conclusao
-            worksheet.getCell(rowNumber, 20).value = c.h; // hora_conclusao
+                worksheet.getCell(r, 3).value = row.tecnico;
+                worksheet.getCell(r, 4).value = p.d; worksheet.getCell(r, 5).value = p.h;
+                worksheet.getCell(r, 6).value = row.requerente;
+                worksheet.getCell(r, 7).value = row.empresa;
+                worksheet.getCell(r, 8).value = row.urgencia;
+                worksheet.getCell(r, 9).value = row.via;
+                worksheet.getCell(r, 10).value = row.local_obra;
+                worksheet.getCell(r, 11).value = row.concelho;
+                worksheet.getCell(r, 12).value = row.servico;
+                worksheet.getCell(r, 13).value = row.observacao;
+                worksheet.getCell(r, 14).value = row.tipo_trabalho;
+                worksheet.getCell(r, 15).value = row.frequencia;
+                worksheet.getCell(r, 16).value = l.d; worksheet.getCell(r, 17).value = l.h;
+                worksheet.getCell(r, 18).value = row.estado;
+                worksheet.getCell(r, 19).value = c.d; worksheet.getCell(r, 20).value = c.h;
 
-            // Formatação das células (Data e Hora)
-            const colunasData = [4, 5, 16, 17, 19, 20];
-            colunasData.forEach(col => {
-                const cell = worksheet.getCell(rowNumber, col);
-                if (cell.value instanceof Date) {
-                    cell.numFmt = (col === 4 || col === 16 || col === 19) ? 'dd/mm/yyyy' : 'hh:mm';
-                }
+                [4, 5, 16, 17, 19, 20].forEach(col => { 
+                    const cell = worksheet.getCell(r, col);
+                    if(cell.value instanceof Date) cell.numFmt = [4, 16, 19].includes(col) ? 'dd/mm/yyyy' : 'hh:mm';
+                });
             });
-        });
 
-        const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = "Pedidos_Exportados.xlsx";
-        link.click();
-    } catch (error) { 
-        console.error("Erro na exportação:", error); 
-        alert("Erro ao gerar o Excel."); 
+            const buffer = await workbook.xlsx.writeBuffer();
+            const url = URL.createObjectURL(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+            const link = document.createElement("a"); link.href = url; link.download = "Pedidos_Exportados.xlsx"; link.click();
+        } catch (e) { console.error(e); alert("Erro na exportação."); }
     }
-}
 
     function aplicarFiltros() {
         const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
-        table.setFilter(function(data) {
-            const matchTexto = Object.values(data).some(val => String(val).toLowerCase().includes(input));
-            return matchTexto && (mostrandoConcluidos ? true : data.estado !== "concluido");
-        });
+        table.setFilter(data => Object.values(data).some(v => String(v).toLowerCase().includes(input)) && (mostrandoConcluidos || data.estado !== "concluido"));
     }
 
     function toggleConcluidos() {
@@ -220,15 +172,8 @@
     }
 
     async function guardarAlteracoes() {
-        const dados = table.getData();
-        for (const item of dados) {
-            await sbClient.from('pedidos').update({
-                tecnico: item.tecnico, data_hora_pedido: item.data_hora_pedido, requerente: item.requerente,
-                empresa: item.empresa, urgencia: item.urgencia, via: item.via, local_obra: item.local_obra,
-                concelho: item.concelho, servico: item.servico, observacao: item.observacao,
-                tipo_trabalho: item.tipo_trabalho, frequencia: item.frequencia, data_hora_limite: item.data_hora_limite,
-                estado: item.estado, data_conclusao: item.data_conclusao
-            }).eq('id', item.id);
+        for (const item of table.getData()) {
+            await sbClient.from('pedidos').update(item).eq('id', item.id);
         }
         alert("Guardado com sucesso!");
     }
