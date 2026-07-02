@@ -98,7 +98,10 @@
             <option value="Trismestral">Trimestral</option>
           </select>
         </div>
-        <div class="full"><label>Tempo Dedicado</label><input type="text" name="tempo_dedicado"></div>
+       <div class="full" style="display: none;">
+  <label>Data Conclusão</label>
+  <input type="datetime-local" name="data_conclusao">
+</div>
         <div><label>Data Limite *</label><input type="datetime-local" name="data_hora_limite" required></div>
       </div>
       <button type="submit" id="btnEnviar">Enviar Pedido</button>
