@@ -125,47 +125,69 @@
         document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
     }
 
-    async function exportarParaExcel() {
-        try {
-            const response = await fetch('template.xlsx');
-            const arrayBuffer = await response.arrayBuffer();
-            const workbook = new ExcelJS.Workbook();
-            await workbook.xlsx.load(arrayBuffer);
-            const worksheet = workbook.getWorksheet(1);
-            const dados = table.getData();
-            const startRow = 5; 
-            const startCol = 3;
+  async function exportarParaExcel() {
+    try {
+        const response = await fetch('template.xlsx');
+        const arrayBuffer = await response.arrayBuffer();
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(arrayBuffer);
+        const worksheet = workbook.getWorksheet(1);
+        const dados = table.getData();
+        const startRow = 5; 
+        const startCol = 3;
 
-            const normalizarData = (val) => {
-                if (!val) return null;
-                const data = new Date(val);
-                return isNaN(data.getTime()) ? val : data;
-            };
+        const normalizarData = (val) => {
+            if (!val) return null;
+            const data = new Date(val);
+            return isNaN(data.getTime()) ? val : data;
+        };
 
-            dados.forEach((row, index) => {
-                const rowNumber = startRow + index;
-                const campos = [
-                    row.tecnico, normalizarData(row.data_hora_pedido), row.requerente, row.empresa, 
-                    row.urgencia, row.via, row.local_obra, row.concelho, row.servico, 
-                    row.observacao, row.tipo_trabalho, row.frequencia, normalizarData(row.data_hora_limite), 
-                    row.estado, normalizarData(row.data_conclusao)
-                ];
-                campos.forEach((val, colIndex) => {
-                    const cell = worksheet.getCell(rowNumber, startCol + colIndex);
-                    cell.value = val;
-                    if (val instanceof Date) cell.numFmt = 'dd/mm/yyyy hh:mm';
-                });
+        dados.forEach((row, index) => {
+            const rowNumber = startRow + index;
+            
+            // Ordem das colunas conforme solicitado:
+            // 3: Técnico, 4: Data Pedido, 5: Hora Pedido, 6: Requerente, 7: Empresa, 8: Urgencia, 
+            // 9: Via, 10: Local, 11: Concelho, 12: Serviço, 13: Obs, 14: Tipo, 15: Freq, 
+            // 16: Data Limite, 17: Hora Limite, 18: Estado, 19: Data Conclusão, 20: Hora Conclusão
+            
+            const campos = [
+                row.tecnico, 
+                normalizarData(row.data_hora_pedido), // Col 4 (Data)
+                normalizarData(row.data_hora_pedido), // Col 5 (Hora)
+                row.requerente, row.empresa, row.urgencia, row.via, 
+                row.local_obra, row.concelho, row.servico, row.observacao, 
+                row.tipo_trabalho, row.frequencia,
+                normalizarData(row.data_hora_limite), // Col 16 (Data)
+                normalizarData(row.data_hora_limite), // Col 17 (Hora)
+                row.estado,
+                normalizarData(row.data_conclusao),  // Col 19 (Data)
+                normalizarData(row.data_conclusao)   // Col 20 (Hora)
+            ];
+
+            campos.forEach((val, colIndex) => {
+                const cell = worksheet.getCell(rowNumber, startCol + colIndex);
+                cell.value = val;
+                
+                // Formatação: Data para colunas 4, 16, 19 | Hora para colunas 5, 17, 20
+                if (val instanceof Date) {
+                    const col = startCol + colIndex;
+                    if (col === 4 || col === 16 || col === 19) {
+                        cell.numFmt = 'dd/mm/yyyy';
+                    } else if (col === 5 || col === 17 || col === 20) {
+                        cell.numFmt = 'hh:mm';
+                    }
+                }
             });
+        });
 
-            const buffer = await workbook.xlsx.writeBuffer();
-            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "Pedidos_Exportados.xlsx";
-            link.click();
-        } catch (error) { console.error(error); alert("Erro na exportação."); }
-    }
-
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "Pedidos_Exportados.xlsx";
+        link.click();
+    } catch (error) { console.error(error); alert("Erro na exportação."); }
+}
     function aplicarFiltros() {
         const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
         table.setFilter(function(data) {
