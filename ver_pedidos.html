@@ -142,7 +142,7 @@ async function exportarParaExcel() {
     dados.forEach((row, index) => {
         const rowNumber = 5 + index;
 
-        // Preenchimento de colunas simples
+        // Preenchimento de colunas simples (Índices baseados na correção)
         worksheet.getCell(rowNumber, 3).value = row.tecnico;           // C
         worksheet.getCell(rowNumber, 6).value = row.requerente;        // F
         worksheet.getCell(rowNumber, 7).value = row.empresa;           // G
@@ -154,7 +154,7 @@ async function exportarParaExcel() {
         worksheet.getCell(rowNumber, 13).value = row.observacao;       // M
         worksheet.getCell(rowNumber, 14).value = row.tipo_trabalho;    // N
         worksheet.getCell(rowNumber, 15).value = row.frequencia;       // O
-        worksheet.getCell(rowNumber, 16).value = row.estado;           // P
+        worksheet.getCell(rowNumber, 18).value = row.estado;           // R 
 
         // Função para Data e Hora separadas
         const preencherDataHora = (valor, colData, colHora) => {
@@ -168,10 +168,10 @@ async function exportarParaExcel() {
             }
         };
 
-        // Mapeamento corrigido conforme a imagem:
+        // Mapeamento corrigido:
         preencherDataHora(row.data_hora_pedido, 4, 5);   // D, E
-        preencherDataHora(row.data_hora_limite, 17, 18); // Q, R
-        preencherDataHora(row.data_conclusao, 19, 20);   // S, T
+        preencherDataHora(row.data_hora_limite, 16, 17); // P, Q
+        preencherDataHora(row.data_conclusao, 19, 20);   // S, T 
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
