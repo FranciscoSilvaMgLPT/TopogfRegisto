@@ -125,7 +125,7 @@
         document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
     }
 
-  async function exportarParaExcel() {
+async function exportarParaExcel() {
     try {
         const response = await fetch('template.xlsx');
         const arrayBuffer = await response.arrayBuffer();
@@ -135,16 +135,16 @@
         const dados = table.getData();
         const startRow = 5;
 
-        // Função que gera a fórmula =DATA(AAAA;MM;DD)
-        const formatarDataFormula = (val) => {
+        // Função para gerar a fórmula de data (sem converter para texto)
+        const getFormulaData = (val) => {
             if (!val || val === "") return null;
             const d = new Date(val);
             if (isNaN(d.getTime())) return null;
-            return `DATA(${d.getFullYear()};${d.getMonth() + 1};${d.getDate()})`;
+            return `DATE(${d.getFullYear()},${d.getMonth() + 1},${d.getDate()})`;
         };
 
-        // Função que extrai apenas a hora como texto "HH:MM"
-        const formatarHora = (val) => {
+        // Função para extrair apenas hora
+        const getHora = (val) => {
             if (!val || val === "") return null;
             const d = new Date(val);
             return isNaN(d.getTime()) ? null : 
@@ -153,15 +153,17 @@
 
         dados.forEach((row, index) => {
             const r = startRow + index;
-            
-            // Coluna 3: Técnico
+
+            // 1. Técnico - Coluna 3
             worksheet.getCell(r, 3).value = row.tecnico;
+            
+            // 2. Data/Hora Pedido - Colunas 4 e 5
+            if (row.data_hora_pedido) {
+                worksheet.getCell(r, 4).formula = getFormulaData(row.data_hora_pedido);
+                worksheet.getCell(r, 5).value = getHora(row.data_hora_pedido);
+            }
 
-            // Coluna 4 (Data Pedido) e 5 (Hora Pedido)
-            if (formatarDataFormula(row.data_hora_pedido)) worksheet.getCell(r, 4).formula = formatarDataFormula(row.data_hora_pedido);
-            worksheet.getCell(r, 5).value = formatarHora(row.data_hora_pedido);
-
-            // Colunas 6 a 15 (Dados fixos)
+            // 3. Dados Gerais - Colunas 6 a 15
             worksheet.getCell(r, 6).value = row.requerente;
             worksheet.getCell(r, 7).value = row.empresa;
             worksheet.getCell(r, 8).value = row.urgencia;
@@ -173,16 +175,20 @@
             worksheet.getCell(r, 14).value = row.tipo_trabalho;
             worksheet.getCell(r, 15).value = row.frequencia;
 
-            // Coluna 16 (Data Limite) e 17 (Hora Limite)
-            if (formatarDataFormula(row.data_hora_limite)) worksheet.getCell(r, 16).formula = formatarDataFormula(row.data_hora_limite);
-            worksheet.getCell(r, 17).value = formatarHora(row.data_hora_limite);
+            // 4. Data/Hora Limite - Colunas 16 e 17
+            if (row.data_hora_limite) {
+                worksheet.getCell(r, 16).formula = getFormulaData(row.data_hora_limite);
+                worksheet.getCell(r, 17).value = getHora(row.data_hora_limite);
+            }
 
-            // Coluna 18: Estado
+            // 5. Estado - Coluna 18
             worksheet.getCell(r, 18).value = row.estado;
 
-            // Coluna 19 (Data Conclusão) e 20 (Hora Conclusão)
-            if (formatarDataFormula(row.data_conclusao)) worksheet.getCell(r, 19).formula = formatarDataFormula(row.data_conclusao);
-            worksheet.getCell(r, 20).value = formatarHora(row.data_conclusao);
+            // 6. Data/Hora Conclusão - Colunas 19 e 20
+            if (row.data_conclusao) {
+                worksheet.getCell(r, 19).formula = getFormulaData(row.data_conclusao);
+                worksheet.getCell(r, 20).value = getHora(row.data_conclusao);
+            }
         });
 
         const buffer = await workbook.xlsx.writeBuffer();
@@ -193,7 +199,7 @@
         link.click();
     } catch (error) { 
         console.error(error); 
-        alert("Erro na exportação: " + error.message); 
+        alert("Erro na exportação. Verifica se o template existe."); 
     }
 }
 
