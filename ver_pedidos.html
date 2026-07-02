@@ -207,7 +207,7 @@ async function exportarParaExcel() {
         const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
         table.setFilter(function(data) {
             const matchTexto = Object.values(data).some(val => String(val).toLowerCase().includes(input));
-            return matchTexto && (mostrandoConcluidos ? true : data.estado !== "concluido");
+            return matchTexto && (mostrandoConcluidos ? true : data.estado !== "Concluido");
         });
     }
 
