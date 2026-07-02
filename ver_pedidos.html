@@ -156,19 +156,24 @@ async function exportarParaExcel() {
         worksheet.getCell(rowNumber, 15).value = row.frequencia;       // O
         worksheet.getCell(rowNumber, 18).value = row.estado;           // R
 
-        // Função para Data e Hora separadas
+        // Função corrigida para inserir Datas de forma que o Excel reconheça
         const preencherDataHora = (valor, colData, colHora) => {
             if (valor) {
                 const d = new Date(valor);
-                // Coluna Data: Fórmula =DATA(AAAA;MM;DD)
-                worksheet.getCell(rowNumber, colData).value = { formula: `DATA(${d.getFullYear()};${d.getMonth()+1};${d.getDate()})` };
-                worksheet.getCell(rowNumber, colData).numFmt = 'dd/mm/yyyy';
-                // Coluna Hora: String
+                
+                // Em vez de fórmula, enviamos o objeto Date. 
+                // O ExcelJS converte isto automaticamente para o formato de data do Excel.
+                // Como não incluímos a hora aqui, o Excel assume 00:00:00 automaticamente.
+                const cellData = worksheet.getCell(rowNumber, colData);
+                cellData.value = d;
+                cellData.numFmt = 'dd/mm/yyyy'; 
+                
+                // Coluna Hora: String (como já estavas a fazer e funciona)
                 worksheet.getCell(rowNumber, colHora).value = d.toLocaleTimeString("pt-PT", {hour: '2-digit', minute:'2-digit'});
             }
         };
 
-        // Mapeamento corrigido:
+        // Mapeamento mantido
         preencherDataHora(row.data_hora_pedido, 4, 5);   // D, E
         preencherDataHora(row.data_hora_limite, 16, 17); // P, Q
         preencherDataHora(row.data_conclusao, 19, 20);   // S, T
@@ -176,10 +181,11 @@ async function exportarParaExcel() {
 
     const buffer = await workbook.xlsx.writeBuffer();
     const link = document.createElement("a");
-    link.href = URL.createObjectURL(new Blob([buffer]));
+    link.href = URL.createObjectURL(new Blob([buffer], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
     link.download = "Pedidos_Exportados.xlsx";
     link.click();
 }
+    
     function aplicarFiltros() {
         const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
         table.setFilter(function(data) {
