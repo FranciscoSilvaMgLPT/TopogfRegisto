@@ -129,31 +129,29 @@ async function exportarParaExcel() {
         dados.forEach((row, index) => {
             const rowNumber = startRow + index;
             
-            // Função para separar Data e Hora com formato de fórmula Excel
             const splitVal = (val) => {
                 if (!val || val === "") return { data: null, hora: null };
-                
                 const d = new Date(val);
                 if (isNaN(d.getTime())) return { data: null, hora: null };
                 
-                // DATA: Usamos getDate() para o dia do mês, não getDay()
-                const dataPura = `=DATA(${d.getFullYear()};${d.getMonth() + 1};${d.getDate()})`;
-                
-                // HORA: Formatada como string
+                // Monta a string da fórmula
+                const formulaData = `DATA(${d.getFullYear()};${d.getMonth() + 1};${d.getDate()})`;
                 const horaPura = d.getHours().toString().padStart(2, '0') + ':' + 
                                  d.getMinutes().toString().padStart(2, '0');
                 
-                return { data: dataPura, hora: horaPura };
+                return { formula: formulaData, hora: horaPura };
             };
 
             const p = splitVal(row.data_hora_pedido);
-            const l = splitVal(row.data_hora_limite);
+            const l = splitVal(row.data_limite); // Certifica-te que o campo é data_limite ou data_hora_limite
             const c = splitVal(row.data_conclusao);
 
-            // Preenchimento das células
             worksheet.getCell(rowNumber, 3).value = row.tecnico;
-            worksheet.getCell(rowNumber, 4).value = p.data;
+            
+            // APLICAÇÃO COMO FÓRMULA
+            if (p.formula) worksheet.getCell(rowNumber, 4).formula = p.formula;
             worksheet.getCell(rowNumber, 5).value = p.hora;
+            
             worksheet.getCell(rowNumber, 6).value = row.requerente;
             worksheet.getCell(rowNumber, 7).value = row.empresa;
             worksheet.getCell(rowNumber, 8).value = row.urgencia;
@@ -164,10 +162,13 @@ async function exportarParaExcel() {
             worksheet.getCell(rowNumber, 13).value = row.observacao;
             worksheet.getCell(rowNumber, 14).value = row.tipo_trabalho;
             worksheet.getCell(rowNumber, 15).value = row.frequencia;
-            worksheet.getCell(rowNumber, 16).value = l.data;
+            
+            if (l.formula) worksheet.getCell(rowNumber, 16).formula = l.formula;
             worksheet.getCell(rowNumber, 17).value = l.hora;
+            
             worksheet.getCell(rowNumber, 18).value = row.estado;
-            worksheet.getCell(rowNumber, 19).value = c.data;
+            
+            if (c.formula) worksheet.getCell(rowNumber, 19).formula = c.formula;
             worksheet.getCell(rowNumber, 20).value = c.hora;
         });
 
