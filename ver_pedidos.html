@@ -129,42 +129,27 @@ async function exportarParaExcel() {
         dados.forEach((row, index) => {
             const rowNumber = startRow + index;
             
-            // Função que retorna a fórmula DATA ou null se vazio
-            const formatarDataFormula = (val) => {
-                if (!val || val === "") return null;
+            // 1. Extração de valores puros
+            const processar = (val) => {
+                if (!val || val === "") return { d: null, h: null };
                 const d = new Date(val);
-                if (isNaN(d.getTime())) return null;
+                if (isNaN(d.getTime())) return { d: null, h: null };
                 
-                // Formato exigido: DATA(AAAA;MM;DD)
-                return `DATA(${d.getFullYear()};${d.getMonth() + 1};${d.getDate()})`;
+                // Retorna componentes para a fórmula e para a hora
+                return {
+                    ano: d.getFullYear(),
+                    mes: d.getMonth() + 1,
+                    dia: d.getDate(),
+                    hora: d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0')
+                };
             };
 
-            const pData = formatarDataFormula(row.data_hora_pedido);
-            const lData = formatarDataFormula(row.data_hora_limite);
-            const cData = formatarDataFormula(row.data_conclusao);
+            const p = processar(row.data_hora_pedido);
+            const l = processar(row.data_hora_limite);
+            const c = processar(row.data_conclusao);
 
-            // Função para extrair hora
-            const formatarHora = (val) => {
-                if (!val || val === "") return null;
-                const d = new Date(val);
-                return isNaN(d.getTime()) ? null : 
-                       (d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0'));
-            };
-
-            // Preenchimento (Células 3 a 20)
+            // 2. Preenchimento de texto/outros
             worksheet.getCell(rowNumber, 3).value = row.tecnico;
-            
-            // Colunas de Data (4, 16, 19) com fórmula
-            if (pData) worksheet.getCell(rowNumber, 4).formula = pData;
-            if (lData) worksheet.getCell(rowNumber, 16).formula = lData;
-            if (cData) worksheet.getCell(rowNumber, 19).formula = cData;
-
-            // Colunas de Hora (5, 17, 20)
-            worksheet.getCell(rowNumber, 5).value = formatarHora(row.data_hora_pedido);
-            worksheet.getCell(rowNumber, 17).value = formatarHora(row.data_hora_limite);
-            worksheet.getCell(rowNumber, 20).value = formatarHora(row.data_conclusao);
-
-            // Preenchimento restante
             worksheet.getCell(rowNumber, 6).value = row.requerente;
             worksheet.getCell(rowNumber, 7).value = row.empresa;
             worksheet.getCell(rowNumber, 8).value = row.urgencia;
@@ -176,6 +161,17 @@ async function exportarParaExcel() {
             worksheet.getCell(rowNumber, 14).value = row.tipo_trabalho;
             worksheet.getCell(rowNumber, 15).value = row.frequencia;
             worksheet.getCell(rowNumber, 18).value = row.estado;
+
+            // 3. Aplicação FORÇADA da fórmula
+            // Usamos .formula para que o ExcelJS entenda que é uma instrução
+            if (p.ano) worksheet.getCell(rowNumber, 4).formula = `DATA(${p.ano};${p.mes};${p.dia})`;
+            if (l.ano) worksheet.getCell(rowNumber, 16).formula = `DATA(${l.ano};${l.mes};${l.dia})`;
+            if (c.ano) worksheet.getCell(rowNumber, 19).formula = `DATA(${c.ano};${c.mes};${c.dia})`;
+
+            // 4. Preenchimento de horas
+            worksheet.getCell(rowNumber, 5).value = p.hora;
+            worksheet.getCell(rowNumber, 17).value = l.hora;
+            worksheet.getCell(rowNumber, 20).value = c.hora;
         });
 
         const buffer = await workbook.xlsx.writeBuffer();
@@ -186,7 +182,7 @@ async function exportarParaExcel() {
         link.click();
     } catch (error) { 
         console.error("Erro na exportação:", error); 
-        alert("Erro ao gerar o Excel. Verifica se o template.xlsx está acessível."); 
+        alert("Erro ao gerar o Excel."); 
     }
 }
     
