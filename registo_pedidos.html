@@ -35,6 +35,8 @@
     <form id="formulario">
       <input type="hidden" name="access_key" value="9f471d61-2558-4df2-a220-0028f59bd975">
       
+      <input type="hidden" name="data_conclusao" value="">
+
       <div class="grid">
         <div><label>Nome do Técnico *</label><input type="text" name="tecnico" required></div>
         <div><label>Data + Hora do Pedido *</label><input type="datetime-local" name="data_hora_pedido" required></div>
@@ -98,10 +100,6 @@
             <option value="Trismestral">Trimestral</option>
           </select>
         </div>
-       <div class="full" style="display: none;">
-  <label>Data Conclusão</label>
-  <input type="datetime-local" name="data_conclusao">
-</div>
         <div><label>Data Limite *</label><input type="datetime-local" name="data_hora_limite" required></div>
       </div>
       <button type="submit" id="btnEnviar">Enviar Pedido</button>
@@ -154,6 +152,11 @@
       delete dbData.via_outro;
       delete dbData.access_key;
 
+      // Correção: remover data_conclusao se vazia para evitar erro no Supabase
+      if (!dbData.data_conclusao || dbData.data_conclusao.trim() === "") {
+        delete dbData.data_conclusao;
+      }
+
       const { error } = await supabaseClient.from('pedidos').insert([dbData]);
       
       if (error) { 
@@ -162,17 +165,7 @@
         return; 
       }
 
-      const rawDateTime = supabaseData.data_hora_pedido;
-      const [dataPedido, horaPedido] = rawDateTime.split('T');
-
-      const rawDateTimeLimite = supabaseData.data_hora_limite;
-      const [dataLimite, horaLimite] = rawDateTimeLimite.split('T');
-
-      // Adicionada a urgência na linha do Excel
-      const csvLine = `\uFEFF${supabaseData.tecnico},${dataPedido},${horaPedido},${supabaseData.requerente},${supabaseData.empresa},${supabaseData.via},${supabaseData.urgencia},${supabaseData.local_obra},${supabaseData.concelho},${supabaseData.servico},${supabaseData.observacao},${supabaseData.tipo_trabalho},${supabaseData.frequencia},${supabaseData.tempo_dedicado},${dataLimite},${horaLimite}\n`;
-
-      formData.append("Linha_Excel", csvLine);
-
+      // Envio para Web3Forms
       const response = await fetch("https://api.web3forms.com/submit", { 
         method: "POST", 
         body: formData 
