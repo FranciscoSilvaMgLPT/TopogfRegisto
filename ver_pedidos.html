@@ -136,48 +136,60 @@ async function exportarParaExcel() {
         const startRow = 5; 
         const startCol = 3;
 
-        const normalizarData = (val) => {
-            if (!val) return null;
-            const data = new Date(val);
-            return isNaN(data.getTime()) ? val : data;
-        };
-
         dados.forEach((row, index) => {
             const rowNumber = startRow + index;
             
-            // Ordem das colunas conforme solicitado:
-            // 3: Técnico, 4: Data Pedido, 5: Hora Pedido, 6: Requerente, 7: Empresa, 8: Urgencia, 
-            // 9: Via, 10: Local, 11: Concelho, 12: Serviço, 13: Obs, 14: Tipo, 15: Freq, 
-            // 16: Data Limite, 17: Hora Limite, 18: Estado, 19: Data Conclusão, 20: Hora Conclusão
-            
-            const campos = [
-                row.tecnico, 
-                normalizarData(row.data_hora_pedido), // Col 4 (Data)
-                normalizarData(row.data_hora_pedido), // Col 5 (Hora)
-                row.requerente, row.empresa, row.urgencia, row.via, 
-                row.local_obra, row.concelho, row.servico, row.observacao, 
-                row.tipo_trabalho, row.frequencia,
-                normalizarData(row.data_hora_limite), // Col 16 (Data)
-                normalizarData(row.data_hora_limite), // Col 17 (Hora)
-                row.estado,
-                normalizarData(row.data_conclusao),  // Col 19 (Data)
-                normalizarData(row.data_conclusao)   // Col 20 (Hora)
-            ];
+            // Função para formatar a fórmula =DATA(AAAA;MM;DD)
+            const getFormulaData = (val) => {
+                if (!val) return null;
+                const d = new Date(val);
+                if (isNaN(d.getTime())) return null;
+                return `DATA(${d.getFullYear()};${d.getMonth() + 1};${d.getDate()})`;
+            };
 
-            campos.forEach((val, colIndex) => {
-                const cell = worksheet.getCell(rowNumber, startCol + colIndex);
-                cell.value = val;
-                
-                // Formatação: Data para colunas 4, 16, 19 | Hora para colunas 5, 17, 20
-                if (val instanceof Date) {
-                    const col = startCol + colIndex;
-                    if (col === 4 || col === 16 || col === 19) {
-                        cell.numFmt = 'dd/mm/yyyy';
-                    } else if (col === 5 || col === 17 || col === 20) {
-                        cell.numFmt = 'hh:mm';
-                    }
-                }
-            });
+            // Função para extrair hora
+            const getHora = (val) => {
+                if (!val) return null;
+                const d = new Date(val);
+                return isNaN(d.getTime()) ? null : 
+                       (d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0'));
+            };
+
+            // 1. Técnico (Col 3)
+            worksheet.getCell(rowNumber, 3).value = row.tecnico;
+            
+            // 2. Data/Hora Pedido (Col 4 e 5)
+            if (row.data_hora_pedido) {
+                worksheet.getCell(rowNumber, 4).formula = getFormulaData(row.data_hora_pedido);
+                worksheet.getCell(rowNumber, 5).value = getHora(row.data_hora_pedido);
+            }
+
+            // 3. Dados Gerais (Col 6 a 15)
+            worksheet.getCell(rowNumber, 6).value = row.requerente;
+            worksheet.getCell(rowNumber, 7).value = row.empresa;
+            worksheet.getCell(rowNumber, 8).value = row.urgencia;
+            worksheet.getCell(rowNumber, 9).value = row.via;
+            worksheet.getCell(rowNumber, 10).value = row.local_obra;
+            worksheet.getCell(rowNumber, 11).value = row.concelho;
+            worksheet.getCell(rowNumber, 12).value = row.servico;
+            worksheet.getCell(rowNumber, 13).value = row.observacao;
+            worksheet.getCell(rowNumber, 14).value = row.tipo_trabalho;
+            worksheet.getCell(rowNumber, 15).value = row.frequencia;
+
+            // 4. Data/Hora Limite (Col 16 e 17)
+            if (row.data_hora_limite) {
+                worksheet.getCell(rowNumber, 16).formula = getFormulaData(row.data_hora_limite);
+                worksheet.getCell(rowNumber, 17).value = getHora(row.data_hora_limite);
+            }
+
+            // 5. Estado (Col 18)
+            worksheet.getCell(rowNumber, 18).value = row.estado;
+
+            // 6. Data/Hora Conclusão (Col 19 e 20)
+            if (row.data_conclusao) {
+                worksheet.getCell(rowNumber, 19).formula = getFormulaData(row.data_conclusao);
+                worksheet.getCell(rowNumber, 20).value = getHora(row.data_conclusao);
+            }
         });
 
         const buffer = await workbook.xlsx.writeBuffer();
@@ -188,14 +200,7 @@ async function exportarParaExcel() {
         link.click();
     } catch (error) { console.error(error); alert("Erro na exportação."); }
 }
-    function aplicarFiltros() {
-        const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
-        table.setFilter(function(data) {
-            const matchTexto = Object.values(data).some(val => String(val).toLowerCase().includes(input));
-            return matchTexto && (mostrandoConcluidos ? true : data.estado !== "Concluido");
-        });
-    }
-
+    
     function toggleConcluidos() {
         mostrandoConcluidos = !mostrandoConcluidos;
         document.getElementById("btn-filtro-concluidos").innerText = mostrandoConcluidos ? "✅ Ocultar Concluídos" : "👁️ Mostrar Tudo";
