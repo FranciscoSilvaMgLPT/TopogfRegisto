@@ -135,15 +135,15 @@ async function exportarParaExcel() {
         const dados = table.getData();
         const startRow = 5;
 
-        // Função que retorna objeto Date ou null (o que garante que o Excel reconhece o tipo)
-        const processarData = (val) => {
+        // Função que retorna a fórmula =DATA(AAAA;MM;DD)
+        const formatarDataFormula = (val) => {
             if (!val || val === "") return null;
             const d = new Date(val);
-            return isNaN(d.getTime()) ? null : d;
+            return isNaN(d.getTime()) ? null : `DATA(${d.getFullYear()};${d.getMonth() + 1};${d.getDate()})`;
         };
 
-        // Função que retorna apenas a hora como string
-        const extrairHora = (val) => {
+        // Função que retorna a hora como string
+        const formatarHora = (val) => {
             if (!val || val === "") return null;
             const d = new Date(val);
             return isNaN(d.getTime()) ? null : 
@@ -153,14 +153,16 @@ async function exportarParaExcel() {
         dados.forEach((row, index) => {
             const r = startRow + index;
 
-            // Mapeamento exato solicitado:
+            // Mapeamento exato pela ordem pedida:
+            // Coluna 3: Técnico
             worksheet.getCell(r, 3).value = row.tecnico;
             
-            // Pedido
-            worksheet.getCell(r, 4).value = processarData(row.data_hora_pedido);
-            worksheet.getCell(r, 5).value = extrairHora(row.data_hora_pedido);
-            
-            // Dados intermédios
+            // Colunas 4/5: Pedido
+            const fPedido = formatarDataFormula(row.data_hora_pedido);
+            if (fPedido) worksheet.getCell(r, 4).formula = fPedido;
+            worksheet.getCell(r, 5).value = formatarHora(row.data_hora_pedido);
+
+            // Colunas 6-15: Dados gerais
             worksheet.getCell(r, 6).value = row.requerente;
             worksheet.getCell(r, 7).value = row.empresa;
             worksheet.getCell(r, 8).value = row.urgencia;
@@ -171,23 +173,19 @@ async function exportarParaExcel() {
             worksheet.getCell(r, 13).value = row.observacao;
             worksheet.getCell(r, 14).value = row.tipo_trabalho;
             worksheet.getCell(r, 15).value = row.frequencia;
-            
-            // Limite
-            worksheet.getCell(r, 16).value = processarData(row.data_hora_limite);
-            worksheet.getCell(r, 17).value = extrairHora(row.data_hora_limite);
-            
-            // Estado
-            worksheet.getCell(r, 18).value = row.estado;
-            
-            // Conclusão
-            worksheet.getCell(r, 19).value = processarData(row.data_conclusao);
-            worksheet.getCell(r, 20).value = extrairHora(row.data_conclusao);
 
-            // Formatação obrigatória para o Excel reconhecer como Data
-            [4, 16, 19].forEach(col => {
-                const cell = worksheet.getCell(r, col);
-                if (cell.value) cell.numFmt = 'dd/mm/yyyy';
-            });
+            // Colunas 16/17: Limite
+            const fLimite = formatarDataFormula(row.data_hora_limite);
+            if (fLimite) worksheet.getCell(r, 16).formula = fLimite;
+            worksheet.getCell(r, 17).value = formatarHora(row.data_hora_limite);
+
+            // Coluna 18: Estado
+            worksheet.getCell(r, 18).value = row.estado;
+
+            // Colunas 19/20: Conclusão
+            const fConclusao = formatarDataFormula(row.data_conclusao);
+            if (fConclusao) worksheet.getCell(r, 19).formula = fConclusao;
+            worksheet.getCell(r, 20).value = formatarHora(row.data_conclusao);
         });
 
         const buffer = await workbook.xlsx.writeBuffer();
@@ -197,8 +195,8 @@ async function exportarParaExcel() {
         link.download = "Pedidos_Exportados.xlsx";
         link.click();
     } catch (error) { 
-        console.error("Erro na exportação:", error); 
-        alert("Erro ao exportar."); 
+        console.error(error); 
+        alert("Erro na exportação."); 
     }
 }
 
