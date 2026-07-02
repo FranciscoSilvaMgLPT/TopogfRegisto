@@ -125,7 +125,7 @@
         document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
     }
 
-  async function exportarParaExcel() {
+    async function exportarParaExcel() {
         try {
             const response = await fetch('template.xlsx');
             const arrayBuffer = await response.arrayBuffer();
@@ -166,8 +166,14 @@
         } catch (error) { console.error(error); alert("Erro na exportação."); }
     }
 
+    function aplicarFiltros() {
+        const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
+        table.setFilter(function(data) {
+            const matchTexto = Object.values(data).some(val => String(val).toLowerCase().includes(input));
+            return matchTexto && (mostrandoConcluidos ? true : data.estado !== "concluido");
+        });
+    }
 
-    
     function toggleConcluidos() {
         mostrandoConcluidos = !mostrandoConcluidos;
         document.getElementById("btn-filtro-concluidos").innerText = mostrandoConcluidos ? "✅ Ocultar Concluídos" : "👁️ Mostrar Tudo";
