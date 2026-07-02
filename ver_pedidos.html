@@ -140,38 +140,38 @@ async function exportarParaExcel() {
     const dados = table.getData();
 
     dados.forEach((row, index) => {
-        const rowNumber = 5 + index; // Começa na linha 5
+        const rowNumber = 5 + index;
 
-        // Preenchimento das colunas fixas (Textos)
-        worksheet.getCell(rowNumber, 3).value = row.tecnico;       // C: Técnico
-        worksheet.getCell(rowNumber, 6).value = row.requerente;    // F: Requerente
-        worksheet.getCell(rowNumber, 7).value = row.estado;        // G: Estado
-        worksheet.getCell(rowNumber, 8).value = row.empresa;       // H: Empresa
-        worksheet.getCell(rowNumber, 9).value = row.urgencia;      // I: Urgência
-        worksheet.getCell(rowNumber, 10).value = row.via;          // J: Via
-        worksheet.getCell(rowNumber, 11).value = row.local_obra;   // K: Local/Obra
-        worksheet.getCell(rowNumber, 12).value = row.concelho;     // L: Concelho
-        worksheet.getCell(rowNumber, 13).value = row.servico;      // M: Serviço
-        worksheet.getCell(rowNumber, 14).value = row.observacao;   // N: Observação
-        worksheet.getCell(rowNumber, 15).value = row.tipo_trabalho;// O: Tipo
-        worksheet.getCell(rowNumber, 16).value = row.frequencia;   // P: Frequência
+        // Preenchimento de colunas simples
+        worksheet.getCell(rowNumber, 3).value = row.tecnico;           // C
+        worksheet.getCell(rowNumber, 6).value = row.requerente;        // F
+        worksheet.getCell(rowNumber, 7).value = row.empresa;           // G
+        worksheet.getCell(rowNumber, 8).value = row.urgencia;          // H
+        worksheet.getCell(rowNumber, 9).value = row.via;               // I
+        worksheet.getCell(rowNumber, 10).value = row.local_obra;       // J
+        worksheet.getCell(rowNumber, 11).value = row.concelho;         // K
+        worksheet.getCell(rowNumber, 12).value = row.servico;          // L
+        worksheet.getCell(rowNumber, 13).value = row.observacao;       // M
+        worksheet.getCell(rowNumber, 14).value = row.tipo_trabalho;    // N
+        worksheet.getCell(rowNumber, 15).value = row.frequencia;       // O
+        worksheet.getCell(rowNumber, 16).value = row.estado;           // P
 
-        // Função para Data/Hora (Pedido, Limite, Conclusão)
+        // Função para Data e Hora separadas
         const preencherDataHora = (valor, colData, colHora) => {
             if (valor) {
                 const d = new Date(valor);
-                // Coluna Data: Fórmula =DATA(AAAA;MM;DD)
+                // Coluna Data: Fórmula =DATE(AAAA;MM;DD)
                 worksheet.getCell(rowNumber, colData).value = { formula: `DATE(${d.getFullYear()};${d.getMonth()+1};${d.getDate()})` };
                 worksheet.getCell(rowNumber, colData).numFmt = 'dd/mm/yyyy';
-                // Coluna Hora: String HH:mm
+                // Coluna Hora: String
                 worksheet.getCell(rowNumber, colHora).value = d.toLocaleTimeString("pt-PT", {hour: '2-digit', minute:'2-digit'});
             }
         };
 
-        // Mapeamento baseado na imagem:
-        preencherDataHora(row.data_hora_pedido, 4, 5);  // D: Data Pedido, E: Hora Pedido
-        preencherDataHora(row.data_hora_limite, 17, 18);// Q: Data Limite, R: Hora Limite
-        preencherDataHora(row.data_conclusao, 19, 20);  // S: Data Conclusão, T: Hora Conclusão
+        // Mapeamento corrigido conforme a imagem:
+        preencherDataHora(row.data_hora_pedido, 4, 5);   // D, E
+        preencherDataHora(row.data_hora_limite, 17, 18); // Q, R
+        preencherDataHora(row.data_conclusao, 19, 20);   // S, T
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
