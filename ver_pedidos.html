@@ -115,50 +115,71 @@
         document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
     }
 
-    async function exportarParaExcel() {
-        try {
-            const response = await fetch('template.xlsx');
-            const workbook = new ExcelJS.Workbook();
-            await workbook.xlsx.load(await response.arrayBuffer());
-            const worksheet = workbook.getWorksheet(1);
-            const dados = table.getData();
-            const startRow = 5;
+  async function exportarParaExcel() {
+    try {
+        const response = await fetch('template.xlsx');
+        const arrayBuffer = await response.arrayBuffer();
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(arrayBuffer);
+        const worksheet = workbook.getWorksheet(1);
+        const dados = table.getData();
+        const startRow = 5;
 
-            const splitDate = (val) => { const d = new Date(val); return isNaN(d.getTime()) ? {d: "", h: ""} : {d: d, h: d}; };
+        // Função para separar Data e Hora de um campo
+        const separarDataHora = (val) => {
+            const data = new Date(val);
+            if (isNaN(data.getTime())) return { d: "", h: "" };
+            return { d: data, h: data };
+        };
 
-            dados.forEach((row, i) => {
-                const r = startRow + i;
-                const p = splitDate(row.data_hora_pedido);
-                const l = splitDate(row.data_hora_limite);
-                const c = splitDate(row.data_conclusao);
+        dados.forEach((row, index) => {
+            const rowNumber = startRow + index;
+            
+            const p = separarDataHora(row.data_hora_pedido);
+            const l = separarDataHora(row.data_hora_limite);
+            const c = separarDataHora(row.data_conclusao);
 
-                worksheet.getCell(r, 3).value = row.tecnico;
-                worksheet.getCell(r, 4).value = p.d; worksheet.getCell(r, 5).value = p.h;
-                worksheet.getCell(r, 6).value = row.requerente;
-                worksheet.getCell(r, 7).value = row.empresa;
-                worksheet.getCell(r, 8).value = row.urgencia;
-                worksheet.getCell(r, 9).value = row.via;
-                worksheet.getCell(r, 10).value = row.local_obra;
-                worksheet.getCell(r, 11).value = row.concelho;
-                worksheet.getCell(r, 12).value = row.servico;
-                worksheet.getCell(r, 13).value = row.observacao;
-                worksheet.getCell(r, 14).value = row.tipo_trabalho;
-                worksheet.getCell(r, 15).value = row.frequencia;
-                worksheet.getCell(r, 16).value = l.d; worksheet.getCell(r, 17).value = l.h;
-                worksheet.getCell(r, 18).value = row.estado;
-                worksheet.getCell(r, 19).value = c.d; worksheet.getCell(r, 20).value = c.h;
+            // Mapeamento rigoroso para as colunas do teu template:
+            worksheet.getCell(rowNumber, 3).value = row.tecnico;
+            worksheet.getCell(rowNumber, 4).value = p.d;  // data_pedido
+            worksheet.getCell(rowNumber, 5).value = p.h;  // hora_pedido
+            worksheet.getCell(rowNumber, 6).value = row.requerente;
+            worksheet.getCell(rowNumber, 7).value = row.empresa;
+            worksheet.getCell(rowNumber, 8).value = row.urgencia;
+            worksheet.getCell(rowNumber, 9).value = row.via;
+            worksheet.getCell(rowNumber, 10).value = row.local_obra;
+            worksheet.getCell(rowNumber, 11).value = row.concelho;
+            worksheet.getCell(rowNumber, 12).value = row.servico;
+            worksheet.getCell(rowNumber, 13).value = row.observacao;
+            worksheet.getCell(rowNumber, 14).value = row.tipo_trabalho;
+            worksheet.getCell(rowNumber, 15).value = row.frequencia;
+            worksheet.getCell(rowNumber, 16).value = l.d; // data_limite
+            worksheet.getCell(rowNumber, 17).value = l.h; // hora_limite
+            worksheet.getCell(rowNumber, 18).value = row.estado;
+            worksheet.getCell(rowNumber, 19).value = c.d; // data_conclusao
+            worksheet.getCell(rowNumber, 20).value = c.h; // hora_conclusao
 
-                [4, 5, 16, 17, 19, 20].forEach(col => { 
-                    const cell = worksheet.getCell(r, col);
-                    if(cell.value instanceof Date) cell.numFmt = [4, 16, 19].includes(col) ? 'dd/mm/yyyy' : 'hh:mm';
-                });
+            // Formatação das células (Data e Hora)
+            const colunasData = [4, 5, 16, 17, 19, 20];
+            colunasData.forEach(col => {
+                const cell = worksheet.getCell(rowNumber, col);
+                if (cell.value instanceof Date) {
+                    cell.numFmt = (col === 4 || col === 16 || col === 19) ? 'dd/mm/yyyy' : 'hh:mm';
+                }
             });
+        });
 
-            const buffer = await workbook.xlsx.writeBuffer();
-            const url = URL.createObjectURL(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-            const link = document.createElement("a"); link.href = url; link.download = "Pedidos_Exportados.xlsx"; link.click();
-        } catch (e) { console.error(e); alert("Erro na exportação."); }
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "Pedidos_Exportados.xlsx";
+        link.click();
+    } catch (error) { 
+        console.error("Erro na exportação:", error); 
+        alert("Erro ao gerar o Excel."); 
     }
+}
 
     function aplicarFiltros() {
         const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
