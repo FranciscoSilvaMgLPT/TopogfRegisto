@@ -6,6 +6,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
     
+    <!-- Flatpickr (Calendário) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
@@ -45,10 +46,15 @@
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
     const sbClient = supabase.createClient(supabaseUrl, supabaseKey);
 
+    // Editor de Data com Flatpickr
     const dateEditor = function(cell, onRendered, success, cancel) {
         const input = document.createElement("input");
+        input.style.width = "100%";
         input.value = cell.getValue();
-        onRendered(() => { input.focus(); flatpickr(input, { enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, locale: "pt", onClose: (sd, ds) => success(ds) }); });
+        onRendered(function() {
+            input.focus();
+            flatpickr(input, { enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, locale: "pt", onClose: (sd, ds) => success(ds) });
+        });
         return input;
     };
 
@@ -59,6 +65,7 @@
         const { data: { session } } = await sbClient.auth.getSession();
         if (!session) { window.location.href = 'login.html'; return; }
         document.getElementById('utilizador-info').innerText = session.user.email;
+
         const { data } = await sbClient.from('pedidos').select('*');
 
         table = new Tabulator("#tabela-pedidos", {
@@ -67,32 +74,27 @@
             pagination: "local",
             paginationSize: 15,
             rowFormatter: function(row) {
-                const data = row.getData();
-                const el = row.getElement();
-                if (data.estado === "concluido") {
-                    el.style.backgroundColor = "#334155";
-                    el.style.color = "#94a3b8";
-                    el.style.textDecoration = "line-through";
-                    el.style.opacity = "0.6";
-                } else {
-                    el.style.textDecoration = "none";
-                    el.style.opacity = "1";
-                    el.style.color = "white";
-                    if (data.urgencia === "Baixa") el.style.backgroundColor = "rgba(34, 197, 94, 0.2)";
-                    else if (data.urgencia === "Média") el.style.backgroundColor = "rgba(234, 179, 8, 0.2)";
-                    else if (data.urgencia === "Alta") el.style.backgroundColor = "rgba(239, 68, 68, 0.2)";
-                }
+                const urgencia = row.getData().urgencia;
+                if (urgencia === "Baixa") row.getElement().style.backgroundColor = "rgba(34, 197, 94, 0.2)";
+                else if (urgencia === "Média") row.getElement().style.backgroundColor = "rgba(234, 179, 8, 0.2)";
+                else if (urgencia === "Alta") row.getElement().style.backgroundColor = "rgba(239, 68, 68, 0.2)";
             },
             columns: [
                 {title: "Técnico", field: "tecnico", editor: "input"},
-                {title: "Pedido (Data/Hora)", field: "data_hora_pedido", editor: dateEditor},
+                {title: "Data Pedido", field: "data_hora_pedido", editor: dateEditor},
                 {title: "Requerente", field: "requerente", editor: "input"},
                 {title: "Empresa", field: "empresa", editor: "input"},
                 {title: "Urgência", field: "urgencia", formatter: function(cell) {
-                    const sel = document.createElement("select"); sel.className = "urgencia-select";
-                    ["Baixa", "Média", "Alta"].forEach(o => { const op = document.createElement("option"); op.value = o; op.textContent = o; if(cell.getValue()===o) op.selected=true; sel.appendChild(op); });
-                    sel.onchange = (e) => { cell.setValue(e.target.value); cell.getRow().reformat(); };
-                    return sel;
+                    const select = document.createElement("select");
+                    select.className = "urgencia-select";
+                    ["Baixa", "Média", "Alta"].forEach(opt => {
+                        const el = document.createElement("option");
+                        el.value = opt; el.textContent = opt;
+                        if (cell.getValue() === opt) el.selected = true;
+                        select.appendChild(el);
+                    });
+                    select.onchange = (e) => { cell.setValue(e.target.value); table.redraw(); };
+                    return select;
                 }},
                 {title: "Via", field: "via", editor: "input"},
                 {title: "Local", field: "local_obra", editor: "input"},
@@ -103,89 +105,73 @@
                 {title: "Freq", field: "frequencia", editor: "input"},
                 {title: "Limite", field: "data_hora_limite", editor: dateEditor},
                 {title: "Estado", field: "estado", formatter: function(cell) {
-                    const sel = document.createElement("select"); sel.className = "select-custom";
-                    ["Pendente", "Concluido"].forEach(o => { const op = document.createElement("option"); op.value = o.toLowerCase(); op.textContent = o; if((cell.getValue()||"").toLowerCase()===o.toLowerCase()) op.selected=true; sel.appendChild(op); });
-                    sel.onchange = (e) => { cell.setValue(e.target.value); cell.getRow().reformat(); };
-                    return sel;
+                    const select = document.createElement("select");
+                    select.className = "select-custom";
+                    ["Pendente", "Concluido"].forEach(opt => {
+                        const el = document.createElement("option");
+                        el.value = opt.toLowerCase(); el.textContent = opt;
+                        if ((cell.getValue() || "").toLowerCase() === opt.toLowerCase()) el.selected = true;
+                        select.appendChild(el);
+                    });
+                    select.onchange = (e) => { cell.setValue(e.target.value); };
+                    return select;
                 }},
-                {title: "Conclusão", field: "data_conclusao", editor: dateEditor},
-                {title: "🗑️", formatter: function() { return "<button style='background:#ef4444; color:white; border:none; padding:2px 8px; border-radius:3px;'>❌</button>"; }, width: 60, hozAlign: "center", cellClick: function(e, cell) { if(confirm("Apagar?")) { sbClient.from('pedidos').delete().eq('id', cell.getRow().getData().id).then(() => cell.getRow().delete()); } }}
+                {title: "Data Conclusão", field: "data_conclusao", editor: dateEditor},
+                {title: "🗑️", formatter: function() { return "<button style='background:#ef4444; color:white; border:none; padding:2px 8px; border-radius:3px;'>❌</button>"; }, width: 60, hozAlign: "center", cellClick: function(e, cell) {
+                    if(confirm("Apagar?")) { const id = cell.getRow().getData().id; sbClient.from('pedidos').delete().eq('id', id).then(() => cell.getRow().delete()); }
+                }}
             ]
         });
         document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
     }
 
+    async function exportarParaExcel() {
+        try {
+            const response = await fetch('template.xlsx');
+            const arrayBuffer = await response.arrayBuffer();
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.load(arrayBuffer);
+            const worksheet = workbook.getWorksheet(1);
+            const dados = table.getData();
+            const startRow = 5; 
+            const startCol = 3;
 
-async function exportarParaExcel() {
-    try {
-        const response = await fetch('template.xlsx');
-        const arrayBuffer = await response.arrayBuffer();
-        const workbook = new ExcelJS.Workbook();
-        await workbook.xlsx.load(arrayBuffer);
-        const worksheet = workbook.getWorksheet(1);
-        const dados = table.getData();
-        const startRow = 5;
-
-        dados.forEach((row, index) => {
-            const rowNumber = startRow + index;
-            
-            const processar = (val) => {
-                if (!val || val === "") return null;
-                const d = new Date(val);
-                return isNaN(d.getTime()) ? null : d;
+            const normalizarData = (val) => {
+                if (!val) return null;
+                const data = new Date(val);
+                return isNaN(data.getTime()) ? val : data;
             };
 
-            const p = processar(row.data_hora_pedido);
-            const l = processar(row.data_hora_limite);
-            const c = processar(row.data_conclusao);
+            dados.forEach((row, index) => {
+                const rowNumber = startRow + index;
+                const campos = [
+                    row.tecnico, normalizarData(row.data_hora_pedido), row.requerente, row.empresa, 
+                    row.urgencia, row.via, row.local_obra, row.concelho, row.servico, 
+                    row.observacao, row.tipo_trabalho, row.frequencia, normalizarData(row.data_hora_limite), 
+                    row.estado, normalizarData(row.data_conclusao)
+                ];
+                campos.forEach((val, colIndex) => {
+                    const cell = worksheet.getCell(rowNumber, startCol + colIndex);
+                    cell.value = val;
+                    if (val instanceof Date) cell.numFmt = 'dd/mm/yyyy hh:mm';
+                });
+            });
 
-            // 1. Preenchimento de dados
-            worksheet.getCell(rowNumber, 3).value = row.tecnico;
-            worksheet.getCell(rowNumber, 6).value = row.requerente;
-            worksheet.getCell(rowNumber, 7).value = row.empresa;
-            worksheet.getCell(rowNumber, 8).value = row.urgencia;
-            worksheet.getCell(rowNumber, 9).value = row.via;
-            worksheet.getCell(rowNumber, 10).value = row.local_obra;
-            worksheet.getCell(rowNumber, 11).value = row.concelho;
-            worksheet.getCell(rowNumber, 12).value = row.servico;
-            worksheet.getCell(rowNumber, 13).value = row.observacao;
-            worksheet.getCell(rowNumber, 14).value = row.tipo_trabalho;
-            worksheet.getCell(rowNumber, 15).value = row.frequencia;
-            worksheet.getCell(rowNumber, 18).value = row.estado;
-
-            // 2. DATA: Enviamos o objeto Date e aplicamos o formato de data do Excel
-            const formatarData = (cell, data) => {
-                if (data) {
-                    cell.value = data; 
-                    cell.numFmt = 'dd/mm/yyyy'; // Isto faz o Excel mostrar a data corretamente
-                }
-            };
-            formatarData(worksheet.getCell(rowNumber, 4), p);
-            formatarData(worksheet.getCell(rowNumber, 16), l);
-            formatarData(worksheet.getCell(rowNumber, 19), c);
-
-            // 3. HORA: Enviamos como string formatada
-            const formatarHora = (d) => d ? (d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0')) : null;
-            worksheet.getCell(rowNumber, 5).value = formatarHora(p);
-            worksheet.getCell(rowNumber, 17).value = formatarHora(l);
-            worksheet.getCell(rowNumber, 20).value = formatarHora(c);
-        });
-
-        const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = "Pedidos_Exportados.xlsx";
-        link.click();
-    } catch (error) { 
-        console.error("Erro:", error); 
-        alert("Erro na exportação."); 
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "Pedidos_Exportados.xlsx";
+            link.click();
+        } catch (error) { console.error(error); alert("Erro na exportação."); }
     }
-}
-    
+
     function aplicarFiltros() {
         const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
-        table.setFilter(data => Object.values(data).some(v => String(v).toLowerCase().includes(input)) && (mostrandoConcluidos || data.estado !== "concluido"));
+        table.setFilter(function(data) {
+            const matchTexto = Object.values(data).some(val => String(val).toLowerCase().includes(input));
+            return matchTexto && (mostrandoConcluidos ? true : data.estado !== "concluido");
+        });
     }
 
     function toggleConcluidos() {
@@ -195,8 +181,15 @@ async function exportarParaExcel() {
     }
 
     async function guardarAlteracoes() {
-        for (const item of table.getData()) {
-            await sbClient.from('pedidos').update(item).eq('id', item.id);
+        const dados = table.getData();
+        for (const item of dados) {
+            await sbClient.from('pedidos').update({
+                tecnico: item.tecnico, data_hora_pedido: item.data_hora_pedido, requerente: item.requerente,
+                empresa: item.empresa, urgencia: item.urgencia, via: item.via, local_obra: item.local_obra,
+                concelho: item.concelho, servico: item.servico, observacao: item.observacao,
+                tipo_trabalho: item.tipo_trabalho, frequencia: item.frequencia, data_hora_limite: item.data_hora_limite,
+                estado: item.estado, data_conclusao: item.data_conclusao
+            }).eq('id', item.id);
         }
         alert("Guardado com sucesso!");
     }
