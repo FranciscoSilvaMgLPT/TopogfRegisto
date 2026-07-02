@@ -128,16 +128,16 @@ async function exportarParaExcel() {
         dados.forEach((row, index) => {
             const rowNumber = startRow + index;
             
-            // Função interna para separar
+            // Função para separar e limpar dados vazios
             const splitVal = (val) => {
+                // Se o valor estiver vazio, undefined ou null, retorna null para ambos
+                if (!val || val === "") return { data: null, hora: null };
+                
                 const d = new Date(val);
+                // Se a data for inválida, retorna null
                 if (isNaN(d.getTime())) return { data: null, hora: null };
                 
-                // data: cria um novo objeto Date apenas com o ano, mes, dia (hora zero)
                 const dataPura = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-                
-                // hora: envia como string ou float formatado (0.5 para meio dia, etc)
-                // Usar string no formato 'HH:MM' é o mais seguro para o Excel não misturar
                 const horaPura = d.getHours().toString().padStart(2, '0') + ':' + 
                                  d.getMinutes().toString().padStart(2, '0');
                 
@@ -148,12 +148,10 @@ async function exportarParaExcel() {
             const l = splitVal(row.data_hora_limite);
             const c = splitVal(row.data_conclusao);
 
-            // Preenchimento
+            // Preenchimento (Se for null, o Excel deixa a célula vazia)
             worksheet.getCell(rowNumber, 3).value = row.tecnico;
-            
-            worksheet.getCell(rowNumber, 4).value = p.data; // Apenas Data
-            worksheet.getCell(rowNumber, 5).value = p.hora; // Apenas Hora (String)
-            
+            worksheet.getCell(rowNumber, 4).value = p.data;
+            worksheet.getCell(rowNumber, 5).value = p.hora;
             worksheet.getCell(rowNumber, 6).value = row.requerente;
             worksheet.getCell(rowNumber, 7).value = row.empresa;
             worksheet.getCell(rowNumber, 8).value = row.urgencia;
@@ -164,16 +162,13 @@ async function exportarParaExcel() {
             worksheet.getCell(rowNumber, 13).value = row.observacao;
             worksheet.getCell(rowNumber, 14).value = row.tipo_trabalho;
             worksheet.getCell(rowNumber, 15).value = row.frequencia;
-            
-            worksheet.getCell(rowNumber, 16).value = l.data; // Apenas Data
-            worksheet.getCell(rowNumber, 17).value = l.hora; // Apenas Hora (String)
-            
+            worksheet.getCell(rowNumber, 16).value = l.data;
+            worksheet.getCell(rowNumber, 17).value = l.hora;
             worksheet.getCell(rowNumber, 18).value = row.estado;
-            
-            worksheet.getCell(rowNumber, 19).value = c.data; // Apenas Data
-            worksheet.getCell(rowNumber, 20).value = c.hora; // Apenas Hora (String)
+            worksheet.getCell(rowNumber, 19).value = c.data;
+            worksheet.getCell(rowNumber, 20).value = c.hora;
 
-            // Formatar apenas as colunas de data
+            // Formatação (O Excel só aplica o formato se a célula tiver valor)
             [4, 16, 19].forEach(col => {
                 worksheet.getCell(rowNumber, col).numFmt = 'dd/mm/yyyy';
             });
