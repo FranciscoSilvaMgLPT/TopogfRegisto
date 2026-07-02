@@ -132,46 +132,54 @@
         document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
     }
 
-    async function exportarParaExcel() {
-        try {
-            const response = await fetch('template.xlsx');
-            const arrayBuffer = await response.arrayBuffer();
-            const workbook = new ExcelJS.Workbook();
-            await workbook.xlsx.load(arrayBuffer);
-            const worksheet = workbook.getWorksheet(1);
-            const dados = table.getData();
-            const startRow = 5; 
-            const startCol = 3;
+async function exportarParaExcel() {
+    const workbook = new ExcelJS.Workbook();
+    const response = await fetch('template.xlsx');
+    await workbook.xlsx.load(await response.arrayBuffer());
+    const worksheet = workbook.getWorksheet(1);
+    const dados = table.getData();
 
-            const normalizarData = (val) => {
-                if (!val) return null;
-                const data = new Date(val);
-                return isNaN(data.getTime()) ? val : data;
-            };
+    dados.forEach((row, index) => {
+        const rowNumber = 5 + index; // Começa na linha 5
 
-            dados.forEach((row, index) => {
-                const rowNumber = startRow + index;
-                const campos = [
-                    row.tecnico, normalizarData(row.data_hora_pedido), row.requerente, row.empresa, 
-                    row.urgencia, row.via, row.local_obra, row.concelho, row.servico, 
-                    row.observacao, row.tipo_trabalho, row.frequencia, normalizarData(row.data_hora_limite), 
-                    row.estado, normalizarData(row.data_conclusao)
-                ];
-                campos.forEach((val, colIndex) => {
-                    const cell = worksheet.getCell(rowNumber, startCol + colIndex);
-                    cell.value = val;
-                    if (val instanceof Date) cell.numFmt = 'dd/mm/yyyy hh:mm';
-                });
-            });
+        // Preenchimento das colunas fixas (Textos)
+        worksheet.getCell(rowNumber, 3).value = row.tecnico;       // C: Técnico
+        worksheet.getCell(rowNumber, 6).value = row.requerente;    // F: Requerente
+        worksheet.getCell(rowNumber, 7).value = row.estado;        // G: Estado
+        worksheet.getCell(rowNumber, 8).value = row.empresa;       // H: Empresa
+        worksheet.getCell(rowNumber, 9).value = row.urgencia;      // I: Urgência
+        worksheet.getCell(rowNumber, 10).value = row.via;          // J: Via
+        worksheet.getCell(rowNumber, 11).value = row.local_obra;   // K: Local/Obra
+        worksheet.getCell(rowNumber, 12).value = row.concelho;     // L: Concelho
+        worksheet.getCell(rowNumber, 13).value = row.servico;      // M: Serviço
+        worksheet.getCell(rowNumber, 14).value = row.observacao;   // N: Observação
+        worksheet.getCell(rowNumber, 15).value = row.tipo_trabalho;// O: Tipo
+        worksheet.getCell(rowNumber, 16).value = row.frequencia;   // P: Frequência
 
-            const buffer = await workbook.xlsx.writeBuffer();
-            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "Pedidos_Exportados.xlsx";
-            link.click();
-        } catch (error) { console.error(error); alert("Erro na exportação."); }
-    }
+        // Função para Data/Hora (Pedido, Limite, Conclusão)
+        const preencherDataHora = (valor, colData, colHora) => {
+            if (valor) {
+                const d = new Date(valor);
+                // Coluna Data: Fórmula =DATA(AAAA;MM;DD)
+                worksheet.getCell(rowNumber, colData).value = { formula: `DATE(${d.getFullYear()};${d.getMonth()+1};${d.getDate()})` };
+                worksheet.getCell(rowNumber, colData).numFmt = 'dd/mm/yyyy';
+                // Coluna Hora: String HH:mm
+                worksheet.getCell(rowNumber, colHora).value = d.toLocaleTimeString("pt-PT", {hour: '2-digit', minute:'2-digit'});
+            }
+        };
+
+        // Mapeamento baseado na imagem:
+        preencherDataHora(row.data_hora_pedido, 4, 5);  // D: Data Pedido, E: Hora Pedido
+        preencherDataHora(row.data_hora_limite, 17, 18);// Q: Data Limite, R: Hora Limite
+        preencherDataHora(row.data_conclusao, 19, 20);  // S: Data Conclusão, T: Hora Conclusão
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([buffer]));
+    link.download = "Pedidos_Exportados.xlsx";
+    link.click();
+}
 
     function aplicarFiltros() {
         const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
