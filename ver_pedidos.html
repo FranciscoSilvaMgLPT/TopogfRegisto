@@ -128,7 +128,32 @@
                 {title: "Concelho", field: "concelho", editor: "input"},
                 {title: "Serviço", field: "servico", editor: "input"},
                 {title: "Obs", field: "observacao", editor: "input"},
-                {title: "Tipo", field: "tipo_trabalho", editor: "input"},
+                {
+    title: "Tipo", 
+    field: "tipo_trabalho", 
+    formatter: function(cell) {
+        // Cria o elemento select
+        const select = document.createElement("select");
+        select.className = "select-custom";
+        
+        // Opções baseadas na "image_f9af23.png"
+        const opcoes = ["Lev. Topográfico", "Monitorização", "Implantação", "Gabinete / Estudos"];
+        
+        opcoes.forEach(opt => {
+            const el = document.createElement("option");
+            el.value = opt; 
+            el.textContent = opt;
+            // Marca a opção atual como selecionada se coincidir
+            if (cell.getValue() === opt) el.selected = true;
+            select.appendChild(el);
+        });
+        
+        select.onchange = (e) => { 
+            cell.setValue(e.target.value); 
+        };
+        return select;
+    }
+},
                 {title: "Freq", field: "frequencia", editor: "input"},
                 {title: "Limite", field: "data_hora_limite", editor: dateEditor, formatter: dataFormatter},
                 {title: "Estado", field: "estado", formatter: function(cell) {
