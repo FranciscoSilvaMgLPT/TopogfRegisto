@@ -45,7 +45,9 @@
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
     const sbClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-    // Formatar data para visualização (remover o T)
+    let table;
+    let mostrandoConcluidos = true;
+
     const dataFormatter = (cell) => {
         const val = cell.getValue();
         if (!val) return "";
@@ -53,7 +55,6 @@
         return data.toLocaleDateString("pt-PT") + " " + data.toLocaleTimeString("pt-PT", {hour: '2-digit', minute:'2-digit'});
     };
 
-    // Editor de Data com Flatpickr
     const dateEditor = function(cell, onRendered, success, cancel) {
         const input = document.createElement("input");
         input.style.width = "100%";
@@ -64,9 +65,6 @@
         });
         return input;
     };
-
-    let table;
-    let mostrandoConcluidos = true;
 
     async function carregarDados() {
         const { data: { session } } = await sbClient.auth.getSession();
@@ -120,7 +118,10 @@
                         if ((cell.getValue() || "").toLowerCase() === opt.toLowerCase()) el.selected = true;
                         select.appendChild(el);
                     });
-                    select.onchange = (e) => { cell.setValue(e.target.value); };
+                    select.onchange = (e) => { 
+                        cell.setValue(e.target.value); 
+                        aplicarFiltros(); 
+                    };
                     return select;
                 }},
                 {title: "Data Conclusão", field: "data_conclusao", editor: dateEditor, formatter: dataFormatter},
@@ -132,71 +133,22 @@
         document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
     }
 
-async function exportarParaExcel() {
-    const workbook = new ExcelJS.Workbook();
-    const response = await fetch('template.xlsx');
-    await workbook.xlsx.load(await response.arrayBuffer());
-    const worksheet = workbook.getWorksheet(1);
-    const dados = table.getData();
-
-    dados.forEach((row, index) => {
-        const rowNumber = 5 + index;
-
-        // Preenchimento de colunas simples
-        worksheet.getCell(rowNumber, 3).value = row.tecnico;           // C
-        worksheet.getCell(rowNumber, 6).value = row.requerente;        // F
-        worksheet.getCell(rowNumber, 7).value = row.empresa;           // G
-        worksheet.getCell(rowNumber, 8).value = row.urgencia;          // H
-        worksheet.getCell(rowNumber, 9).value = row.via;               // I
-        worksheet.getCell(rowNumber, 10).value = row.local_obra;       // J
-        worksheet.getCell(rowNumber, 11).value = row.concelho;         // K
-        worksheet.getCell(rowNumber, 12).value = row.servico;          // L
-        worksheet.getCell(rowNumber, 13).value = row.observacao;       // M
-        worksheet.getCell(rowNumber, 14).value = row.tipo_trabalho;    // N
-        worksheet.getCell(rowNumber, 15).value = row.frequencia;       // O
-        worksheet.getCell(rowNumber, 18).value = row.estado;           // R
-
-        // Função corrigida para inserir Datas de forma que o Excel reconheça
-        const preencherDataHora = (valor, colData, colHora) => {
-            if (valor) {
-                const d = new Date(valor);
-                
-                // Em vez de fórmula, enviamos o objeto Date. 
-                // O ExcelJS converte isto automaticamente para o formato de data do Excel.
-                // Como não incluímos a hora aqui, o Excel assume 00:00:00 automaticamente.
-                const cellData = worksheet.getCell(rowNumber, colData);
-                cellData.value = d;
-                cellData.numFmt = 'dd/mm/yyyy'; 
-                
-                // Coluna Hora: String (como já estavas a fazer e funciona)
-                worksheet.getCell(rowNumber, colHora).value = d.toLocaleTimeString("pt-PT", {hour: '2-digit', minute:'2-digit'});
-            }
-        };
-
-        // Mapeamento mantido
-        preencherDataHora(row.data_hora_pedido, 4, 5);   // D, E
-        preencherDataHora(row.data_hora_limite, 16, 17); // P, Q
-        preencherDataHora(row.data_conclusao, 19, 20);   // S, T
-    });
-
-    const buffer = await workbook.xlsx.writeBuffer();
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(new Blob([buffer], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
-    link.download = "Pedidos_Exportados.xlsx";
-    link.click();
-}
-    
     function aplicarFiltros() {
         const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
+        
         table.setFilter(function(data) {
             const matchTexto = Object.values(data).some(val => String(val).toLowerCase().includes(input));
-            return matchTexto && (mostrandoConcluidos ? true : data.estado !== "Concluido");
+            const estado = (data.estado || "").toLowerCase();
+            const mostrar = mostrandoConcluidos ? true : estado !== "concluido";
+            return matchTexto && mostrar;
         });
     }
 
     function toggleConcluidos() {
         mostrandoConcluidos = !mostrandoConcluidos;
-        document.getElementById("btn-filtro-concluidos").innerText = mostrandoConcluidos ? "✅ Ocultar Concluídos" : "👁️ Mostrar Tudo";
+        const btn = document.getElementById("btn-filtro-concluidos");
+        btn.innerText = mostrandoConcluidos ? "✅ Ocultar Concluídos" : "👁️ Mostrar Tudo";
+        btn.style.backgroundColor = mostrandoConcluidos ? "#64748b" : "#f59e0b";
         aplicarFiltros();
     }
 
@@ -212,6 +164,50 @@ async function exportarParaExcel() {
             }).eq('id', item.id);
         }
         alert("Guardado com sucesso!");
+    }
+
+    async function exportarParaExcel() {
+        const workbook = new ExcelJS.Workbook();
+        const response = await fetch('template.xlsx');
+        await workbook.xlsx.load(await response.arrayBuffer());
+        const worksheet = workbook.getWorksheet(1);
+        const dados = table.getData();
+
+        dados.forEach((row, index) => {
+            const rowNumber = 5 + index;
+            worksheet.getCell(rowNumber, 3).value = row.tecnico;
+            worksheet.getCell(rowNumber, 6).value = row.requerente;
+            worksheet.getCell(rowNumber, 7).value = row.empresa;
+            worksheet.getCell(rowNumber, 8).value = row.urgencia;
+            worksheet.getCell(rowNumber, 9).value = row.via;
+            worksheet.getCell(rowNumber, 10).value = row.local_obra;
+            worksheet.getCell(rowNumber, 11).value = row.concelho;
+            worksheet.getCell(rowNumber, 12).value = row.servico;
+            worksheet.getCell(rowNumber, 13).value = row.observacao;
+            worksheet.getCell(rowNumber, 14).value = row.tipo_trabalho;
+            worksheet.getCell(rowNumber, 15).value = row.frequencia;
+            worksheet.getCell(rowNumber, 18).value = row.estado;
+
+            const preencherDataHora = (valor, colData, colHora) => {
+                if (valor) {
+                    const d = new Date(valor);
+                    const cellData = worksheet.getCell(rowNumber, colData);
+                    cellData.value = d;
+                    cellData.numFmt = 'dd/mm/yyyy'; 
+                    worksheet.getCell(rowNumber, colHora).value = d.toLocaleTimeString("pt-PT", {hour: '2-digit', minute:'2-digit'});
+                }
+            };
+
+            preencherDataHora(row.data_hora_pedido, 4, 5);
+            preencherDataHora(row.data_hora_limite, 16, 17);
+            preencherDataHora(row.data_conclusao, 19, 20);
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(new Blob([buffer], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
+        link.download = "Pedidos_Exportados.xlsx";
+        link.click();
     }
 
     carregarDados();
