@@ -20,6 +20,12 @@
         #filtro-pesquisa { width: 300px; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #475569; background: #1e293b; color: white; }
         .urgencia-select, .select-custom { width: 100%; background: transparent; color: white; border: none; cursor: pointer; font-size: 12px; text-align: center; }
         .urgencia-select option, .select-custom option { background: #1e293b; color: white; }
+        
+        /* Estilo para linhas concluídas - Força a cor preta e o riscado em todos os elementos internos */
+        .linha-concluida, .linha-concluida *, .linha-concluida option {
+            color: black !important;
+            text-decoration: line-through !important;
+        }
     </style>
 </head>
 <body>
@@ -84,20 +90,20 @@
                 const estado = (data.estado || "").toLowerCase();
                 const el = row.getElement();
 
-                // Reset estilos
+                // Limpeza de estilos anteriores
+                el.classList.remove("linha-concluida");
                 el.style.backgroundColor = "";
                 el.style.color = "white";
-                el.style.opacity = "1";
 
-                // Urgência
+                // Estilo Urgência
                 if (urgencia === "Baixa") el.style.backgroundColor = "rgba(34, 197, 94, 0.1)";
                 else if (urgencia === "Média") el.style.backgroundColor = "rgba(234, 179, 8, 0.1)";
                 else if (urgencia === "Alta") el.style.backgroundColor = "rgba(239, 68, 68, 0.1)";
 
                 // Estilo Concluído
                 if (estado === "concluido") {
-                    el.style.backgroundColor = "#e2e8f0"; // Cinza claro para dar contraste
-                    el.style.color = "black"; // Texto preto
+                    el.classList.add("linha-concluida");
+                    el.style.backgroundColor = "#e2e8f0"; // Cinza claro
                 }
             },
             columns: [
@@ -136,7 +142,7 @@
                     });
                     select.onchange = (e) => { 
                         cell.setValue(e.target.value); 
-                        cell.getRow().reformat(); // Atualiza a linha na hora
+                        cell.getRow().reformat(); 
                         aplicarFiltros(); 
                     };
                     return select;
