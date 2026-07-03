@@ -84,22 +84,26 @@ rowFormatter: function(row) {
     const estado = (data.estado || "").toLowerCase();
     const el = row.getElement();
 
-    // 1. Limpar estilos anteriores
+    // 1. Limpar estilos anteriores (reverte para o padrão)
     el.style.backgroundColor = "";
     el.style.opacity = "1";
     el.style.textDecoration = "none";
     el.style.fontStyle = "normal";
+    el.style.color = "white"; // Cor do texto padrão da tabela midnight
 
     // 2. Aplicar cor de fundo baseada na Urgência
     if (urgencia === "Baixa") el.style.backgroundColor = "rgba(34, 197, 94, 0.1)";
     else if (urgencia === "Média") el.style.backgroundColor = "rgba(234, 179, 8, 0.1)";
     else if (urgencia === "Alta") el.style.backgroundColor = "rgba(239, 68, 68, 0.1)";
 
-    // 3. Aplicar estilo visual de Concluído (sobrepõe a urgência se necessário)
+    // 3. Estilo visual de Concluído
     if (estado === "concluido") {
-        el.style.opacity = "0.5"; 
+        el.style.opacity = "0.7"; 
         el.style.textDecoration = "line-through";
         el.style.fontStyle = "italic";
+        el.style.color = "black"; // Altera a cor do texto para preto
+        // Opcional: Se achar que o preto fica muito escuro no fundo midnight, 
+        // pode usar um cinzento escuro: el.style.color = "#334155";
     }
 },
             columns: [
