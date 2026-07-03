@@ -128,7 +128,7 @@
                 {title: "Concelho", field: "concelho", editor: "input"},
                 {title: "Serviço", field: "servico", editor: "input"},
                 {title: "Obs", field: "observacao", editor: "input"},
-                {
+               {
     title: "Tipo", 
     field: "tipo_trabalho", 
     formatter: function(cell) {
@@ -153,8 +153,7 @@
         };
         return select;
     }
-},
-                {title: "Freq", field: "frequencia", editor: "input"},
+},                {title: "Freq", field: "frequencia", editor: "input"},
                 {title: "Limite", field: "data_hora_limite", editor: dateEditor, formatter: dataFormatter},
                 {title: "Estado", field: "estado", formatter: function(cell) {
                     const select = document.createElement("select");
