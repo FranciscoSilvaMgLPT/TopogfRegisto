@@ -307,7 +307,8 @@
         }
 
         alert("Guardado com sucesso!");
-
+const { data: novosDados } = await sbClient.from('pedidos').select('*').order('id', { ascending: false });
+        table.replaceData(novosDados);
     }
 
 
