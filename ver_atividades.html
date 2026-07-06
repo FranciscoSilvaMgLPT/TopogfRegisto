@@ -19,7 +19,7 @@
     <div>Utilizador: <strong id="utilizador-info" style="font-weight: bold; color: #60a5fa;">A verificar...</strong></div>
     
     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
-        <h1 style="margin: 0;">Histórico de Atividades</h1>
+        <h1 style="margin: 0;">Histórico de Atividades <span id="contador-atividades" style="color: #64748b; font-size: 0.8em;"></span></h1>
         <div>
             <button onclick="guardarAlteracoes()" style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">💾 Guardar Alterações</button>
             <button onclick="downloadCSV()" style="background: #8b5cf6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer; margin-right: 10px;">⬇ Exportar CSV</button>
@@ -36,6 +36,14 @@
         const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs'; 
         const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         let table;
+
+        // Função para atualizar o contador
+        function atualizarContador() {
+            if(table) {
+                const contagem = table.getRows("active").length;
+                document.getElementById("contador-atividades").innerText = "(" + contagem + ")";
+            }
+        }
 
         async function carregarAtividades() {
             const { data: { session } } = await sbClient.auth.getSession();
@@ -63,11 +71,17 @@
                     {title: "Ações", formatter: function() { return "<button style='background:#ef4444; color:white; border:none; padding:2px 8px; border-radius:3px;'>Apagar</button>"; }, width: 80, hozAlign: "center", cellClick: function(e, cell) {
                         if(confirm("Apagar esta atividade?")) {
                             const id = cell.getRow().getData().id;
-                            sbClient.from('atividades').delete().eq('id', id).then(() => cell.getRow().delete());
+                            sbClient.from('atividades').delete().eq('id', id).then(() => {
+                                cell.getRow().delete();
+                                atualizarContador();
+                            });
                         }
                     }}
                 ]
             });
+
+            table.on("tableBuilt", atualizarContador);
+            table.on("dataFiltered", atualizarContador);
 
             document.getElementById("filtro-pesquisa").addEventListener("keyup", function(){
                 table.setFilter(function(data){
