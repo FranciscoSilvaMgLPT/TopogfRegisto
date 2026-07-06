@@ -19,10 +19,11 @@
         #tabela-pedidos { margin-top: 20px; font-size: 12px; }
         #filtro-pesquisa { width: 300px; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #475569; background: #1e293b; color: white; }
         
-   
+        /* Linhas concluídas: fundo escuro para o texto branco sobressair */
         .linha-concluida, .linha-concluida * {
-            color: #64748b !important;
+            color: #f8fafc !important; 
             text-decoration: line-through !important;
+            opacity: 0.8;
         }
     </style>
 </head>
@@ -90,6 +91,7 @@
                 
                 if ((data.estado || "").toLowerCase() === "concluido") {
                     el.classList.add("linha-concluida");
+                    el.style.backgroundColor = "#334155"; // Fundo azul escuro para leitura ideal
                 } else if (data.urgencia === "Alta") el.style.backgroundColor = "rgba(239, 68, 68, 0.2)";
                 else if (data.urgencia === "Média") el.style.backgroundColor = "rgba(234, 179, 8, 0.2)";
                 else if (data.urgencia === "Baixa") el.style.backgroundColor = "rgba(34, 197, 94, 0.2)";
