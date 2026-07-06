@@ -18,12 +18,10 @@
         .btn-voltar { background: #334155; color: white; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: bold; }
         #tabela-pedidos { margin-top: 20px; font-size: 12px; }
         #filtro-pesquisa { width: 300px; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #475569; background: #1e293b; color: white; }
-        .urgencia-select, .select-custom { width: 100%; background: transparent; color: white; border: none; cursor: pointer; font-size: 12px; text-align: center; }
-        .urgencia-select option, .select-custom option { background: #1e293b; color: white; }
         
-        /* Estilo para linhas concluídas */
-        .linha-concluida, .linha-concluida *, .linha-concluida option {
-            color: black !important;
+   
+        .linha-concluida, .linha-concluida * {
+            color: #64748b !important;
             text-decoration: line-through !important;
         }
     </style>
@@ -86,78 +84,31 @@
             paginationSize: 15,
             rowFormatter: function(row) {
                 const data = row.getData();
-                const urgencia = data.urgencia;
-                const estado = (data.estado || "").toLowerCase();
                 const el = row.getElement();
-
-                // Reset estilos
                 el.classList.remove("linha-concluida");
                 el.style.backgroundColor = "";
-                el.style.color = "white";
-
-                if (estado === "concluido") {
+                
+                if ((data.estado || "").toLowerCase() === "concluido") {
                     el.classList.add("linha-concluida");
-                    el.style.backgroundColor = "#e2e8f0";
-                } else {
-                    // Cores de Urgência apenas se não estiver concluído
-                    if (urgencia === "Alta") el.style.backgroundColor = "rgba(239, 68, 68, 0.2)";
-                    else if (urgencia === "Média") el.style.backgroundColor = "rgba(234, 179, 8, 0.2)";
-                    else if (urgencia === "Baixa") el.style.backgroundColor = "rgba(34, 197, 94, 0.2)";
-                }
+                } else if (data.urgencia === "Alta") el.style.backgroundColor = "rgba(239, 68, 68, 0.2)";
+                else if (data.urgencia === "Média") el.style.backgroundColor = "rgba(234, 179, 8, 0.2)";
+                else if (data.urgencia === "Baixa") el.style.backgroundColor = "rgba(34, 197, 94, 0.2)";
             },
             columns: [
                 {title: "Técnico", field: "tecnico", editor: "input"},
                 {title: "Data Pedido", field: "data_hora_pedido", editor: dateEditor, formatter: dataFormatter},
                 {title: "Requerente", field: "requerente", editor: "input"},
-                {title: "Empresa", field: "empresa", editor: "input"},
-                {title: "Urgência", field: "urgencia", formatter: function(cell) {
-                    const select = document.createElement("select");
-                    select.className = "urgencia-select";
-                    ["Baixa", "Média", "Alta"].forEach(opt => {
-                        const el = document.createElement("option");
-                        el.value = opt; el.textContent = opt;
-                        if (cell.getValue() === opt) el.selected = true;
-                        select.appendChild(el);
-                    });
-                    select.onchange = (e) => { cell.setValue(e.target.value); cell.getRow().reformat(); };
-                    return select;
-                }},
+                {title: "Empresa", field: "empresa", editor: "list", editorParams: {values: ["", "CCR ENG&CONST", "CCR-INVEST", "GROWNOR", "WEST-VIEW", "GRAU-ON", "FERCAYO", "DECIBOLT", "INTERNO", "EXTERNO"]}},
+                {title: "Urgência", field: "urgencia", editor: "list", editorParams: {values: ["Baixa", "Média", "Alta"]}, cellEdited: (cell) => cell.getRow().reformat()},
                 {title: "Via", field: "via", editor: "input"},
                 {title: "Local", field: "local_obra", editor: "input"},
                 {title: "Concelho", field: "concelho", editor: "input"},
                 {title: "Serviço", field: "servico", editor: "input"},
                 {title: "Obs", field: "observacao", editor: "input"},
-                {title: "Tipo", field: "tipo_trabalho", formatter: function(cell) {
-                    const select = document.createElement("select");
-                    select.className = "select-custom";
-                    const opcoes = ["Lev. Topográfico", "Monitorização", "Implantação", "Gabinete / Estudos"];
-                    opcoes.forEach(opt => {
-                        const el = document.createElement("option");
-                        el.value = opt; el.textContent = opt;
-                        if (cell.getValue() === opt) el.selected = true;
-                        select.appendChild(el);
-                    });
-                    select.onchange = (e) => { cell.setValue(e.target.value); };
-                    return select;
-                }},
+                {title: "Tipo", field: "tipo_trabalho", editor: "list", editorParams: {values: ["Lev. Topográfico", "Monitorização", "Implantação", "Gabinete / Estudos"]}},
                 {title: "Freq", field: "frequencia", editor: "input"},
                 {title: "Limite", field: "data_hora_limite", editor: dateEditor, formatter: dataFormatter},
-                {title: "Estado", field: "estado", formatter: function(cell) {
-                    const select = document.createElement("select");
-                    select.className = "select-custom";
-                    ["Pendente", "Concluido"].forEach(opt => {
-                        const el = document.createElement("option");
-                        el.value = opt.toLowerCase(); el.textContent = opt;
-                        if ((cell.getValue() || "").toLowerCase() === opt.toLowerCase()) el.selected = true;
-                        select.appendChild(el);
-                    });
-                    select.onchange = (e) => { 
-                        cell.setValue(e.target.value); 
-                        cell.getRow().reformat(); 
-                        aplicarFiltros(); 
-                    };
-                    return select;
-                }},
+                {title: "Estado", field: "estado", editor: "list", editorParams: {values: {"pendente": "Pendente", "concluido": "Concluido"}}, cellEdited: (cell) => { cell.getRow().reformat(); aplicarFiltros(); }},
                 {title: "Data Conclusão", field: "data_conclusao", editor: dateEditor, formatter: dataFormatter},
                 {title: "🗑️", formatter: function() { return "<button style='background:#ef4444; color:white; border:none; padding:2px 8px; border-radius:3px;'>❌</button>"; }, width: 60, hozAlign: "center", cellClick: function(e, cell) {
                     if(confirm("Apagar?")) { const id = cell.getRow().getData().id; sbClient.from('pedidos').delete().eq('id', id).then(() => cell.getRow().delete()); }
@@ -167,14 +118,12 @@
         document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
     }
 
-    // ... (restante das funções aplicarFiltros, toggleConcluidos, guardarAlteracoes, exportarParaExcel permanecem iguais)
     function aplicarFiltros() {
         const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
         table.setFilter(function(data) {
             const matchTexto = Object.values(data).some(val => String(val).toLowerCase().includes(input));
             const estado = (data.estado || "").toLowerCase();
-            const mostrar = mostrandoConcluidos ? true : estado !== "concluido";
-            return matchTexto && mostrar;
+            return matchTexto && (mostrandoConcluidos ? true : estado !== "concluido");
         });
     }
 
@@ -182,7 +131,6 @@
         mostrandoConcluidos = !mostrandoConcluidos;
         const btn = document.getElementById("btn-filtro-concluidos");
         btn.innerText = mostrandoConcluidos ? "✅ Ocultar Concluídos" : "👁️ Mostrar Tudo";
-        btn.style.backgroundColor = mostrandoConcluidos ? "#64748b" : "#f59e0b";
         aplicarFiltros();
     }
 
