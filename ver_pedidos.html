@@ -83,7 +83,8 @@
             layout: "fitDataFill",
             pagination: "local",
             paginationSize: 50,
-            
+            paginationSizeSelector: [20, 50, 100],
+            paginationElement: "#tabela-footer"
             rowFormatter: function(row) {
                 const data = row.getData();
                 const el = row.getElement();
