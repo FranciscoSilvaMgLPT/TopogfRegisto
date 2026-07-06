@@ -247,21 +247,14 @@ rowFormatter: function(row) {
 
 
 
-    function aplicarFiltros() {
-
-        const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
-
-        table.setFilter(function(data) {
-
-            const matchTexto = Object.values(data).some(val => String(val).toLowerCase().includes(input));
-
-            const estado = (data.estado || "").toLowerCase();
-
-            return matchTexto && (mostrandoConcluidos ? true : estado !== "concluido");
-
-        });
-
-    }
+function aplicarFiltros() {
+    const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
+    table.setFilter(function(data) {
+        const matchTexto = Object.values(data).some(val => String(val).toLowerCase().includes(input));
+        const estado = data.estado || ""; // Mantém o valor como vem do Supabase
+        return matchTexto && (mostrandoConcluidos ? true : estado !== "Concluido");
+    });
+}
 
 
 
