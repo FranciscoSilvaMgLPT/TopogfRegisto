@@ -80,11 +80,10 @@
 
         table = new Tabulator("#tabela-pedidos", {
             data: data,
-            layout: "fitDataFill",
+            layout: "fitData", // Ajusta colunas ao conteúdo, evitando cortes
             pagination: "local",
             paginationSize: 50,
             paginationSizeSelector: [15, 50, 100],
-            // Evento disparado sempre que uma célula é editada
             cellEdited: function(cell) {
                 aplicarFiltros();
             },
@@ -101,21 +100,21 @@
                 else if (data.urgencia === "Baixa") el.style.backgroundColor = "rgba(34, 197, 94, 0.2)";
             },
             columns: [
-                {title: "Técnico", field: "tecnico", width: 120, editor: "input"},
-                {title: "Data Pedido", field: "data_hora_pedido", width: 150, editor: dateEditor, formatter: dataFormatter},
-                {title: "Requerente", field: "requerente", width: 140, editor: "input"},
-                {title: "Empresa", field: "empresa", width: 150, editor: "list", editorParams: {values: ["", "CCR ENG&CONST", "CCR-INVEST", "GROWNOR", "WEST-VIEW", "GRAU-ON", "FERCAYO", "DECIBOLT", "INTERNO", "EXTERNO"]}},
-                {title: "Urgência❗", field: "urgencia", width: 100, editor: "list", editorParams: {values: ["Baixa", "Média", "Alta"]}},
-                {title: "Via", field: "via", width: 120, editor: "list", editorParams: {values: ["Chamada", "Email", "Whatsapp", "Presencial", "Outros"]}},
-                {title: "Local", field: "local_obra", width: 180, editor: "input"},
-                {title: "Concelho", field: "concelho", width: 140, editor: "input"},
-                {title: "Serviço", field: "servico", width: 220, editor: "input"},
-                {title: "Obs", field: "observacao", width: 180, editor: "input"},
-                {title: "Tipo", field: "tipo_trabalho", width: 160, editor: "list", editorParams: {values: ["Lev. Topográfico", "Monitorização", "Implantação", "Gabinete / Estudos"]}},
-                {title: "Freq", field: "frequencia", width: 120, editor: "list", editorParams: {values: ["Única", "Contínua", "Diária", "Semanal", "Mensal", "Trimestral"]}},
-                {title: "Limite", field: "data_hora_limite", width: 150, editor: dateEditor, formatter: dataFormatter},
-                {title: "Estado", field: "estado", width: 120, editor: "list", editorParams: {values: ["Pendente", "Concluido"]}},
-                {title: "Data Conclusão", field: "data_conclusao", width: 150, editor: dateEditor, formatter: dataFormatter},
+                {title: "Técnico", field: "tecnico", minWidth: 120, editor: "input"},
+                {title: "Data Pedido", field: "data_hora_pedido", minWidth: 150, editor: dateEditor, formatter: dataFormatter},
+                {title: "Requerente", field: "requerente", minWidth: 140, editor: "input"},
+                {title: "Empresa", field: "empresa", minWidth: 150, editor: "list", editorParams: {values: ["", "CCR ENG&CONST", "CCR-INVEST", "GROWNOR", "WEST-VIEW", "GRAU-ON", "FERCAYO", "DECIBOLT", "INTERNO", "EXTERNO"]}},
+                {title: "Urgência", field: "urgencia", minWidth: 100, editor: "list", editorParams: {values: ["Baixa", "Média", "Alta"]}},
+                {title: "Via", field: "via", minWidth: 120, editor: "list", editorParams: {values: ["Chamada", "Email", "Whatsapp", "Presencial", "Outros"]}},
+                {title: "Local", field: "local_obra", minWidth: 180, editor: "input"},
+                {title: "Concelho", field: "concelho", minWidth: 140, editor: "input"},
+                {title: "Serviço", field: "servico", minWidth: 220, editor: "input"},
+                {title: "Obs", field: "observacao", minWidth: 180, editor: "input"},
+                {title: "Tipo", field: "tipo_trabalho", minWidth: 160, editor: "list", editorParams: {values: ["Lev. Topográfico", "Monitorização", "Implantação", "Gabinete / Estudos"]}},
+                {title: "Freq", field: "frequencia", minWidth: 120, editor: "list", editorParams: {values: ["Única", "Contínua", "Diária", "Semanal", "Mensal", "Trimestral"]}},
+                {title: "Limite", field: "data_hora_limite", minWidth: 150, editor: dateEditor, formatter: dataFormatter},
+                {title: "Estado", field: "estado", minWidth: 120, editor: "list", editorParams: {values: ["Pendente", "Concluido"]}},
+                {title: "Data Conclusão", field: "data_conclusao", minWidth: 150, editor: dateEditor, formatter: dataFormatter},
                 {title: "🗑️", formatter: function() { return "<button style='background:#ef4444; color:white; border:none; padding:2px 8px; border-radius:3px;'>❌</button>"; }, width: 60, hozAlign: "center", cellClick: function(e, cell) {
                     if(confirm("Apagar?")) { const id = cell.getRow().getData().id; sbClient.from('pedidos').delete().eq('id', id).then(() => { cell.getRow().delete(); aplicarFiltros(); }); }
                 }}
@@ -136,8 +135,6 @@
             const estado = data.estado || "";
             return matchTexto && (mostrandoConcluidos ? true : estado !== "Concluido");
         });
-        
-        // Garante que o contador é atualizado após o filtro ser processado
         setTimeout(atualizarContador, 50);
     }
 
