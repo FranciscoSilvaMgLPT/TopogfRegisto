@@ -44,15 +44,26 @@
         const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         let table;
 
-        // Função auxiliar para formatar a data (remove o 'T' e trunca os segundos, ex: AAAA-MM-DD HH:mm)
-        function formatarDataSemT(valor) {
+        // Função auxiliar para formatar a data para DD/MM/AAAA HH:mm
+        function formatarDataPT(valor) {
             if (!valor) return "";
-            let semT = valor.replace('T', ' ');
-            // Corta os segundos se existirem (ex: "2026-06-06 14:30:00" passa a "2026-06-06 14:30")
-            if (semT.length >= 16) {
-                return semT.substring(0, 16);
-            }
-            return semT;
+            // Remove o 'T' se existir
+            let limpo = valor.replace('T', ' ');
+            
+            // Espera o formato AAAA-MM-DD HH:mm:ss ou AAAA-MM-DD HH:mm
+            let partes = limpo.split(' ');
+            if (partes.length < 2) return limpo;
+
+            let dataPartes = partes[0].split('-');
+            if (dataPartes.length !== 3) return limpo;
+
+            let ano = dataPartes[0];
+            let mes = dataPartes[1];
+            let dia = dataPartes[2];
+
+            let horaMin = partes[1].substring(0, 5); // Pega apenas HH:mm
+
+            return `${dia}/${mes}/${ano} ${horaMin}`;
         }
 
         function atualizarContador() {
@@ -86,7 +97,7 @@
                         field: "data_hora_inicio", 
                         editor: "input",
                         formatter: function(cell) {
-                            return formatarDataSemT(cell.getValue());
+                            return formatarDataPT(cell.getValue());
                         }
                     },
                     {
@@ -94,7 +105,7 @@
                         field: "data_hora_fim", 
                         editor: "input",
                         formatter: function(cell) {
-                            return formatarDataSemT(cell.getValue());
+                            return formatarDataPT(cell.getValue());
                         }
                     },
                     {title: "Local/Obra", field: "local_obra", editor: "input"},
@@ -130,8 +141,8 @@
 
                 doc.render({
                     Tecnico_Nome: data.tecnico,
-                    dataHoraInicio: formatarDataSemT(data.data_hora_inicio),
-                    dataHoraFim: formatarDataSemT(data.data_hora_fim),
+                    dataHoraInicio: formatarDataPT(data.data_hora_inicio),
+                    dataHoraFim: formatarDataPT(data.data_hora_fim),
                     Atividade_Local_Obra: data.local_obra,
                     Atividade_Servico: data.servico
                 });
