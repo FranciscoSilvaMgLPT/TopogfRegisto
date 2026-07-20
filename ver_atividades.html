@@ -44,6 +44,17 @@
         const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         let table;
 
+        // Função auxiliar para formatar a data (remove o 'T' e trunca os segundos, ex: AAAA-MM-DD HH:mm)
+        function formatarDataSemT(valor) {
+            if (!valor) return "";
+            let semT = valor.replace('T', ' ');
+            // Corta os segundos se existirem (ex: "2026-06-06 14:30:00" passa a "2026-06-06 14:30")
+            if (semT.length >= 16) {
+                return semT.substring(0, 16);
+            }
+            return semT;
+        }
+
         function atualizarContador() {
             if(table) {
                 const contagem = table.getRows("active").length;
@@ -70,8 +81,22 @@
                 paginationSize: 15,
                 columns: [
                     {title: "Técnico", field: "tecnico", editor: "input"},
-                    {title: "Início", field: "data_hora_inicio", editor: "input"},
-                    {title: "Fim", field: "data_hora_fim", editor: "input"},
+                    {
+                        title: "Início", 
+                        field: "data_hora_inicio", 
+                        editor: "input",
+                        formatter: function(cell) {
+                            return formatarDataSemT(cell.getValue());
+                        }
+                    },
+                    {
+                        title: "Fim", 
+                        field: "data_hora_fim", 
+                        editor: "input",
+                        formatter: function(cell) {
+                            return formatarDataSemT(cell.getValue());
+                        }
+                    },
                     {title: "Local/Obra", field: "local_obra", editor: "input"},
                     {title: "Serviço", field: "servico", editor: "input"},
                     {title: "Ações", width: 160, hozAlign: "center", formatter: function() {
@@ -96,7 +121,6 @@
 
         async function gerarWordIndividual(data) {
             try {
-                // Certifica-te que template.docx está na mesma pasta que este HTML
                 const response = await fetch("template.docx");
                 if (!response.ok) throw new Error("Ficheiro template.docx não encontrado.");
                 
@@ -106,8 +130,8 @@
 
                 doc.render({
                     Tecnico_Nome: data.tecnico,
-                    dataHoraInicio: data.data_hora_inicio,
-                    dataHoraFim: data.data_hora_fim,
+                    dataHoraInicio: formatarDataSemT(data.data_hora_inicio),
+                    dataHoraFim: formatarDataSemT(data.data_hora_fim),
                     Atividade_Local_Obra: data.local_obra,
                     Atividade_Servico: data.servico
                 });
