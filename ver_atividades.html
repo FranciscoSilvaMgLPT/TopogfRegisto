@@ -26,6 +26,47 @@
         .link-anexo { color:#60a5fa; text-decoration: none; }
         .sem-anexo { color:#64748b; }
 
+        .modal-anexo-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-anexo-overlay.aberta { display: flex; }
+        .modal-anexo-conteudo {
+            position: relative;
+            max-width: 90vw;
+            max-height: 90vh;
+            display: flex;
+        }
+        .modal-anexo-conteudo img {
+            max-width: 90vw;
+            max-height: 90vh;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+        .modal-anexo-fechar {
+            position: absolute;
+            top: -14px;
+            right: -14px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         /* Ajuste para dispositivos móveis */
         @media (max-width: 640px) {
             body { padding: 12px; }
@@ -55,6 +96,14 @@
 
     <!-- Input de ficheiro escondido, reutilizado pelo botão de Anexo de todas as linhas -->
     <input type="file" id="input-anexo" accept="image/*" capture="environment" style="display:none">
+
+    <!-- Modal para visualizar o anexo (foto) de uma atividade -->
+    <div id="modal-anexo" class="modal-anexo-overlay" onclick="fecharModalAnexoSeBackdrop(event)">
+        <div class="modal-anexo-conteudo">
+            <button type="button" class="modal-anexo-fechar" onclick="fecharModalAnexo()" aria-label="Fechar">✕</button>
+            <img id="modal-anexo-img" src="" alt="Anexo da atividade">
+        </div>
+    </div>
 
     <script>
         const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
@@ -319,6 +368,30 @@ const { error: erroUpdate } = await sbClient
             }
         }
 
+        // Mostra a foto do anexo numa modal, em vez de abrir num separador novo.
+        function abrirModalAnexo(url) {
+            document.getElementById('modal-anexo-img').src = url;
+            document.getElementById('modal-anexo').classList.add('aberta');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function fecharModalAnexo() {
+            document.getElementById('modal-anexo').classList.remove('aberta');
+            document.getElementById('modal-anexo-img').src = '';
+            document.body.style.overflow = '';
+        }
+
+        // Fecha a modal se o clique foi no fundo escuro (fora da imagem/botão).
+        function fecharModalAnexoSeBackdrop(e) {
+            if (e.target.id === 'modal-anexo') {
+                fecharModalAnexo();
+            }
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') fecharModalAnexo();
+        });
+
     async function carregarAtividades() {
     const { data: { session } } = await sbClient.auth.getSession();
     if (!session) { window.location.href = 'index.html'; return; }
@@ -359,10 +432,15 @@ const { error: erroUpdate } = await sbClient
             {title: "Anexo", field: "anexo", formatter: function(cell) {
                 const valor = cell.getValue();
                 if (valor) {
-                    return "<a class='link-anexo' href='" + valor + "' target='_blank' rel='noopener'>🖼️ Ver</a>";
+                    return "<a class='link-anexo' href='javascript:void(0)'>🖼️ Ver</a>";
                 }
                 return "<span class='sem-anexo'>—</span>";
-            }, width: 90, hozAlign: "center"},
+            }, width: 90, hozAlign: "center", cellClick: function(e, cell) {
+                const valor = cell.getValue();
+                if (valor) {
+                    abrirModalAnexo(valor);
+                }
+            }},
             {title: "Ações", formatter: function(cell) {
                 const temAnexo = !!cell.getRow().getData().anexo;
                 return "<button class='btn-docx'>📄 Docx</button>" +
