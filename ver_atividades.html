@@ -9,6 +9,7 @@
     <script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.2.1/dist/js/tabulator.min.js"></script>
     <script src="https://unpkg.com/pizzip@3.2.0/dist/pizzip.js"></script>
     <script src="https://unpkg.com/docxtemplater@3.69.0/build/docxtemplater.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 
     <style>
         * { box-sizing: border-box; }
@@ -83,7 +84,7 @@
         <div class="toolbar-actions">
 <a href="https://franciscosilvamglpt.github.io/TopogfRegisto/registo_atividade.html" style="background: #0ea5e9; color: white; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: bold; display: inline-block;">➕ Adicionar Atividade</a>
             <button onclick="guardarAlteracoes()" style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">💾 Guardar Alterações</button>
-            <button onclick="downloadCSV()" style="background: #8b5cf6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">⬇ Exportar CSV</button>
+            <button onclick="exportarParaExcel()" style="background: #8b5cf6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">⬇ Exportar Excel</button>
             <a href="index.html" class="btn-voltar">⬅ Voltar</a>
         </div>
     </div>
@@ -405,17 +406,25 @@ const { error: erroUpdate } = await sbClient
     if (error) { console.error("Erro ao carregar:", error); return; }
 
     // Função auxiliar para formatar a string de data/hora do Supabase (YYYY-MM-DDTHH:mm) para DD/MM/AAAA HH:mm
+    // Formata uma data ISO ("2026-07-21T09:30") como "21/07/2026 09:30".
+    // Usada tanto na tabela em ecrã como na exportação para Excel, para that
+    // ambas mostrem exatamente o mesmo formato.
+    function formatarDataHoraTexto(valor) {
+        if (!valor) return '';
+
+        const [data, hora] = valor.split('T');
+        if (!data) return valor;
+
+        const [ano, mes, dia] = data.split('-');
+        const horaLimpa = hora ? hora.substring(0, 5) : '';
+
+        return horaLimpa ? `${dia}/${mes}/${ano} ${horaLimpa}` : `${dia}/${mes}/${ano}`;
+    }
+
     function formatarDataHora(cell) {
         const valor = cell.getValue();
         if (!valor) return '—';
-        
-        const [data, hora] = valor.split('T');
-        if (!data) return valor;
-        
-        const [ano, mes, dia] = data.split('-');
-        const horaLimpa = hora ? hora.substring(0, 5) : '';
-        
-        return horaLimpa ? `${dia}/${mes}/${ano} ${horaLimpa}` : `${dia}/${mes}/${ano}`;
+        return formatarDataHoraTexto(valor);
     }
 
     table = new Tabulator("#tabela-atividades", {
@@ -428,6 +437,7 @@ const { error: erroUpdate } = await sbClient
             {title: "Início", field: "data_hora_inicio", formatter: formatarDataHora, editor: "input"},
             {title: "Fim", field: "data_hora_fim", formatter: formatarDataHora, editor: "input"},
             {title: "Local/Obra", field: "local_obra", editor: "input"},
+            {title: "Nº Obra", field: "numero_obra", editor: "input"},
             {title: "Serviço", field: "servico", editor: "input"},
             {title: "Anexo", field: "anexo", formatter: function(cell) {
                 const valor = cell.getValue();
@@ -498,6 +508,7 @@ const { error: erroUpdate } = await sbClient
                         data_hora_inicio: item.data_hora_inicio,
                         data_hora_fim: item.data_hora_fim,
                         local_obra: item.local_obra,
+                        numero_obra: item.numero_obra,
                         servico: item.servico
                     })
                     .eq('id', item.id);
@@ -515,8 +526,124 @@ const { error: erroUpdate } = await sbClient
             }
         }
 
-        function downloadCSV() {
-            table.download("csv", "historico_atividades.csv");
+        // Calcula o número de horas (com casas decimais) entre a entrada e a saída.
+        function calcularHoras(inicio, fim) {
+            if (!inicio || !fim) return 0;
+            const ms = new Date(fim) - new Date(inicio);
+            if (isNaN(ms) || ms <= 0) return 0;
+            return Math.round((ms / 3600000) * 100) / 100;
+        }
+
+        function aplicarBordaFina(cell) {
+            const lado = { style: 'thin' };
+            cell.border = { top: lado, bottom: lado, left: lado, right: lado };
+        }
+
+        async function exportarParaExcel() {
+            try {
+                const workbook = new ExcelJS.Workbook();
+                const response = await fetch('atividades.xlsx');
+                if (!response.ok) {
+                    throw new Error("Não encontrei o ficheiro 'atividades.xlsx' na mesma pasta (HTTP " + response.status + ").");
+                }
+                await workbook.xlsx.load(await response.arrayBuffer());
+                const worksheet = workbook.getWorksheet(1);
+                if (!worksheet) {
+                    throw new Error("O ficheiro atividades.xlsx não tem nenhuma folha de cálculo legível.");
+                }
+
+            const dados = table.getData();
+
+            // ---- Tabela 1: uma linha por atividade (igual à tabela do ecrã + Horas) ----
+            let linha = 5;
+            dados.forEach(row => {
+                const horas = calcularHoras(row.data_hora_inicio, row.data_hora_fim);
+
+                const celTecnico = worksheet.getCell(linha, 2);   // B - Técnico
+                const celInicio = worksheet.getCell(linha, 3);    // C - Data Início
+                const celFim = worksheet.getCell(linha, 4);       // D - Data Fim
+                const celHoras = worksheet.getCell(linha, 5);     // E - Horas
+                const celObra = worksheet.getCell(linha, 6);      // F - Local/Obra
+                const celNumObra = worksheet.getCell(linha, 7);   // G - Nº Obra
+                const celServico = worksheet.getCell(linha, 8);   // H - Serviço
+                const celAnexo = worksheet.getCell(linha, 9);     // I - Anexo
+
+                celTecnico.value = row.tecnico || '';
+                celInicio.value = formatarDataHoraTexto(row.data_hora_inicio);
+                celFim.value = formatarDataHoraTexto(row.data_hora_fim);
+                celHoras.value = horas;
+                celHoras.numFmt = '0.00';
+                celObra.value = row.local_obra || '';
+                celNumObra.value = row.numero_obra || '';
+                celServico.value = row.servico || '';
+
+                if (row.anexo) {
+                    celAnexo.value = { text: 'Ver anexo', hyperlink: row.anexo };
+                    celAnexo.font = { color: { argb: 'FF2563EB' }, underline: true };
+                } else {
+                    celAnexo.value = '';
+                }
+
+                [celTecnico, celInicio, celFim, celHoras, celObra, celNumObra, celServico, celAnexo].forEach(aplicarBordaFina);
+
+                linha++;
+            });
+
+            // ---- Tabela 2: total de horas por técnico individual + obra ----
+            // Quando uma atividade tem vários técnicos ("Daniel, Francisco"), cada
+            // um deles é contabilizado individualmente com a duração total dessa
+            // atividade (não dividida entre eles).
+            const totais = {}; // chave: "tecnico||local_obra||numero_obra" -> { tecnico, local_obra, numero_obra, horas }
+
+            dados.forEach(row => {
+                const horas = calcularHoras(row.data_hora_inicio, row.data_hora_fim);
+                if (horas <= 0) return;
+
+                const tecnicos = (row.tecnico || '')
+                    .split(',')
+                    .map(t => t.trim())
+                    .filter(Boolean);
+
+                tecnicos.forEach(tec => {
+                    const chave = tec + '||' + (row.local_obra || '') + '||' + (row.numero_obra || '');
+                    if (!totais[chave]) {
+                        totais[chave] = { tecnico: tec, local_obra: row.local_obra || '', numero_obra: row.numero_obra || '', horas: 0 };
+                    }
+                    totais[chave].horas += horas;
+                });
+            });
+
+            const linhasTotais = Object.values(totais).sort((a, b) => {
+                return a.tecnico.localeCompare(b.tecnico, 'pt') || a.local_obra.localeCompare(b.local_obra, 'pt');
+            });
+
+            let linha2 = 5;
+            linhasTotais.forEach(item => {
+                const celTecnico = worksheet.getCell(linha2, 12); // L - Técnico
+                const celObra = worksheet.getCell(linha2, 13);    // M - Local/Obra
+                const celNumObra = worksheet.getCell(linha2, 14); // N - Nº Obra
+                const celTotal = worksheet.getCell(linha2, 15);   // O - Total Horas
+
+                celTecnico.value = item.tecnico;
+                celObra.value = item.local_obra;
+                celNumObra.value = item.numero_obra;
+                celTotal.value = Math.round(item.horas * 100) / 100;
+                celTotal.numFmt = '0.00';
+
+                [celTecnico, celObra, celNumObra, celTotal].forEach(aplicarBordaFina);
+
+                linha2++;
+            });
+
+            const buffer = await workbook.xlsx.writeBuffer();
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(new Blob([buffer], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
+            link.download = "Atividades_Exportadas.xlsx";
+            link.click();
+            } catch (erro) {
+                console.error("Erro ao exportar para Excel:", erro);
+                alert("Não foi possível exportar o Excel: " + erro.message + "\n\nVerifica a consola (F12) para mais detalhes.");
+            }
         }
 
         carregarAtividades();
