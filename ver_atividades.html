@@ -393,21 +393,8 @@ const { error: erroUpdate } = await sbClient
             if (e.key === 'Escape') fecharModalAnexo();
         });
 
-    async function carregarAtividades() {
-    const { data: { session } } = await sbClient.auth.getSession();
-    if (!session) { window.location.href = 'index.html'; return; }
-    document.getElementById('utilizador-info').innerText = session.user.email;
-
-    const { data, error } = await sbClient
-        .from('atividades')
-        .select('*')
-        .order('id', { ascending: false });
-
-    if (error) { console.error("Erro ao carregar:", error); return; }
-
-    // Função auxiliar para formatar a string de data/hora do Supabase (YYYY-MM-DDTHH:mm) para DD/MM/AAAA HH:mm
     // Formata uma data ISO ("2026-07-21T09:30") como "21/07/2026 09:30".
-    // Usada tanto na tabela em ecrã como na exportação para Excel, para that
+    // Usada tanto na tabela em ecrã como na exportação para Excel, para que
     // ambas mostrem exatamente o mesmo formato.
     function formatarDataHoraTexto(valor) {
         if (!valor) return '';
@@ -426,6 +413,18 @@ const { error: erroUpdate } = await sbClient
         if (!valor) return '—';
         return formatarDataHoraTexto(valor);
     }
+
+    async function carregarAtividades() {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (!session) { window.location.href = 'index.html'; return; }
+    document.getElementById('utilizador-info').innerText = session.user.email;
+
+    const { data, error } = await sbClient
+        .from('atividades')
+        .select('*')
+        .order('id', { ascending: false });
+
+    if (error) { console.error("Erro ao carregar:", error); return; }
 
     table = new Tabulator("#tabela-atividades", {
         data: data,
@@ -624,7 +623,6 @@ const { error: erroUpdate } = await sbClient
                 const celNumObra = worksheet.getCell(linha2, 14); // N - Nº Obra
                 const celTotal = worksheet.getCell(linha2, 15);   // O - Total Horas
 
-                
                 celTecnico.value = item.tecnico;
                 celObra.value = item.local_obra;
                 celNumObra.value = item.numero_obra;
