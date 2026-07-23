@@ -318,7 +318,7 @@ async function gerarDocx(rowData) {
 
                 const urlPublico = urlData.publicUrl;
 
-const { error: erroUpdate } = await sbClient
+            const { error: erroUpdate } = await sbClient
                 .from('atividades')
                 .update({ anexo: urlPublico })
                 .eq('id', id);
@@ -356,7 +356,7 @@ const { error: erroUpdate } = await sbClient
 
         document.getElementById('input-anexo').addEventListener('change', function(e) {
             const file = e.target.files[0];
-            e.target.value = ""; // permite escolher o mesmo ficheiro outra vez, se necessário
+            e.target.value = ""; 
             if (!file || anexoRowIdAtual === null) return;
             enviarAnexo(file, anexoRowIdAtual);
         });
@@ -369,7 +369,7 @@ const { error: erroUpdate } = await sbClient
             }
         }
 
-        // Mostra a foto do anexo numa modal, em vez de abrir num separador novo.
+
         function abrirModalAnexo(url) {
             document.getElementById('modal-anexo-img').src = url;
             document.getElementById('modal-anexo').classList.add('aberta');
@@ -382,7 +382,7 @@ const { error: erroUpdate } = await sbClient
             document.body.style.overflow = '';
         }
 
-        // Fecha a modal se o clique foi no fundo escuro (fora da imagem/botão).
+
         function fecharModalAnexoSeBackdrop(e) {
             if (e.target.id === 'modal-anexo') {
                 fecharModalAnexo();
@@ -393,9 +393,6 @@ const { error: erroUpdate } = await sbClient
             if (e.key === 'Escape') fecharModalAnexo();
         });
 
-    // Formata uma data ISO ("2026-07-21T09:30") como "21/07/2026 09:30".
-    // Usada tanto na tabela em ecrã como na exportação para Excel, para que
-    // ambas mostrem exatamente o mesmo formato.
     function formatarDataHoraTexto(valor) {
         if (!valor) return '';
 
@@ -428,7 +425,7 @@ const { error: erroUpdate } = await sbClient
 
     table = new Tabulator("#tabela-atividades", {
         data: data,
-        layout: "fitData", // Ajusta a largura de cada coluna ao conteúdo
+        layout: "fitData", 
         pagination: "local",
         paginationSize: 15,
         columns: [
