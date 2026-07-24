@@ -149,33 +149,73 @@ const ANEXO_CAIXA_LARGURA = 590;
 const ANEXO_CAIXA_ALTURA = 515;
 const ANEXO_MARCADOR = "ANEXOIMAGEMPLACEHOLDERXPTO";
 
-async function carregarAnexoImagem(url) {
-    const resposta = await fetch(url);
-    if (!resposta.ok) {
-        throw new Error("Não foi possível obter a imagem do anexo (HTTP " + resposta.status + ")");
+async function carregarAnexoImagem(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Mostrar feedback visual de carregamento, se necessário
+    if (anexoBotaoAtual) {
+        anexoBotaoAtual.textContent = "A carregar...";
     }
-    const arrayBufferOriginal = await resposta.arrayBuffer();
-    const bitmap = await createImageBitmap(new Blob([arrayBufferOriginal]));
 
-    const racioLargura = bitmap.width / ANEXO_CAIXA_LARGURA;
-    const racioAltura = bitmap.height / ANEXO_CAIXA_ALTURA;
-    const racioMaior = Math.max(racioLargura, racioAltura, 1); 
+    try {
+        // 1. Ler o ficheiro original como ArrayBuffer ou Base64 para manter a resolução original
+        const arrayBuffer = await file.arrayBuffer();
+        
+        // Opcional: Se precisar de gerar uma pré-visualização rápida no ecrã (num elemento <img>),
+        // pode usar um ObjectURL para manter alta performance sem reamostrar destrutivamente no canvas.
+        const imageUrl = URL.createObjectURL(file);
 
-    const largura = Math.max(1, Math.round(bitmap.width / racioMaior));
-    const altura = Math.max(1, Math.round(bitmap.height / racioMaior));
+        // 2. Fazer o upload do ficheiro ORIGINAL para o Supabase Storage para garantir qualidade máxima
+        const fileName = `${Date.now()}_${file.name}`;
+        const { data: uploadData, error: uploadError } = await sbClient.storage
+            .from(ANEXO_BUCKET)
+            .upload(fileName, file, {
+                cacheControl: '3600',
+                upsert: false
+            });
 
-    const canvas = document.createElement("canvas");
-    canvas.width = largura;
-    canvas.height = altura;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(bitmap, 0, 0, largura, altura);
+        if (uploadError) throw uploadError;
 
-    const blobPng = await new Promise(function (resolve) {
-        canvas.toBlob(resolve, "image/png");
-    });
-    const arrayBuffer = await blobPng.arrayBuffer();
+        // Obter o link público do ficheiro original
+        const { data: publicUrlData } = sbClient.storage
+            .from(ANEXO_BUCKET)
+            .getPublicUrl(fileName);
 
-    return { arrayBuffer: arrayBuffer, size: [largura, altura] };
+        const anexoUrl = publicUrlData.publicUrl;
+
+        // 3. Atualizar a linha correspondente na tabela do Supabase com o novo link do anexo
+        if (anexoRowIdAtual) {
+            const { error: updateError } = await sbClient
+                .from('atividades') // Substitua pelo nome correto da sua tabela se difere
+                .update({ anexo_url: anexoUrl }) // Substitua pela coluna correta da base de dados
+                .eq('id', anexoRowIdAtual);
+
+            if (updateError) throw updateError;
+        }
+
+        // Atualizar a interface da tabela localmente
+        if (table && anexoRowIdAtual) {
+            const row = table.getRow(anexoRowIdAtual);
+            if (row) {
+                row.update({ anexo: anexoUrl });
+            }
+        }
+
+        alert('Anexo carregado com sucesso em alta resolução!');
+
+    } catch (error) {
+        console.error('Erro ao carregar o anexo:', error);
+        alert('Ocorreu um erro ao carregar o anexo.');
+    } finally {
+        // Limpar estados
+        if (anexoBotaoAtual) {
+            anexoBotaoAtual.textContent = "Anexo";
+        }
+        anexoRowIdAtual = null;
+        anexoBotaoAtual = null;
+        event.target.value = ''; // Limpa o input file
+    }
 }
 
 function pxParaEmu(px) {
