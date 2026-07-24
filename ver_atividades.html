@@ -267,9 +267,9 @@ async function gerarDocx(rowData) {
 
         const dadosTemplate = {
             Tecnico1_Nome: nomesTecnicos[0] || "",
-            Tecnico1_numero: nomesTecnicos[0] ? (NUMERO_POR_TECNICO[nomesTecnicos[0]] ?? "") : "",
+            Tecnico2_numero: nomesTecnicos[0] ? (NUMERO_POR_TECNICO[nomesTecnicos[0]] ?? "") : "",
             Tecnico2_Nome: nomesTecnicos[1] || "",
-            Tecnico2_numero: nomesTecnicos[1] ? (NUMERO_POR_TECNICO[nomesTecnicos[1]] ?? "") : "",
+            Tecnico1_numero: nomesTecnicos[1] ? (NUMERO_POR_TECNICO[nomesTecnicos[1]] ?? "") : "",
             numero_obra: rowData.numero_obra || "",
             dataHoraInicio: formatarDataParaWord(rowData.data_hora_inicio, false) || "",
             dataHoraFim: formatarDataParaWord(rowData.data_hora_fim, true) || "",
