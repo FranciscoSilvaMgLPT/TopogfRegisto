@@ -84,7 +84,7 @@
         <div class="toolbar-actions">
 <a href="https://franciscosilvamglpt.github.io/TopogfRegisto/registo_atividade.html" style="background: #0ea5e9; color: white; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: bold; display: inline-block;">➕ Adicionar Atividade</a>
             <button onclick="guardarAlteracoes()" style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">💾 Guardar Alterações</button>
-            <button onclick="exportarParaExcel()" style="background: #8b5cf6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">🕑 Exportar Excel Horas</button>
+            <button onclick="exportarParaExcel()" style="background: #8b5cf6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">⬇ Exportar Excel</button>
             <a href="index.html" class="btn-voltar">⬅ Voltar</a>
         </div>
     </div>
@@ -318,7 +318,7 @@ async function gerarDocx(rowData) {
 
                 const urlPublico = urlData.publicUrl;
 
-            const { error: erroUpdate } = await sbClient
+const { error: erroUpdate } = await sbClient
                 .from('atividades')
                 .update({ anexo: urlPublico })
                 .eq('id', id);
@@ -356,7 +356,7 @@ async function gerarDocx(rowData) {
 
         document.getElementById('input-anexo').addEventListener('change', function(e) {
             const file = e.target.files[0];
-            e.target.value = ""; 
+            e.target.value = ""; // permite escolher o mesmo ficheiro outra vez, se necessário
             if (!file || anexoRowIdAtual === null) return;
             enviarAnexo(file, anexoRowIdAtual);
         });
@@ -369,7 +369,7 @@ async function gerarDocx(rowData) {
             }
         }
 
-
+        // Mostra a foto do anexo numa modal, em vez de abrir num separador novo.
         function abrirModalAnexo(url) {
             document.getElementById('modal-anexo-img').src = url;
             document.getElementById('modal-anexo').classList.add('aberta');
@@ -382,7 +382,7 @@ async function gerarDocx(rowData) {
             document.body.style.overflow = '';
         }
 
-
+        // Fecha a modal se o clique foi no fundo escuro (fora da imagem/botão).
         function fecharModalAnexoSeBackdrop(e) {
             if (e.target.id === 'modal-anexo') {
                 fecharModalAnexo();
@@ -393,6 +393,9 @@ async function gerarDocx(rowData) {
             if (e.key === 'Escape') fecharModalAnexo();
         });
 
+    // Formata uma data ISO ("2026-07-21T09:30") como "21/07/2026 09:30".
+    // Usada tanto na tabela em ecrã como na exportação para Excel, para que
+    // ambas mostrem exatamente o mesmo formato.
     function formatarDataHoraTexto(valor) {
         if (!valor) return '';
 
@@ -425,7 +428,7 @@ async function gerarDocx(rowData) {
 
     table = new Tabulator("#tabela-atividades", {
         data: data,
-        layout: "fitData", 
+        layout: "fitData", // Ajusta a largura de cada coluna ao conteúdo
         pagination: "local",
         paginationSize: 15,
         columns: [
@@ -630,6 +633,41 @@ async function gerarDocx(rowData) {
 
                 linha2++;
             });
+
+            // ---- Tabela 3: total de horas por técnico (todas as obras) ----
+            // A Tabela 3 já tem fórmulas SUMIF prontas no template (a somar a
+            // coluna "Total Horas" da Tabela 2). O problema é que o Excel guarda
+            // em cache o último resultado calculado, que no template em branco
+            // era 0 — e só o recalcula quando o utilizador força uma atualização.
+            // Para já aparecer certo ao abrir, calculamos aqui o valor real e
+            // atualizamos o cache da fórmula diretamente.
+            const totalPorTecnico = {};
+            linhasTotais.forEach(item => {
+                totalPorTecnico[item.tecnico] = (totalPorTecnico[item.tecnico] || 0) + item.horas;
+            });
+
+            let linha3 = 5;
+            while (linha3 < 200) {
+                const celTecnico3 = worksheet.getCell(linha3, 17); // Q - Técnico
+                const nomeTecnico = celTecnico3.value;
+                if (!nomeTecnico) break;
+
+                const celTotal3 = worksheet.getCell(linha3, 18); // R - Total Horas
+                const totalHoras = Math.round((totalPorTecnico[nomeTecnico] || 0) * 100) / 100;
+
+                if (celTotal3.formula) {
+                    celTotal3.value = { formula: celTotal3.formula, result: totalHoras };
+                } else {
+                    celTotal3.value = totalHoras;
+                }
+
+                linha3++;
+            }
+
+            // Pede ao Excel para recalcular todas as fórmulas assim que o
+            // ficheiro for aberto, como segurança extra.
+            workbook.calcProperties = workbook.calcProperties || {};
+            workbook.calcProperties.fullCalcOnLoad = true;
 
             const buffer = await workbook.xlsx.writeBuffer();
             const link = document.createElement("a");
