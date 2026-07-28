@@ -72,11 +72,13 @@
         </div>
         <div class="full">
           <label>Local / Obra *</label>
-          <input type="text" name="Atividade_Local_Obra" required>
+          <input type="text" name="Atividade_Local_Obra" id="inputLocalObra" list="lista-local-obra" autocomplete="off" required>
+          <datalist id="lista-local-obra"></datalist>
         </div>
           <div>
           <label>Nº Obra</label>
-          <input type="text" name="numero_obra">
+          <input type="text" name="numero_obra" id="inputNumeroObra" list="lista-numero-obra" autocomplete="off">
+          <datalist id="lista-numero-obra"></datalist>
         </div>
         <div class="full">
           <label>Serviço realizado *</label>
@@ -107,8 +109,77 @@
       } else {
         document.getElementById('user-display').innerText = user.email;
         definirDataAtual();
+        carregarHistoricoLocais();
       }
     };
+
+    // Mapas para preenchimento automático cruzado entre Local/Obra e Nº Obra,
+    // construídos a partir do histórico já existente (atividades + pedidos).
+    let mapaLocalParaObra = {};
+    let mapaObraParaLocal = {};
+
+    async function carregarHistoricoLocais() {
+      try {
+        const [{ data: atividadesData }, { data: pedidosData }] = await Promise.all([
+          supabaseClient.from('atividades').select('local_obra, numero_obra').order('id', { ascending: false }),
+          supabaseClient.from('pedidos').select('local_obra, numero_obra').order('id', { ascending: false })
+        ]);
+
+        const combos = [...(atividadesData || []), ...(pedidosData || [])];
+        const locaisSet = new Set();
+        const obrasSet = new Set();
+
+        combos.forEach(item => {
+          const local = (item.local_obra || '').trim();
+          const obra = (item.numero_obra || '').trim();
+
+          if (local) {
+            locaisSet.add(local);
+            if (obra && !(local in mapaLocalParaObra)) {
+              mapaLocalParaObra[local] = obra;
+            }
+          }
+          if (obra) {
+            obrasSet.add(obra);
+            if (local && !(obra in mapaObraParaLocal)) {
+              mapaObraParaLocal[obra] = local;
+            }
+          }
+        });
+
+        const datalistLocal = document.getElementById('lista-local-obra');
+        locaisSet.forEach(local => {
+          const opt = document.createElement('option');
+          opt.value = local;
+          datalistLocal.appendChild(opt);
+        });
+
+        const datalistObra = document.getElementById('lista-numero-obra');
+        obrasSet.forEach(obra => {
+          const opt = document.createElement('option');
+          opt.value = obra;
+          datalistObra.appendChild(opt);
+        });
+      } catch (err) {
+        console.error("Erro ao carregar histórico de Local/Obra e Nº Obra:", err);
+      }
+    }
+
+    // Ao escolher um Local/Obra já existente, preenche automaticamente o Nº Obra correspondente.
+    document.getElementById('inputLocalObra').addEventListener('input', (e) => {
+      const valor = e.target.value.trim();
+      if (mapaLocalParaObra[valor]) {
+        document.getElementById('inputNumeroObra').value = mapaLocalParaObra[valor];
+      }
+    });
+
+    // Ao escolher um Nº Obra já existente, preenche automaticamente o Local/Obra correspondente.
+    document.getElementById('inputNumeroObra').addEventListener('input', (e) => {
+      const valor = e.target.value.trim();
+      if (mapaObraParaLocal[valor]) {
+        document.getElementById('inputLocalObra').value = mapaObraParaLocal[valor];
+      }
+    });
 
     function definirDataAtual() {
       const now = new Date();
