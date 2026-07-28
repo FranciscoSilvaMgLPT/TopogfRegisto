@@ -553,6 +553,19 @@ const { error: erroUpdate } = await sbClient
             cell.border = { top: lado, bottom: lado, left: lado, right: lado };
         }
 
+        // Formato personalizado do Excel para mostrar horas decimais como "1H13"
+        // (horas e minutos), em vez de "1.22". O "[h]" acumula horas acima de 24,
+        // por isso os totais também ficam corretos (ex.: 27H45).
+        const FORMATO_HORAS_MINUTOS = '[h]"H"mm';
+
+        // Converte um valor em horas decimais (ex.: 1.22) para a fração de dia
+        // que o Excel usa internamente para valores de tempo (1 = 24 horas).
+        // Assim o Excel consegue somar (SUMIF, etc.) e mostrar corretamente
+        // no formato horas:minutos.
+        function horasParaFracaoDeDia(horasDecimais) {
+            return (horasDecimais || 0) / 24;
+        }
+
         async function exportarParaExcel() {
             try {
                 const workbook = new ExcelJS.Workbook();
@@ -585,8 +598,8 @@ const { error: erroUpdate } = await sbClient
                 celTecnico.value = row.tecnico || '';
                 celInicio.value = formatarDataHoraTexto(row.data_hora_inicio);
                 celFim.value = formatarDataHoraTexto(row.data_hora_fim);
-                celHoras.value = horas;
-                celHoras.numFmt = '0.00';
+                celHoras.value = horasParaFracaoDeDia(horas);
+                celHoras.numFmt = FORMATO_HORAS_MINUTOS;
                 celObra.value = row.local_obra || '';
                 celNumObra.value = row.numero_obra || '';
                 celServico.value = row.servico || '';
@@ -641,8 +654,8 @@ const { error: erroUpdate } = await sbClient
                 celTecnico.value = item.tecnico;
                 celObra.value = item.local_obra;
                 celNumObra.value = item.numero_obra;
-                celTotal.value = Math.round(item.horas * 100) / 100;
-                celTotal.numFmt = '0.00';
+                celTotal.value = horasParaFracaoDeDia(Math.round(item.horas * 100) / 100);
+                celTotal.numFmt = FORMATO_HORAS_MINUTOS;
 
                 [celTecnico, celObra, celNumObra, celTotal].forEach(aplicarBordaFina);
 
@@ -669,12 +682,14 @@ const { error: erroUpdate } = await sbClient
 
                 const celTotal3 = worksheet.getCell(linha3, 18); // R - Total Horas
                 const totalHoras = Math.round((totalPorTecnico[nomeTecnico] || 0) * 100) / 100;
+                const totalFracaoDia = horasParaFracaoDeDia(totalHoras);
 
                 if (celTotal3.formula) {
-                    celTotal3.value = { formula: celTotal3.formula, result: totalHoras };
+                    celTotal3.value = { formula: celTotal3.formula, result: totalFracaoDia };
                 } else {
-                    celTotal3.value = totalHoras;
+                    celTotal3.value = totalFracaoDia;
                 }
+                celTotal3.numFmt = FORMATO_HORAS_MINUTOS;
 
                 linha3++;
             }
