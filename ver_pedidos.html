@@ -11,6 +11,8 @@
     <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
     <link href="https://unpkg.com/tabulator-tables@6.2.1/dist/css/tabulator_midnight.min.css" rel="stylesheet">
     <script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.2.1/dist/js/tabulator.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/locales/pt-br.global.min.js"></script>
 
     <style>
         * { box-sizing: border-box; }
@@ -22,6 +24,65 @@
         #tabela-pedidos { font-size: 12px; }
         #filtro-pesquisa { width: 100%; max-width: 300px; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #475569; background: #1e293b; color: white; font-size: 16px; }
         .linha-concluida, .linha-concluida * { color: #f8fafc !important; text-decoration: line-through !important; opacity: 0.8; }
+#calendario-pedidos {
+    background: #1e293b;
+    border-radius: 10px;
+    padding: 15px;
+    margin-top: 10px;
+}
+.fc {
+    --fc-border-color: #334155;
+    --fc-page-bg-color: #1e293b;
+    --fc-neutral-bg-color: #0f172a;
+    --fc-list-event-hover-bg-color: #334155;
+    --fc-today-bg-color: rgba(14,165,233,0.15);
+}
+.fc .fc-toolbar-title { color: white; font-size: 1.1em; }
+.fc .fc-button { background: #334155; border: none; color: white; box-shadow: none; text-transform: capitalize; }
+.fc .fc-button:hover { background: #475569; }
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active { background: #0ea5e9; }
+.fc .fc-col-header-cell-cushion, .fc .fc-daygrid-day-number { color: #cbd5e1; text-decoration: none; }
+.fc-event { cursor: pointer; border: none; font-size: 12px; }
+.fc-event.evento-concluido { opacity: 0.5; text-decoration: line-through; }
+
+.modal-evento-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+.modal-evento-overlay.aberta { display: flex; }
+.modal-evento-conteudo {
+    position: relative;
+    background: #1e293b;
+    border-radius: 10px;
+    padding: 24px;
+    max-width: 480px;
+    width: 90vw;
+    color: white;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+.modal-evento-conteudo p { margin: 6px 0; }
+.modal-evento-conteudo strong { color: #60a5fa; }
+.modal-evento-fechar {
+    position: absolute;
+    top: -14px;
+    right: -14px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 16px;
+    cursor: pointer;
+}
 
         /* Ajuste para dispositivos móveis */
         @media (max-width: 640px) {
@@ -48,6 +109,19 @@
 <input type="text" id="filtro-pesquisa" placeholder="🔍 Pesquisar">
 <div id="tabela-pedidos-wrap">
     <div id="tabela-pedidos"></div>
+</div>
+
+<div style="margin-top: 30px;">
+    <h2 style="margin: 0 0 10px 0;">📅 Calendário de Pedidos</h2>
+    <div id="calendario-pedidos"></div>
+</div>
+
+<div id="modal-evento" class="modal-evento-overlay" onclick="fecharModalEventoSeBackdrop(event)">
+    <div class="modal-evento-conteudo" onclick="event.stopPropagation()">
+        <button type="button" class="modal-evento-fechar" onclick="fecharModalEvento()" aria-label="Fechar">✕</button>
+        <h3 id="modal-evento-titulo" style="margin-top:0;"></h3>
+        <div id="modal-evento-corpo"></div>
+    </div>
 </div>
 
 <script>
@@ -84,6 +158,84 @@
         return input;
     };
 
+let calendario = null;
+
+    function corPorUrgencia(row) {
+        if (row.estado === "Concluido") return "#64748b";
+        if (row.urgencia === "Alta") return "#ef4444";
+        if (row.urgencia === "Média") return "#eab308";
+        if (row.urgencia === "Baixa") return "#22c55e";
+        return "#0ea5e9";
+    }
+
+    function renderizarCalendario(dados) {
+        const eventos = dados
+            .filter(row => row.data_hora_pedido)
+            .map(row => ({
+                id: row.id,
+                title: (row.tecnico || 'Sem técnico') + (row.local_obra ? ' — ' + row.local_obra : ''),
+                start: row.data_hora_pedido,
+                end: row.data_hora_limite || row.data_hora_pedido,
+                backgroundColor: corPorUrgencia(row),
+                borderColor: corPorUrgencia(row),
+                classNames: row.estado === "Concluido" ? ["evento-concluido"] : [],
+                extendedProps: row
+            }));
+
+        if (calendario) {
+            calendario.removeAllEventSources();
+            calendario.addEventSource(eventos);
+            return;
+        }
+
+        calendario = new FullCalendar.Calendar(document.getElementById('calendario-pedidos'), {
+            locale: 'pt-br',
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,listMonth'
+            },
+            height: 'auto',
+            events: eventos,
+            eventClick: function(info) {
+                const row = info.event.extendedProps;
+                document.getElementById('modal-evento-titulo').innerText = row.tecnico || 'Pedido';
+                document.getElementById('modal-evento-corpo').innerHTML =
+                    '<p><strong>Estado:</strong> ' + (row.estado || '—') + '</p>' +
+                    '<p><strong>Urgência:</strong> ' + (row.urgencia || '—') + '</p>' +
+                    '<p><strong>Data Pedido:</strong> ' + dataFormatter({getValue: () => row.data_hora_pedido}) + '</p>' +
+                    '<p><strong>Limite:</strong> ' + dataFormatter({getValue: () => row.data_hora_limite}) + '</p>' +
+                    '<p><strong>Requerente:</strong> ' + (row.requerente || '—') + '</p>' +
+                    '<p><strong>Empresa:</strong> ' + (row.empresa || '—') + '</p>' +
+                    '<p><strong>Via:</strong> ' + (row.via || '—') + '</p>' +
+                    '<p><strong>Local/Obra:</strong> ' + (row.local_obra || '—') + '</p>' +
+                    '<p><strong>Nº Obra:</strong> ' + (row.numero_obra || '—') + '</p>' +
+                    '<p><strong>Concelho:</strong> ' + (row.concelho || '—') + '</p>' +
+                    '<p><strong>Serviço:</strong> ' + (row.servico || '—') + '</p>' +
+                    '<p><strong>Tipo:</strong> ' + (row.tipo_trabalho || '—') + '</p>' +
+                    '<p><strong>Freq:</strong> ' + (row.frequencia || '—') + '</p>' +
+                    (row.observacao ? '<p><strong>Obs:</strong> ' + row.observacao + '</p>' : '');
+                document.getElementById('modal-evento').classList.add('aberta');
+                document.body.style.overflow = 'hidden';
+            }
+        });
+        calendario.render();
+    }
+
+    function fecharModalEvento() {
+        document.getElementById('modal-evento').classList.remove('aberta');
+        document.body.style.overflow = '';
+    }
+
+    function fecharModalEventoSeBackdrop(e) {
+        if (e.target.id === 'modal-evento') fecharModalEvento();
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') fecharModalEvento();
+    });
+
     async function carregarDados() {
         const { data: { session } } = await sbClient.auth.getSession();
         if (!session) { window.location.href = 'login.html'; return; }
@@ -97,8 +249,9 @@
             pagination: "local",
             paginationSize: 50,
             paginationSizeSelector: [15, 50, 100],
-            cellEdited: function(cell) {
+       cellEdited: function(cell) {
                 aplicarFiltros();
+                renderizarCalendario(table.getData());
             },
             rowFormatter: function(row) {
                 const data = row.getData();
@@ -130,13 +283,14 @@
                 {title: "Estado", field: "estado", minWidth: 120, editor: "list", editorParams: {values: ["Pendente", "Concluido"]}},
                 {title: "Data Conclusão", field: "data_conclusao", minWidth: 150, editor: dateEditor, formatter: dataFormatter},
                 {title: "🗑️", formatter: function() { return "<button style='background:#ef4444; color:white; border:none; padding:2px 8px; border-radius:3px;'>❌</button>"; }, width: 60, hozAlign: "center", cellClick: function(e, cell) {
-                    if(confirm("Apagar?")) { const id = cell.getRow().getData().id; sbClient.from('pedidos').delete().eq('id', id).then(() => { cell.getRow().delete(); aplicarFiltros(); }); }
+             if(confirm("Apagar?")) { const id = cell.getRow().getData().id; sbClient.from('pedidos').delete().eq('id', id).then(() => { cell.getRow().delete(); aplicarFiltros(); renderizarCalendario(table.getData()); }); }
                 }}
             ]
         });
         
-        table.on("tableBuilt", () => {
+table.on("tableBuilt", () => {
             aplicarFiltros();
+            renderizarCalendario(table.getData());
         });
         
         document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
@@ -172,8 +326,9 @@
         }
         alert("Guardado com sucesso!");
         const { data: novosDados } = await sbClient.from('pedidos').select('*').order('id', { ascending: false });
-        table.replaceData(novosDados);
+  table.replaceData(novosDados);
         aplicarFiltros();
+        renderizarCalendario(novosDados);
     }
 
     async function exportarParaExcel() {

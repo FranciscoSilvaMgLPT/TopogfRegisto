@@ -123,7 +123,7 @@
             <option value="Trimestral">Trimestral</option>
           </select>
         </div>
-        <div><label>Data Limite *</label><input type="datetime-local" name="data_hora_limite" required></div>
+        <div><label>Data Limite</label><input type="datetime-local" name="data_hora_limite"></div>
       </div>
       <button type="submit" id="btnEnviar">Enviar Pedido</button>
     </form>
@@ -195,6 +195,10 @@
       if (!dbData.data_conclusao || dbData.data_conclusao.trim() === "") {
         delete dbData.data_conclusao;
       }
+
+if (!dbData.data_hora_limite || dbData.data_hora_limite.trim() === "") {
+    delete dbData.data_hora_limite;
+}
 
       // Inserção na tabela "pedidos"
       const { error } = await supabaseClient.from('pedidos').insert([dbData]);
