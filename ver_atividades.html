@@ -10,6 +10,8 @@
     <script src="https://unpkg.com/pizzip@3.2.0/dist/pizzip.js"></script>
     <script src="https://unpkg.com/docxtemplater@3.69.0/build/docxtemplater.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/locales/pt-br.global.min.js"></script>
 
     <style>
         * { box-sizing: border-box; }
@@ -26,6 +28,37 @@
         .btn-apagar { background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer; font-size: 12px; }
         .link-anexo { color:#60a5fa; text-decoration: none; }
         .sem-anexo { color:#64748b; }
+#calendario-atividades {
+    background: #1e293b;
+    border-radius: 10px;
+    padding: 15px;
+    margin-top: 10px;
+}
+.fc {
+    --fc-border-color: #334155;
+    --fc-page-bg-color: #1e293b;
+    --fc-neutral-bg-color: #0f172a;
+    --fc-list-event-hover-bg-color: #334155;
+    --fc-today-bg-color: rgba(14,165,233,0.15);
+}
+.fc .fc-toolbar-title { color: white; font-size: 1.1em; }
+.fc .fc-button { background: #334155; border: none; color: white; box-shadow: none; text-transform: capitalize; }
+.fc .fc-button:hover { background: #475569; }
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active { background: #0ea5e9; }
+.fc .fc-col-header-cell-cushion, .fc .fc-daygrid-day-number { color: #cbd5e1; text-decoration: none; }
+.fc-event { cursor: pointer; border: none; font-size: 12px; }
+.modal-evento-conteudo {
+    position: relative;
+    background: #1e293b;
+    border-radius: 10px;
+    padding: 24px;
+    max-width: 480px;
+    width: 90vw;
+    color: white;
+}
+.modal-evento-conteudo p { margin: 6px 0; }
+.modal-evento-conteudo strong { color: #60a5fa; }
 
         .modal-anexo-overlay {
             display: none;
@@ -95,6 +128,11 @@
         <div id="tabela-atividades"></div>
     </div>
 
+<div style="margin-top: 30px;">
+        <h2 style="margin: 0 0 10px 0;">📅 Calendário de Atividades</h2>
+        <div id="calendario-atividades"></div>
+    </div>
+
     <!-- Input de ficheiro escondido, reutilizado pelo botão de Anexo de todas as linhas -->
     <input type="file" id="input-anexo" accept="image/*" capture="environment" style="display:none">
 
@@ -103,6 +141,14 @@
         <div class="modal-anexo-conteudo">
             <button type="button" class="modal-anexo-fechar" onclick="fecharModalAnexo()" aria-label="Fechar">✕</button>
             <img id="modal-anexo-img" src="" alt="Anexo da atividade">
+        </div>
+    </div>
+
+<div id="modal-evento" class="modal-anexo-overlay" onclick="fecharModalEventoSeBackdrop(event)">
+        <div class="modal-evento-conteudo" onclick="event.stopPropagation()">
+            <button type="button" class="modal-anexo-fechar" onclick="fecharModalEvento()" aria-label="Fechar">✕</button>
+            <h3 id="modal-evento-titulo" style="margin-top:0;"></h3>
+            <div id="modal-evento-corpo"></div>
         </div>
     </div>
 
@@ -404,8 +450,8 @@ const { error: erroUpdate } = await sbClient
             }
         }
 
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') fecharModalAnexo();
+document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') { fecharModalAnexo(); fecharModalEvento(); }
         });
 
     // Formata uma data ISO ("2026-07-21T09:30") como "21/07/2026 09:30".
@@ -499,6 +545,9 @@ const { error: erroUpdate } = await sbClient
     });
             table.on("tableBuilt", atualizarContador);
             table.on("dataFiltered", atualizarContador);
+renderizarCalendario(data);
+            table.on("cellEdited", function() { renderizarCalendario(table.getData()); });
+            table.on("rowDeleted", function() { renderizarCalendario(table.getData()); });
 
             document.getElementById("filtro-pesquisa").addEventListener("keyup", function(){
                 table.setFilter(function(data){
@@ -508,6 +557,71 @@ const { error: erroUpdate } = await sbClient
                     );
                 });
             });
+        }
+
+let calendario = null;
+
+        function corPorTecnico(nome) {
+            const cores = ['#0ea5e9', '#22c55e', '#f59e0b', '#a855f7', '#ef4444', '#14b8a6', '#eab308'];
+            if (!nome) return '#64748b';
+            let hash = 0;
+            for (let i = 0; i < nome.length; i++) hash = nome.charCodeAt(i) + ((hash << 5) - hash);
+            return cores[Math.abs(hash) % cores.length];
+        }
+
+        function renderizarCalendario(dados) {
+            const eventos = dados
+                .filter(row => row.data_hora_inicio)
+                .map(row => ({
+                    id: row.id,
+                    title: (row.tecnico || 'Sem técnico') + (row.local_obra ? ' — ' + row.local_obra : ''),
+                    start: row.data_hora_inicio,
+                    end: row.data_hora_fim || row.data_hora_inicio,
+                    backgroundColor: corPorTecnico(row.tecnico),
+                    borderColor: corPorTecnico(row.tecnico),
+                    extendedProps: row
+                }));
+
+            if (calendario) {
+                calendario.removeAllEventSources();
+                calendario.addEventSource(eventos);
+                return;
+            }
+
+            calendario = new FullCalendar.Calendar(document.getElementById('calendario-atividades'), {
+                locale: 'pt-br',
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,listMonth'
+                },
+                height: 'auto',
+                events: eventos,
+                eventClick: function(info) {
+                    const row = info.event.extendedProps;
+                    document.getElementById('modal-evento-titulo').innerText = row.tecnico || 'Atividade';
+                    document.getElementById('modal-evento-corpo').innerHTML =
+                        '<p><strong>Início:</strong> ' + (formatarDataHoraTexto(row.data_hora_inicio) || '—') + '</p>' +
+                        '<p><strong>Fim:</strong> ' + (formatarDataHoraTexto(row.data_hora_fim) || '—') + '</p>' +
+                        '<p><strong>Local/Obra:</strong> ' + (row.local_obra || '—') + '</p>' +
+                        '<p><strong>Nº Obra:</strong> ' + (row.numero_obra || '—') + '</p>' +
+                        '<p><strong>Serviço:</strong> ' + (row.servico || '—') + '</p>' +
+                        (row.anexo ? '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalAnexo(\'' + row.anexo + '\')">🖼️ Ver anexo</a></p>' : '');
+                    document.getElementById('modal-evento').classList.add('aberta');
+                    document.body.style.overflow = 'hidden';
+                }
+            });
+            calendario.render();
+        }
+
+        function fecharModalEvento() {
+            document.getElementById('modal-evento').classList.remove('aberta');
+            document.body.style.overflow = '';
+        }
+
+        function fecharModalEventoSeBackdrop(e) {
+            if (e.target.id === 'modal-evento') fecharModalEvento();
         }
 
         async function guardarAlteracoes() {
