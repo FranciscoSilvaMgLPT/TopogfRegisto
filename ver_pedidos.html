@@ -188,14 +188,39 @@ let calendario = null;
             return;
         }
 
-        calendario = new FullCalendar.Calendar(document.getElementById('calendario-pedidos'), {
-            locale: 'pt-br',
-            initialView: 'dayGridMonth',
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,timeGridWeek,listMonth'
-            },
+ calendario = new FullCalendar.Calendar(document.getElementById('calendario-pedidos'), {
+    locale: 'pt-br',
+    initialView: 'dayGridMonth',
+
+    displayEventTime: true,
+    eventTimeFormat: {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: false,
+    },
+
+    headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek,listMonth'
+    },
+
+eventDidMount: function(info) {
+    const hora = info.el.querySelector(".fc-event-time");
+    if (!hora) return;
+
+    let texto = hora.textContent.trim();
+
+    if (texto.endsWith(":00")) {
+        // 11:00 -> 11h
+        texto = texto.slice(0, -3) + "h";
+    } else {
+        // 11:30 -> 11h30
+        texto = texto.replace(":", "h");
+    }
+
+    hora.textContent = texto;
+},
             height: 'auto',
             events: eventos,
             eventClick: function(info) {
