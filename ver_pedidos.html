@@ -205,6 +205,19 @@ let calendario = null;
         right: 'dayGridMonth,timeGridWeek,listMonth'
     },
 
+datesSet: function(info) {
+    if (info.view.type.startsWith('list')) {
+        setTimeout(() => {
+            const tbody = document.querySelector('.fc-list-table tbody');
+            if (!tbody) return;
+
+            Array.from(tbody.children)
+                .reverse()
+                .forEach(el => tbody.appendChild(el));
+        }, 0);
+    }
+},
+
 eventDidMount: function(info) {
     const hora = info.el.querySelector(".fc-event-time");
     if (!hora) return;
