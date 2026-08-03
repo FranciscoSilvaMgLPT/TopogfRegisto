@@ -51,6 +51,42 @@
         .menu-container h1 { font-size: 26px; }
         .menu-card { padding: 16px; font-size: 1em; }
     }
+
+    /* ---- Banner de instalação PWA ---- */
+    #install-banner {
+      display: none;
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      width: calc(100% - 24px);
+      max-width: 420px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 14px 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+      z-index: 1000;
+      box-sizing: border-box;
+      align-items: center;
+      gap: 12px;
+    }
+    #install-banner.show { display: flex; }
+    #install-banner img { width: 40px; height: 40px; border-radius: 8px; flex-shrink: 0; }
+    #install-banner .install-text { flex: 1; text-align: left; font-size: 0.85em; color: #e2e8f0; line-height: 1.35; }
+    #install-banner .install-text strong { display: block; font-size: 1.05em; margin-bottom: 2px; color: #ffffff; }
+    #install-banner .install-actions { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+    #install-banner button.install-btn { width: auto; margin: 0; padding: 8px 14px; font-size: 0.85em; white-space: nowrap; }
+    #install-banner button.install-close {
+      width: auto; margin: 0; padding: 4px 8px; font-size: 0.85em; font-weight: normal;
+      background: transparent; color: #94a3b8; border: 1px solid #334155;
+    }
+    #install-banner button.install-close:hover { background: #334155; color: white; }
+
+    @media (max-width: 480px) {
+      #install-banner { flex-wrap: wrap; }
+      #install-banner .install-actions { flex-direction: row; width: 100%; justify-content: flex-end; margin-top: 6px; }
+    }
   </style>
 </head>
 <body>
@@ -78,6 +114,19 @@
     </div>
 
     <button onclick="fazerLogout()" style="background:#ef4444; width: auto; margin-top:30px; padding: 10px 20px;">Sair da Conta</button>
+  </div>
+
+  <!-- Banner de instalação da aplicação (PWA) -->
+  <div id="install-banner">
+    <img src="favicon.png" alt="Logo">
+    <div class="install-text" id="install-text">
+      <strong>Instalar aplicação</strong>
+      <span id="install-message">Instala esta app no teu dispositivo para acesso mais rápido.</span>
+    </div>
+    <div class="install-actions">
+      <button type="button" class="install-btn" id="install-btn" onclick="instalarApp()">Instalar</button>
+      <button type="button" class="install-close" onclick="fecharBannerInstalacao()">Agora não</button>
+    </div>
   </div>
 
   <script>
@@ -131,6 +180,93 @@
           .catch((err) => console.log('Erro ao registar o Service Worker:', err));
       });
     }
+  </script>
+
+  <!-- ---- Lógica do aviso de instalação da PWA ---- -->
+  <script>
+    let deferredInstallPrompt = null;
+    const INSTALL_DISMISS_KEY = 'installBannerDismissedAt';
+    const DISMISS_COOLDOWN_MS = 1000 * 60 * 60 * 24 * 3; // 3 dias
+
+    function estaInstalada() {
+      // App aberta em modo standalone (já instalada) - Android/Desktop
+      const standaloneMatch = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+      // iOS usa esta propriedade específica no Safari
+      const iosStandalone = window.navigator.standalone === true;
+      return standaloneMatch || iosStandalone;
+    }
+
+    function isIOS() {
+      const ua = window.navigator.userAgent;
+      const iOSDevice = /iPad|iPhone|iPod/.test(ua);
+      // iPads recentes reportam-se como Mac, mas têm suporte a touch
+      const iPadOS = ua.includes('Macintosh') && navigator.maxTouchPoints > 1;
+      return iOSDevice || iPadOS;
+    }
+
+    function foiRecentementeDispensado() {
+      const ts = localStorage.getItem(INSTALL_DISMISS_KEY);
+      if (!ts) return false;
+      return (Date.now() - parseInt(ts, 10)) < DISMISS_COOLDOWN_MS;
+    }
+
+    function mostrarBannerInstalacao() {
+      if (estaInstalada() || foiRecentementeDispensado()) return;
+
+      const banner = document.getElementById('install-banner');
+      const msg = document.getElementById('install-message');
+      const btn = document.getElementById('install-btn');
+
+      if (isIOS()) {
+        // No iOS não existe prompt nativo: dão-se instruções manuais
+        msg.innerHTML = 'Para instalar: toca em <strong>Partilhar</strong> ⬆️ e depois em <strong>"Adicionar ao Ecrã Principal"</strong>.';
+        btn.style.display = 'none';
+      } else {
+        msg.textContent = 'Instala esta app no teu dispositivo para acesso mais rápido.';
+        btn.style.display = 'inline-block';
+      }
+
+      banner.classList.add('show');
+    }
+
+    function fecharBannerInstalacao() {
+      document.getElementById('install-banner').classList.remove('show');
+      localStorage.setItem(INSTALL_DISMISS_KEY, Date.now().toString());
+    }
+
+    async function instalarApp() {
+      if (!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      const { outcome } = await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      document.getElementById('install-banner').classList.remove('show');
+      if (outcome !== 'accepted') {
+        // Se recusou, não insistir de imediato
+        localStorage.setItem(INSTALL_DISMISS_KEY, Date.now().toString());
+      }
+    }
+
+    // Chrome/Edge/Android disparam este evento quando a app é instalável
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      mostrarBannerInstalacao();
+    });
+
+    // Depois de instalada, esconder o banner e limpar o estado
+    window.addEventListener('appinstalled', () => {
+      deferredInstallPrompt = null;
+      document.getElementById('install-banner').classList.remove('show');
+      localStorage.removeItem(INSTALL_DISMISS_KEY);
+    });
+
+    // iOS não dispara 'beforeinstallprompt', por isso mostramos logo o banner
+    // (se ainda não estiver instalada) assim que a página carrega.
+    window.addEventListener('load', () => {
+      if (isIOS() && !estaInstalada()) {
+        mostrarBannerInstalacao();
+      }
+    });
   </script>
 </body>
 </html>
