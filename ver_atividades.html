@@ -135,6 +135,15 @@
         </div>
     </div>
 
+    <!-- Modal com a lista de ocorrências da atividade -->
+    <div id="modal-ocorrencias" class="modal-anexo-overlay" onclick="fecharModalOcorrenciasSeBackdrop(event)">
+        <div class="modal-evento-conteudo" onclick="event.stopPropagation()">
+            <button type="button" class="modal-anexo-fechar" onclick="fecharModalOcorrencias()" aria-label="Fechar">✕</button>
+            <h3 id="modal-ocorrencias-titulo" style="margin-top:0;"></h3>
+            <div id="modal-ocorrencias-corpo"></div>
+        </div>
+    </div>
+
     <script>
         const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
@@ -304,7 +313,7 @@
                     .map(t => t.trim())
                     .filter(Boolean);
 
-                       // ===== NOVO: serviço + ocorrências associadas (sem data) =====
+                // ===== Serviço + ocorrências associadas (sem data) =====
                 const ocorrenciasDaAtividade =
                     (dadosAtividadesPorId[rowData.id] && dadosAtividadesPorId[rowData.id].ocorrencias_info) ||
                     rowData.ocorrencias_info ||
@@ -314,7 +323,7 @@
                 if (ocorrenciasDaAtividade.length > 0) {
                     servicoComOcorrencias += "\nOcorrências:";
                     ocorrenciasDaAtividade.forEach(function (o) {
-                        servicoComOcorrencias += "" + (o.ocorrencia || "");
+                        servicoComOcorrencias += "\n- " + (o.ocorrencia || "");
                     });
                 }
 
@@ -502,6 +511,28 @@
             if (e.target.id === 'modal-ocorrencia') fecharModalOcorrencia();
         }
 
+        // ===== Modal com a lista de ocorrências =====
+        function abrirModalOcorrencias(rowData) {
+            const ocorrencias = rowData.ocorrencias_info || [];
+            document.getElementById('modal-ocorrencias-titulo').innerText = '🚨 Ocorrências — Atividade #' + rowData.id;
+            document.getElementById('modal-ocorrencias-corpo').innerHTML = ocorrencias.map(function (o) {
+                return '<p style="margin-left:6px; border-left:3px solid #a855f7; padding-left:8px; margin-bottom:8px;">' +
+                       '<strong>' + (formatarDataHoraTexto(o.data) || 'Sem data') + ':</strong> ' + (o.ocorrencia || '') +
+                       '</p>';
+            }).join('');
+            document.getElementById('modal-ocorrencias').classList.add('aberta');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function fecharModalOcorrencias() {
+            document.getElementById('modal-ocorrencias').classList.remove('aberta');
+            document.body.style.overflow = '';
+        }
+
+        function fecharModalOcorrenciasSeBackdrop(e) {
+            if (e.target.id === 'modal-ocorrencias') fecharModalOcorrencias();
+        }
+
         document.getElementById('formOcorrencia').addEventListener('submit', async function (e) {
             e.preventDefault();
             if (!sbClient) { avisarSemCliente(); return; }
@@ -528,12 +559,18 @@
                 atividadeLocal.ocorrencias_info.push(dados);
             }
 
+            // Refresca a linha da tabela para atualizar o contador de ocorrências
+            if (table) {
+                const linhaTabela = table.getRow(dados.atividade_id);
+                if (linhaTabela) linhaTabela.update({});
+            }
+
             fecharModalOcorrencia();
             alert("✅ Ocorrência gravada e associada à atividade #" + dados.atividade_id + "!");
         });
 
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') { fecharModalAnexo(); fecharModalEvento(); fecharModalPedido(); fecharModalOcorrencia(); }
+            if (e.key === 'Escape') { fecharModalAnexo(); fecharModalEvento(); fecharModalPedido(); fecharModalOcorrencia(); fecharModalOcorrencias(); }
         });
 
         function formatarDataHoraTexto(valor) {
@@ -585,7 +622,7 @@
             }
             data.forEach(a => { a.pedido_info = mapaPedidos[a.pedido_id] || null; });
 
-            // ===== Carregar ocorrências associadas às atividades =====
+            // Carregar ocorrências associadas às atividades
             const { data: ocorrenciasData, error: errOcorrencias } = await sbClient
                 .from('ocorrencias')
                 .select('id, data, ocorrencia, atividade_id')
@@ -623,6 +660,15 @@
                     }, width: 90, hozAlign: "center", cellClick: function (e, cell) {
                         const rowData = cell.getRow().getData();
                         if (rowData.pedido_info) abrirModalPedido(rowData.pedido_info);
+                    }},
+                    { title: "Ocorrências", field: "ocorrencias_info", formatter: function (cell) {
+                        const rowData = cell.getRow().getData();
+                        const ocorrencias = rowData.ocorrencias_info || [];
+                        if (ocorrencias.length === 0) return "<span class='sem-anexo'>—</span>";
+                        return "<a class='link-anexo' href='javascript:void(0)'>🚨 " + ocorrencias.length + "</a>";
+                    }, width: 110, hozAlign: "center", cellClick: function (e, cell) {
+                        const rowData = cell.getRow().getData();
+                        if ((rowData.ocorrencias_info || []).length > 0) abrirModalOcorrencias(rowData);
                     }},
                     { title: "Anexo", field: "anexo", formatter: function (cell) {
                         const valor = cell.getValue();
@@ -751,7 +797,6 @@
                         (row.pedido_id && row.pedido_info
                             ? '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalPedido(dadosAtividadesPorId[' + row.id + '].pedido_info)">📋 Pedido associado #' + row.pedido_id + ' ' + (row.pedido_info.data_conclusao ? '(✅ Concluído)' : '(⏳ Pendente)') + '</a></p>'
                             : '') +
-                        // Listar ocorrências associadas (se existirem)
                         (row.ocorrencias_info && row.ocorrencias_info.length > 0
                             ? '<p><strong>🚨 Ocorrências associadas:</strong></p>' +
                               row.ocorrencias_info.map(function (o) {
