@@ -83,6 +83,7 @@
     font-size: 16px;
     cursor: pointer;
 }
+.link-anexo { color: #60a5fa; text-decoration: none; }
 
         /* Ajuste para dispositivos móveis */
         @media (max-width: 640px) {
@@ -225,10 +226,8 @@ eventDidMount: function(info) {
     let texto = hora.textContent.trim();
 
     if (texto.endsWith(":00")) {
-        // 11:00 -> 11h
         texto = texto.slice(0, -3) + "h";
     } else {
-        // 11:30 -> 11h30
         texto = texto.replace(":", "h");
     }
 
@@ -253,7 +252,8 @@ eventDidMount: function(info) {
                     '<p><strong>Serviço:</strong> ' + (row.servico || '—') + '</p>' +
                     '<p><strong>Tipo:</strong> ' + (row.tipo_trabalho || '—') + '</p>' +
                     '<p><strong>Freq:</strong> ' + (row.frequencia || '—') + '</p>' +
-                    (row.observacao ? '<p><strong>Obs:</strong> ' + row.observacao + '</p>' : '');
+                    (row.observacao ? '<p><strong>Obs:</strong> ' + row.observacao + '</p>' : '') +
+                    '<p><a class="link-anexo" href="registo_atividade.html?pedido=' + row.id + '">➕ Criar atividade associada a este pedido</a></p>';
                 document.getElementById('modal-evento').classList.add('aberta');
                 document.body.style.overflow = 'hidden';
             }
@@ -283,7 +283,7 @@ eventDidMount: function(info) {
 
         table = new Tabulator("#tabela-pedidos", {
             data: data,
-            layout: "fitData", // Ajusta colunas ao conteúdo, evitando cortes
+            layout: "fitData",
             pagination: "local",
             paginationSize: 50,
             paginationSizeSelector: [15, 50, 100],
@@ -320,8 +320,24 @@ eventDidMount: function(info) {
                 {title: "Limite", field: "data_hora_limite", minWidth: 150, editor: dateEditor, formatter: dataFormatter},
                 {title: "Estado", field: "estado", minWidth: 120, editor: "list", editorParams: {values: ["Pendente", "Concluido"]}},
                 {title: "Data Conclusão", field: "data_conclusao", minWidth: 150, editor: dateEditor, formatter: dataFormatter},
-                {title: "🗑️", formatter: function() { return "<button style='background:#ef4444; color:white; border:none; padding:2px 8px; border-radius:3px;'>❌</button>"; }, width: 60, hozAlign: "center", cellClick: function(e, cell) {
-             if(confirm("Apagar?")) { const id = cell.getRow().getData().id; sbClient.from('pedidos').delete().eq('id', id).then(() => { cell.getRow().delete(); aplicarFiltros(); renderizarCalendario(table.getData()); }); }
+                {title: "Ações", formatter: function(cell) {
+                    const data = cell.getRow().getData();
+                    return "<button class='btn-atividade' data-id='" + data.id + "' style='background:#0ea5e9; color:white; border:none; padding:4px 8px; border-radius:3px; margin-right:4px; cursor:pointer; font-size:11px;'>➕ Atividade</button>" +
+                           "<button class='btn-apagar' style='background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer; font-size:11px;'>❌</button>";
+                }, width: 140, hozAlign: "center", cellClick: function(e, cell) {
+                    if (e.target.classList.contains('btn-apagar')) {
+                        if(confirm("Apagar?")) { 
+                            const id = cell.getRow().getData().id; 
+                            sbClient.from('pedidos').delete().eq('id', id).then(() => { 
+                                cell.getRow().delete(); 
+                                aplicarFiltros(); 
+                                renderizarCalendario(table.getData()); 
+                            }); 
+                        }
+                    } else if (e.target.classList.contains('btn-atividade')) {
+                        const id = cell.getRow().getData().id;
+                        window.location.href = 'registo_atividade.html?pedido=' + id;
+                    }
                 }}
             ]
         });
