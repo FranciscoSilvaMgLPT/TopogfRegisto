@@ -13,7 +13,7 @@
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/locales/pt-br.global.min.js"></script>
 
-    <!-- ===== NOVO: template Word em ficheiro separado ===== -->
+    <!-- Template Word em ficheiro separado -->
     <script src="template_docx.js"></script>
 
     <style>
@@ -31,12 +31,7 @@
         .btn-apagar { background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer; font-size: 12px; }
         .link-anexo { color: #60a5fa; text-decoration: none; }
         .sem-anexo { color: #64748b; }
-        #calendario-atividades {
-            background: #1e293b;
-            border-radius: 10px;
-            padding: 15px;
-            margin-top: 10px;
-        }
+        #calendario-atividades { background: #1e293b; border-radius: 10px; padding: 15px; margin-top: 10px; }
         .fc {
             --fc-border-color: #334155;
             --fc-page-bg-color: #1e293b;
@@ -51,60 +46,15 @@
         .fc .fc-button-primary:not(:disabled):active { background: #0ea5e9; }
         .fc .fc-col-header-cell-cushion, .fc .fc-daygrid-day-number { color: #cbd5e1; text-decoration: none; }
         .fc-event { cursor: pointer; border: none; font-size: 12px; }
-        .modal-evento-conteudo {
-            position: relative;
-            background: #1e293b;
-            border-radius: 10px;
-            padding: 24px;
-            max-width: 480px;
-            width: 90vw;
-            color: white;
-        }
+        .modal-evento-conteudo { position: relative; background: #1e293b; border-radius: 10px; padding: 24px; max-width: 480px; width: 90vw; color: white; }
         .modal-evento-conteudo p { margin: 6px 0; }
         .modal-evento-conteudo strong { color: #60a5fa; }
-
-        .modal-anexo-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
+        .modal-anexo-overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
         .modal-anexo-overlay.aberta { display: flex; }
-        .modal-anexo-conteudo {
-            position: relative;
-            max-width: 90vw;
-            max-height: 90vh;
-            display: flex;
-        }
-        .modal-anexo-conteudo img {
-            max-width: 90vw;
-            max-height: 90vh;
-            object-fit: contain;
-            border-radius: 8px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-        }
-        .modal-anexo-fechar {
-            position: absolute;
-            top: -14px;
-            right: -14px;
-            background: #ef4444;
-            color: white;
-            border: none;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            font-size: 16px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+        .modal-anexo-conteudo { position: relative; max-width: 90vw; max-height: 90vh; display: flex; }
+        .modal-anexo-conteudo img { max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: 8px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); }
+        .modal-anexo-fechar { position: absolute; top: -14px; right: -14px; background: #ef4444; color: white; border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
-        /* Ajuste para dispositivos móveis */
         @media (max-width: 640px) {
             body { padding: 12px; }
             .toolbar-actions a, .toolbar-actions button { flex: 1 1 auto; text-align: center; margin-right: 0; }
@@ -136,10 +86,8 @@
         <div id="calendario-atividades"></div>
     </div>
 
-    <!-- Input de ficheiro escondido, reutilizado pelo botão de Anexo de todas as linhas -->
     <input type="file" id="input-anexo" accept="image/*" capture="environment" style="display:none">
 
-    <!-- Modal para visualizar o anexo (foto) de uma atividade -->
     <div id="modal-anexo" class="modal-anexo-overlay" onclick="fecharModalAnexoSeBackdrop(event)">
         <div class="modal-anexo-conteudo">
             <button type="button" class="modal-anexo-fechar" onclick="fecharModalAnexo()" aria-label="Fechar">✕</button>
@@ -147,7 +95,6 @@
         </div>
     </div>
 
-    <!-- Modal de detalhes do evento no calendário -->
     <div id="modal-evento" class="modal-anexo-overlay" onclick="fecharModalEventoSeBackdrop(event)">
         <div class="modal-evento-conteudo" onclick="event.stopPropagation()">
             <button type="button" class="modal-anexo-fechar" onclick="fecharModalEvento()" aria-label="Fechar">✕</button>
@@ -156,7 +103,6 @@
         </div>
     </div>
 
-    <!-- Modal de detalhes do pedido associado -->
     <div id="modal-pedido" class="modal-anexo-overlay" onclick="fecharModalPedidoSeBackdrop(event)">
         <div class="modal-evento-conteudo" onclick="event.stopPropagation()">
             <button type="button" class="modal-anexo-fechar" onclick="fecharModalPedido()" aria-label="Fechar">✕</button>
@@ -168,14 +114,37 @@
     <script>
         const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
-        const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         const ANEXO_BUCKET = 'anexos';
-        let table;
+
+        let table = null;
+        let sbClient = null;
+        let calendario = null;
         let anexoRowIdAtual = null;
         let anexoBotaoAtual = null;
-
-        // Mapa id da atividade -> dados da atividade (para o modal do pedido)
         let dadosAtividadesPorId = {};
+
+        // ===== VERIFICAÇÃO DE BIBLIOTECAS (não deixa a página morrer em silêncio) =====
+        (function verificarBibliotecas() {
+            const emFalta = [];
+            if (typeof supabase === 'undefined') emFalta.push('Supabase');
+            if (typeof Tabulator === 'undefined') emFalta.push('Tabulator');
+            if (typeof FullCalendar === 'undefined') emFalta.push('FullCalendar');
+            if (typeof ExcelJS === 'undefined') emFalta.push('ExcelJS');
+            if (typeof PizZip === 'undefined') emFalta.push('PizZip');
+            if (typeof window.docxtemplater === 'undefined') emFalta.push('docxtemplater');
+
+            if (emFalta.length > 0) {
+                console.error('⚠️ Bibliotecas não carregadas:', emFalta.join(', '));
+                document.getElementById('utilizador-info').innerText =
+                    '⚠️ Erro: faltam bibliotecas (' + emFalta.join(', ') + '). Verifica a internet e faz Ctrl+Shift+R.';
+                return;
+            }
+            sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        })();
+
+        function avisarSemCliente() {
+            alert('A página não conseguiu carregar as bibliotecas externas.\nVerifica a ligação à internet e recarrega com Ctrl+Shift+R.');
+        }
 
         function formatarDataParaWord(dataStr, ehFim) {
             if (!dataStr) return '';
@@ -208,9 +177,7 @@
 
         async function carregarAnexoImagem(url) {
             const resposta = await fetch(url);
-            if (!resposta.ok) {
-                throw new Error("Não foi possível obter a imagem.");
-            }
+            if (!resposta.ok) throw new Error("Não foi possível obter a imagem.");
             const arrayBuffer = await resposta.arrayBuffer();
             const bitmap = await createImageBitmap(new Blob([arrayBuffer]));
             const escala = Math.min(
@@ -228,7 +195,7 @@
         }
 
         function pxParaEmu(px) {
-            return Math.round(px * 9525); // 1px a 96dpi = 9525 EMU
+            return Math.round(px * 9525);
         }
 
         function substituirRunComMarcador(xml, marcador, novoRunXml) {
@@ -284,12 +251,18 @@
 
         async function gerarDocx(rowData) {
             try {
+                const templateBase64 = window.TEMPLATE_DOCX_BASE64;
+                if (!templateBase64 || templateBase64.indexOf('COLA_AQUI') !== -1) {
+                    alert("O template Word não foi carregado.\nVerifica se o ficheiro 'template_docx.js' existe na mesma pasta e tem a string base64.");
+                    return;
+                }
+
                 let anexoPreparado = null;
                 if (rowData.anexo) {
                     anexoPreparado = await carregarAnexoImagem(rowData.anexo);
                 }
 
-                const zip = new PizZip(base64ToArrayBuffer(TEMPLATE_DOCX_BASE64));
+                const zip = new PizZip(base64ToArrayBuffer(templateBase64));
                 const doc = new window.docxtemplater(zip, {
                     paragraphLoop: true,
                     linebreaks: true,
@@ -440,7 +413,6 @@
             if (e.target.id === 'modal-anexo') fecharModalAnexo();
         }
 
-        // ===== Modal do pedido associado =====
         function abrirModalPedido(p) {
             if (!p) return;
             document.getElementById('modal-pedido-titulo').innerText = '📋 Pedido #' + p.id;
@@ -487,6 +459,8 @@
         }
 
         async function carregarAtividades() {
+            if (!sbClient) { avisarSemCliente(); return; }
+
             const { data: { session } } = await sbClient.auth.getSession();
             if (!session) { window.location.href = 'index.html'; return; }
             document.getElementById('utilizador-info').innerText = session.user.email;
@@ -498,7 +472,7 @@
 
             if (error) { console.error("Erro ao carregar:", error); return; }
 
-            // ===== Carregar os pedidos associados às atividades =====
+            // Carregar os pedidos associados às atividades
             dadosAtividadesPorId = {};
             data.forEach(a => { dadosAtividadesPorId[a.id] = a; });
 
@@ -530,7 +504,6 @@
                     { title: "Local/Obra", field: "local_obra", editor: "input" },
                     { title: "Nº Obra", field: "numero_obra", editor: "input" },
                     { title: "Serviço", field: "servico", editor: "input" },
-                    // ===== Coluna do pedido associado =====
                     { title: "Pedido", field: "pedido_id", formatter: function (cell) {
                         const rowData = cell.getRow().getData();
                         const p = rowData.pedido_info;
@@ -600,8 +573,6 @@
                 });
             });
         }
-
-        let calendario = null;
 
         function corPorTecnico(nome) {
             const cores = ['#0ea5e9', '#22c55e', '#f59e0b', '#a855f7', '#ef4444', '#14b8a6', '#eab308'];
@@ -681,6 +652,7 @@
         }
 
         async function guardarAlteracoes() {
+            if (!sbClient || !table) { avisarSemCliente(); return; }
             const dados = table.getData();
             let sucesso = true;
 
@@ -729,6 +701,7 @@
         }
 
         async function exportarParaExcel() {
+            if (!sbClient || !table) { avisarSemCliente(); return; }
             try {
                 const workbook = new ExcelJS.Workbook();
                 const response = await fetch('atividades.xlsx');
@@ -743,7 +716,6 @@
 
                 const dados = table.getData();
 
-                // ---- Tabela 1: uma linha por atividade ----
                 let linha = 5;
                 dados.forEach(row => {
                     const horas = calcularHoras(row.data_hora_inicio, row.data_hora_fim);
@@ -778,7 +750,6 @@
                     linha++;
                 });
 
-                // ---- Tabela 2: total de horas por técnico + obra ----
                 const totais = {};
                 dados.forEach(row => {
                     const horas = calcularHoras(row.data_hora_inicio, row.data_hora_fim);
@@ -820,7 +791,6 @@
                     linha2++;
                 });
 
-                // ---- Tabela 3: total de horas por técnico ----
                 const totalPorTecnico = {};
                 linhasTotais.forEach(item => {
                     totalPorTecnico[item.tecnico] = (totalPorTecnico[item.tecnico] || 0) + item.horas;
@@ -860,7 +830,10 @@
             }
         }
 
-        carregarAtividades();
+        // Só inicia se as bibliotecas carregaram
+        if (sbClient) {
+            carregarAtividades();
+        }
     </script>
 </body>
 </html>
