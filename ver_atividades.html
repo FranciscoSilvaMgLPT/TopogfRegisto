@@ -12,8 +12,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/locales/pt-br.global.min.js"></script>
-
-    <!-- Template Word em ficheiro separado -->
     <script src="template_docx.js"></script>
 
     <style>
@@ -28,6 +26,7 @@
         .btn-docx { background:#3b82f6; color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer; margin-right: 4px; font-size: 12px; }
         .btn-anexo { background:#f59e0b; color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer; margin-right: 4px; font-size: 12px; }
         .btn-anexo.tem-anexo { background:#16a34a; }
+        .btn-ocorrencia { background:#a855f7; color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer; margin-right: 4px; font-size: 12px; }
         .btn-apagar { background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer; font-size: 12px; }
         .link-anexo { color: #60a5fa; text-decoration: none; }
         .sem-anexo { color: #64748b; }
@@ -49,6 +48,13 @@
         .modal-evento-conteudo { position: relative; background: #1e293b; border-radius: 10px; padding: 24px; max-width: 480px; width: 90vw; color: white; }
         .modal-evento-conteudo p { margin: 6px 0; }
         .modal-evento-conteudo strong { color: #60a5fa; }
+
+        .modal-evento-conteudo label { display: block; margin: 12px 0 6px; font-size: 13px; color: #cbd5e1; }
+        .modal-evento-conteudo input,
+        .modal-evento-conteudo textarea { width: 100%; padding: 10px; border: none; border-radius: 8px; background: #334155; color: white; font-size: 15px; }
+        .modal-evento-conteudo textarea { min-height: 90px; resize: vertical; }
+        .modal-evento-conteudo button[type="submit"] { width: 100%; margin-top: 15px; padding: 12px; border: none; border-radius: 8px; background: #2563eb; color: white; font-size: 15px; font-weight: bold; cursor: pointer; }
+
         .modal-anexo-overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
         .modal-anexo-overlay.aberta { display: flex; }
         .modal-anexo-conteudo { position: relative; max-width: 90vw; max-height: 90vh; display: flex; }
@@ -111,6 +117,20 @@
         </div>
     </div>
 
+    <div id="modal-ocorrencia" class="modal-anexo-overlay" onclick="fecharModalOcorrenciaSeBackdrop(event)">
+        <div class="modal-evento-conteudo" onclick="event.stopPropagation()">
+            <button type="button" class="modal-anexo-fechar" onclick="fecharModalOcorrencia()" aria-label="Fechar">✕</button>
+            <h3 id="modal-ocorrencia-titulo" style="margin-top:0;"></h3>
+            <form id="formOcorrencia">
+                <label>Data *</label>
+                <input type="datetime-local" id="ocorrenciaData" required>
+                <label>Ocorrência *</label>
+                <textarea id="ocorrenciaTexto" placeholder="Descreve a ocorrência..." required></textarea>
+                <button type="submit">Gravar Ocorrência</button>
+            </form>
+        </div>
+    </div>
+
     <script>
         const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
@@ -122,8 +142,9 @@
         let anexoRowIdAtual = null;
         let anexoBotaoAtual = null;
         let dadosAtividadesPorId = {};
+        let ocorrenciaAtividadeAtual = null;
 
-        // ===== VERIFICAÇÃO DE BIBLIOTECAS (não deixa a página morrer em silêncio) =====
+        // ===== VERIFICAÇÃO DE BIBLIOTECAS =====
         (function verificarBibliotecas() {
             const emFalta = [];
             if (typeof supabase === 'undefined') emFalta.push('Supabase');
@@ -439,8 +460,54 @@
             if (e.target.id === 'modal-pedido') fecharModalPedido();
         }
 
+        function abrirModalOcorrencia(rowData) {
+            ocorrenciaAtividadeAtual = rowData;
+            document.getElementById('modal-ocorrencia-titulo').innerText = '🚨 Nova Ocorrência — Atividade #' + rowData.id;
+
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('ocorrenciaData').value = now.toISOString().slice(0, 16);
+            document.getElementById('ocorrenciaTexto').value = '';
+
+            document.getElementById('modal-ocorrencia').classList.add('aberta');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function fecharModalOcorrencia() {
+            document.getElementById('modal-ocorrencia').classList.remove('aberta');
+            document.body.style.overflow = '';
+            ocorrenciaAtividadeAtual = null;
+        }
+
+        function fecharModalOcorrenciaSeBackdrop(e) {
+            if (e.target.id === 'modal-ocorrencia') fecharModalOcorrencia();
+        }
+
+        document.getElementById('formOcorrencia').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            if (!sbClient) { avisarSemCliente(); return; }
+            if (!ocorrenciaAtividadeAtual) return;
+
+            const dados = {
+                data: document.getElementById('ocorrenciaData').value,
+                ocorrencia: document.getElementById('ocorrenciaTexto').value,
+                atividade_id: ocorrenciaAtividadeAtual.id
+            };
+
+            const { error } = await sbClient.from('ocorrencias').insert([dados]);
+
+            if (error) {
+                console.error("Erro ao gravar ocorrência:", error);
+                alert("Erro ao gravar ocorrência: " + error.message);
+                return;
+            }
+
+            fecharModalOcorrencia();
+            alert("✅ Ocorrência gravada e associada à atividade #" + dados.atividade_id + "!");
+        });
+
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') { fecharModalAnexo(); fecharModalEvento(); fecharModalPedido(); }
+            if (e.key === 'Escape') { fecharModalAnexo(); fecharModalEvento(); fecharModalPedido(); fecharModalOcorrencia(); }
         });
 
         function formatarDataHoraTexto(valor) {
@@ -472,7 +539,6 @@
 
             if (error) { console.error("Erro ao carregar:", error); return; }
 
-            // Carregar os pedidos associados às atividades
             dadosAtividadesPorId = {};
             data.forEach(a => { dadosAtividadesPorId[a.id] = a; });
 
@@ -524,12 +590,14 @@
                         const valor = cell.getValue();
                         if (valor) abrirModalAnexo(valor);
                     }},
+
                     { title: "Ações", formatter: function (cell) {
                         const temAnexo = !!cell.getRow().getData().anexo;
                         return "<button class='btn-docx'>📄 Docx</button>" +
                                "<button class='btn-anexo" + (temAnexo ? " tem-anexo" : "") + "'>" + (temAnexo ? "✅ Anexo" : "📎 Anexo") + "</button>" +
+                               "<button class='btn-ocorrencia'>🚨 Ocorrência</button>" +
                                "<button class='btn-apagar'>Apagar</button>";
-                    }, width: 220, hozAlign: "center", cellClick: function (e, cell) {
+                    }, minWidth: 320, hozAlign: "center", cellClick: function (e, cell) {
                         const rowData = cell.getRow().getData();
 
                         if (e.target.classList.contains('btn-docx')) {
@@ -541,6 +609,11 @@
                             anexoRowIdAtual = rowData.id;
                             anexoBotaoAtual = e.target;
                             document.getElementById('input-anexo').click();
+                            return;
+                        }
+
+                        if (e.target.classList.contains('btn-ocorrencia')) {
+                            abrirModalOcorrencia(rowData);
                             return;
                         }
 
@@ -632,8 +705,9 @@
                         '<p><strong>Nº Obra:</strong> ' + (row.numero_obra || '—') + '</p>' +
                         '<p><strong>Serviço:</strong> ' + (row.servico || '—') + '</p>' +
                         (row.pedido_id && row.pedido_info
-                            ? '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalPedido(dadosAtividadesPorId[' + row.id + '].pedido_info)">📋 Pedido associado #' + row.pedido_id + ' ' + (row.pedido_info.data_conclusao ? '(✅ Concluído com esta atividade)' : '(⏳ Pendente com esta atividade)') + '</a></p>'
+                            ? '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalPedido(dadosAtividadesPorId[' + row.id + '].pedido_info)">📋 Pedido associado #' + row.pedido_id + ' ' + (row.pedido_info.data_conclusao ? '(✅ Concluído)' : '(⏳ Pendente)') + '</a></p>'
                             : '') +
+                        '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalOcorrencia(dadosAtividadesPorId[' + row.id + '])">🚨 Adicionar ocorrência a esta atividade</a></p>' +
                         (row.anexo ? '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalAnexo(\'' + row.anexo + '\')">🖼️ Ver anexo</a></p>' : '');
                     document.getElementById('modal-evento').classList.add('aberta');
                     document.body.style.overflow = 'hidden';
@@ -830,7 +904,6 @@
             }
         }
 
-        // Só inicia se as bibliotecas carregaram
         if (sbClient) {
             carregarAtividades();
         }
