@@ -225,11 +225,25 @@
         document.getElementById('user-display').innerText = user.email;
         definirDataAtual();
         carregarHistoricoLocais();
-        carregarPedidosPendentes();
+        await carregarPedidosPendentes();
+        preSelecionarPedidoPorUrl();
       }
     };
 
-    // Mapas para preenchimento automático cruzado entre Local/Obra e Nº Obra
+    function preSelecionarPedidoPorUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const pedidoId = params.get('pedido');
+      if (!pedidoId) return;
+
+      const select = document.getElementById('selectPedido');
+      if (select.querySelector('option[value="' + pedidoId + '"]')) {
+        select.value = pedidoId;
+        checkboxConcluido.disabled = false;
+      } else {
+        console.warn('Pedido ' + pedidoId + ' não encontrado nos pedidos pendentes (pode já estar concluído).');
+      }
+    }
+
     let mapaLocalParaObra = {};
     let mapaObraParaLocal = {};
 
