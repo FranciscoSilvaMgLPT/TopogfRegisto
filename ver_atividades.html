@@ -304,6 +304,20 @@
                     .map(t => t.trim())
                     .filter(Boolean);
 
+                       // ===== NOVO: serviço + ocorrências associadas (sem data) =====
+                const ocorrenciasDaAtividade =
+                    (dadosAtividadesPorId[rowData.id] && dadosAtividadesPorId[rowData.id].ocorrencias_info) ||
+                    rowData.ocorrencias_info ||
+                    [];
+
+                let servicoComOcorrencias = rowData.servico || "";
+                if (ocorrenciasDaAtividade.length > 0) {
+                    servicoComOcorrencias += "\nOcorrências:";
+                    ocorrenciasDaAtividade.forEach(function (o) {
+                        servicoComOcorrencias += "\n- " + (o.ocorrencia || "");
+                    });
+                }
+
                 const dadosTemplate = {
                     Tecnico1_Nome: nomesTecnicos[0] || "",
                     Tecnico1_numero: nomesTecnicos[0] ? (NUMERO_POR_TECNICO[nomesTecnicos[0]] ?? "") : "",
@@ -313,7 +327,7 @@
                     dataHoraInicio: formatarDataParaWord(rowData.data_hora_inicio, false) || "",
                     dataHoraFim: formatarDataParaWord(rowData.data_hora_fim, true) || "",
                     Atividade_Local_Obra: rowData.local_obra || "",
-                    Atividade_Servico: rowData.servico || ""
+                    Atividade_Servico: servicoComOcorrencias
                 };
                 dadosTemplate["%Atividade_Anexo"] = anexoPreparado ? ANEXO_MARCADOR : "";
                 doc.render(dadosTemplate);
