@@ -122,7 +122,7 @@
             }
 
             const servicoCurto = (atividade.servico || '').substring(0, 35) + ((atividade.servico || '').length > 35 ? '...' : '');
-            option.textContent = `[#${atividade.id}] [${dataTexto}] ${atividade.tecnico || 'Sem técnico'} — ${atividade.local_obra || 'Sem local'} — ${servicoCurto}`;
+                     option.textContent = `[${dataTexto}] ${atividade.tecnico || 'Sem técnico'} — ${atividade.local_obra || 'Sem local'} — ${servicoCurto}`;
             selectAtividade.appendChild(option);
           });
         }
