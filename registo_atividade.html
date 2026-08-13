@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>👣Registo de Atividade</title>
+  <title>Registo de Atividade</title>
   <link rel="icon" type="image/jpeg" href="favicon.png">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -22,6 +22,7 @@
     label { display: block; margin-bottom: 8px; font-size: 14px; color: #cbd5e1; }
     input, textarea, select { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #334155; color: white; font-size: 16px; }
     input[type="file"] { padding: 10px; cursor: pointer; }
+    textarea { min-height: 80px; resize: vertical; }
 
     .tecnico-picker { background: #334155; padding: 14px; border-radius: 10px; min-height: 50px; display: flex; align-items: center; justify-content: space-around; flex-wrap: wrap; gap: 10px; }
     .tecnico-picker label { display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 0; font-size: 15px; color: white; }
@@ -50,6 +51,16 @@
     .checkbox-container label { margin: 0; font-size: 15px; color: white; cursor: pointer; flex: 1; }
     .checkbox-container:has(input:disabled) { opacity: 0.5; cursor: not-allowed; }
 
+    /* ===== NOVO: Secção de ocorrência ===== */
+    .ocorrencia-association {
+      background: #1e293b;
+      border: 2px solid #a855f7;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .ocorrencia-association h3 { color: #c084fc; margin-bottom: 15px; font-size: 18px; }
+
     button { width: 100%; margin-top: 25px; padding: 16px; border: none; border-radius: 10px; background: #2563eb; color: white; font-size: 16px; font-weight: bold; cursor: pointer; }
     button:disabled { background: #475569; cursor: not-allowed; }
     .success { display: none; margin-top: 20px; background: #065f46; padding: 15px; border-radius: 10px; text-align: center; }
@@ -60,7 +71,7 @@
       .container { padding: 20px; border-radius: 14px; }
       h1 { font-size: 24px; }
       .grid { grid-template-columns: 1fr; gap: 12px; }
-      .pedido-association { padding: 15px; }
+      .pedido-association, .ocorrencia-association { padding: 15px; }
     }
   </style>
 </head>
@@ -92,6 +103,14 @@
     </div>
 
     <form id="formularioAtividade">
+
+      <!-- ===== NOVO: Secção de ocorrência (opcional) ===== -->
+      <div class="ocorrencia-association">
+        <h3>🚨 Ocorrência (opcional)</h3>
+        <label>Descrição da ocorrência</label>
+        <textarea id="ocorrenciaTexto" placeholder="Se algo correu mal ou houve imprevisto, descreve aqui. A ocorrência fica associada a esta atividade."></textarea>
+      </div>
+
       <div class="grid">
         <div class="full">
           <label>Nome do Técnico *</label>
@@ -151,7 +170,7 @@
     const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // ===== Carregar pedidos pendentes (pode ser chamado várias vezes para refrescar) =====
+    // ===== Carregar pedidos pendentes =====
     async function carregarPedidosPendentes() {
       const selectPedido = document.getElementById('selectPedido');
       selectPedido.innerHTML = '<option value="">-- Nenhum pedido associado --</option>';
@@ -160,7 +179,7 @@
         const { data: pedidos, error } = await supabaseClient
           .from('pedidos')
           .select('id, requerente, servico, local_obra, data_hora_pedido')
-          .is('data_conclusao', null) // Apenas pedidos NÃO concluídos
+          .is('data_conclusao', null)
           .order('data_hora_pedido', { ascending: false });
 
         if (error) throw error;
@@ -332,10 +351,11 @@
 
       console.log("Dados a enviar para o Supabase:", dadosParaEnviar);
 
-      // 3. Gravar a atividade
-      const { data, error } = await supabaseClient
+      // 3. Gravar a atividade (.select() para obter o id da nova atividade)
+      const { data: dataInserida, error } = await supabaseClient
         .from('atividades')
-        .insert([dadosParaEnviar]);
+        .insert([dadosParaEnviar])
+        .select();
 
       if (error) {
         console.error("Erro detalhado do Supabase:", error);
@@ -345,11 +365,10 @@
         return;
       }
 
-      console.log("Inserido com sucesso:", data);
+      console.log("Inserido com sucesso:", dataInserida);
+      const novaAtividadeId = dataInserida && dataInserida[0] ? dataInserida[0].id : null;
 
-      // 4. Se a checkbox estiver marcada, atualiza o pedido:
-      //    - data_conclusao = agora
-      //    - estado = "Concluído"
+      // 4. Se a checkbox estiver marcada, atualiza o pedido (data_conclusao + estado)
       if (pedidoId && checkboxConcluido.checked) {
         const dataConclusao = new Date().toISOString();
 
@@ -369,7 +388,27 @@
         }
       }
 
-      // 5. Feedback de sucesso e reset
+      // ===== 5. NOVO: criar ocorrência se a descrição estiver preenchida =====
+      const textoOcorrencia = document.getElementById('ocorrenciaTexto').value.trim();
+
+      if (textoOcorrencia && novaAtividadeId) {
+        const { error: errOcorrencia } = await supabaseClient
+          .from('ocorrencias')
+          .insert([{
+            data: form.Atividade_Inicio.value, // data da ocorrência = início da atividade
+            ocorrencia: textoOcorrencia,
+            atividade_id: novaAtividadeId
+          }]);
+
+        if (errOcorrencia) {
+          console.error("Erro ao gravar ocorrência:", errOcorrencia);
+          alert("⚠️ Atividade gravada, mas não foi possível gravar a ocorrência: " + errOcorrencia.message);
+        } else {
+          console.log("Ocorrência gravada e associada à atividade #" + novaAtividadeId);
+        }
+      }
+
+      // 6. Feedback de sucesso e reset
       document.getElementById("successMessage").style.display = "block";
       form.reset();
       selectPedido.value = "";
