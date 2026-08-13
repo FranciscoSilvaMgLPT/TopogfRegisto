@@ -84,6 +84,7 @@
     cursor: pointer;
 }
 .link-anexo { color: #60a5fa; text-decoration: none; }
+.sem-registo { color: #64748b; }
 
         /* Ajuste para dispositivos móveis */
         @media (max-width: 640px) {
@@ -125,6 +126,24 @@
     </div>
 </div>
 
+<!-- Modal de atividades do pedido -->
+<div id="modal-atividades" class="modal-evento-overlay" onclick="fecharModalAtividadesSeBackdrop(event)">
+    <div class="modal-evento-conteudo" onclick="event.stopPropagation()">
+        <button type="button" class="modal-evento-fechar" onclick="fecharModalAtividades()" aria-label="Fechar">✕</button>
+        <h3 id="modal-atividades-titulo" style="margin-top:0;"></h3>
+        <div id="modal-atividades-corpo"></div>
+    </div>
+</div>
+
+<!-- Modal de ocorrências do pedido -->
+<div id="modal-ocorrencias" class="modal-evento-overlay" onclick="fecharModalOcorrenciasSeBackdrop(event)">
+    <div class="modal-evento-conteudo" onclick="event.stopPropagation()">
+        <button type="button" class="modal-evento-fechar" onclick="fecharModalOcorrencias()" aria-label="Fechar">✕</button>
+        <h3 id="modal-ocorrencias-titulo" style="margin-top:0;"></h3>
+        <div id="modal-ocorrencias-corpo"></div>
+    </div>
+</div>
+
 <script>
     const supabaseUrl = 'https://dunondjiqawovisnwavg.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
@@ -132,6 +151,8 @@
 
     let table;
     let mostrandoConcluidos = false; 
+    let mapaAtividadesPorPedido = {};
+    let mapaOcorrenciasPorPedido = {};
 
     function atualizarContador() {
         if(table) {
@@ -167,6 +188,52 @@ let calendario = null;
         if (row.urgencia === "Média") return "#eab308";
         if (row.urgencia === "Baixa") return "#22c55e";
         return "#0ea5e9";
+    }
+
+    // ===== Modals de atividades e ocorrências =====
+    function abrirModalAtividades(pedidoId) {
+        const atividades = mapaAtividadesPorPedido[pedidoId] || [];
+        document.getElementById('modal-atividades-titulo').innerText = '📊 Atividades — Pedido #' + pedidoId;
+        document.getElementById('modal-atividades-corpo').innerHTML = atividades.map(function (a) {
+            const dataTexto = a.data_hora_inicio ? dataFormatter({getValue: () => a.data_hora_inicio}) : 'Sem data';
+            return '<p style="margin-left:6px; border-left:3px solid #0ea5e9; padding-left:8px; margin-bottom:8px;">' +
+                   '<strong>' + dataTexto + '</strong><br>' +
+                   (a.tecnico || 'Sem técnico') + ' — ' + (a.servico || '') +
+                   '</p>';
+        }).join('');
+        document.getElementById('modal-atividades').classList.add('aberta');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function fecharModalAtividades() {
+        document.getElementById('modal-atividades').classList.remove('aberta');
+        document.body.style.overflow = '';
+    }
+
+    function fecharModalAtividadesSeBackdrop(e) {
+        if (e.target.id === 'modal-atividades') fecharModalAtividades();
+    }
+
+    function abrirModalOcorrencias(pedidoId) {
+        const ocorrencias = mapaOcorrenciasPorPedido[pedidoId] || [];
+        document.getElementById('modal-ocorrencias-titulo').innerText = '🚨 Ocorrências — Pedido #' + pedidoId;
+        document.getElementById('modal-ocorrencias-corpo').innerHTML = ocorrencias.map(function (o) {
+            const dataTexto = o.data ? dataFormatter({getValue: () => o.data}) : 'Sem data';
+            return '<p style="margin-left:6px; border-left:3px solid #a855f7; padding-left:8px; margin-bottom:8px;">' +
+                   '<strong>' + dataTexto + ':</strong> ' + (o.ocorrencia || '') +
+                   '</p>';
+        }).join('');
+        document.getElementById('modal-ocorrencias').classList.add('aberta');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function fecharModalOcorrencias() {
+        document.getElementById('modal-ocorrencias').classList.remove('aberta');
+        document.body.style.overflow = '';
+    }
+
+    function fecharModalOcorrenciasSeBackdrop(e) {
+        if (e.target.id === 'modal-ocorrencias') fecharModalOcorrencias();
     }
 
     function renderizarCalendario(dados) {
@@ -271,7 +338,11 @@ eventDidMount: function(info) {
     }
 
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') fecharModalEvento();
+        if (e.key === 'Escape') {
+            fecharModalEvento();
+            fecharModalAtividades();
+            fecharModalOcorrencias();
+        }
     });
 
     async function carregarDados() {
@@ -280,6 +351,58 @@ eventDidMount: function(info) {
         document.getElementById('utilizador-info').innerText = session.user.email;
 
         const { data } = await sbClient.from('pedidos').select('*').order('id', { ascending: false });
+
+        // ===== Carregar atividades associadas aos pedidos =====
+        const pedidosIds = data.map(p => p.id);
+        mapaAtividadesPorPedido = {};
+        mapaOcorrenciasPorPedido = {};
+
+        if (pedidosIds.length > 0) {
+            const { data: atividadesData, error: errAtividades } = await sbClient
+                .from('atividades')
+                .select('id, tecnico, servico, data_hora_inicio, pedido_id')
+                .in('pedido_id', pedidosIds);
+
+            if (errAtividades) {
+                console.error("Erro ao carregar atividades:", errAtividades);
+            } else {
+                (atividadesData || []).forEach(a => {
+                    if (!mapaAtividadesPorPedido[a.pedido_id]) mapaAtividadesPorPedido[a.pedido_id] = [];
+                    mapaAtividadesPorPedido[a.pedido_id].push(a);
+                });
+
+                // Carregar ocorrências das atividades desses pedidos
+                const atividadesIds = atividadesData.map(a => a.id);
+                if (atividadesIds.length > 0) {
+                    const { data: ocorrenciasData, error: errOcorrencias } = await sbClient
+                        .from('ocorrencias')
+                        .select('id, data, ocorrencia, atividade_id')
+                        .in('atividade_id', atividadesIds);
+
+                    if (errOcorrencias) {
+                        console.error("Erro ao carregar ocorrências:", errOcorrencias);
+                    } else {
+                        // Mapear atividade_id -> pedido_id
+                        const atividadeParaPedido = {};
+                        atividadesData.forEach(a => { atividadeParaPedido[a.id] = a.pedido_id; });
+
+                        (ocorrenciasData || []).forEach(o => {
+                            const pedidoId = atividadeParaPedido[o.atividade_id];
+                            if (pedidoId) {
+                                if (!mapaOcorrenciasPorPedido[pedidoId]) mapaOcorrenciasPorPedido[pedidoId] = [];
+                                mapaOcorrenciasPorPedido[pedidoId].push(o);
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
+        // Adicionar contadores aos dados
+        data.forEach(p => {
+            p.atividades_count = (mapaAtividadesPorPedido[p.id] || []).length;
+            p.ocorrencias_count = (mapaOcorrenciasPorPedido[p.id] || []).length;
+        });
 
         table = new Tabulator("#tabela-pedidos", {
             data: data,
@@ -320,6 +443,22 @@ eventDidMount: function(info) {
                 {title: "Limite", field: "data_hora_limite", minWidth: 150, editor: dateEditor, formatter: dataFormatter},
                 {title: "Estado", field: "estado", minWidth: 120, editor: "list", editorParams: {values: ["Pendente", "Concluido"]}},
                 {title: "Data Conclusão", field: "data_conclusao", minWidth: 150, editor: dateEditor, formatter: dataFormatter},
+                {title: "Atividades", field: "atividades_count", formatter: function(cell) {
+                    const count = cell.getValue() || 0;
+                    if (count === 0) return "<span class='sem-registo'>—</span>";
+                    return "<a class='link-anexo' href='javascript:void(0)'>📊 " + count + "</a>";
+                }, width: 100, hozAlign: "center", cellClick: function(e, cell) {
+                    const pedidoId = cell.getRow().getData().id;
+                    if ((mapaAtividadesPorPedido[pedidoId] || []).length > 0) abrirModalAtividades(pedidoId);
+                }},
+                {title: "Ocorrências", field: "ocorrencias_count", formatter: function(cell) {
+                    const count = cell.getValue() || 0;
+                    if (count === 0) return "<span class='sem-registo'>—</span>";
+                    return "<a class='link-anexo' href='javascript:void(0)'>🚨 " + count + "</a>";
+                }, width: 110, hozAlign: "center", cellClick: function(e, cell) {
+                    const pedidoId = cell.getRow().getData().id;
+                    if ((mapaOcorrenciasPorPedido[pedidoId] || []).length > 0) abrirModalOcorrencias(pedidoId);
+                }},
                 {title: "Ações", formatter: function(cell) {
                     const data = cell.getRow().getData();
                     return "<button class='btn-atividade' data-id='" + data.id + "' style='background:#0ea5e9; color:white; border:none; padding:4px 8px; border-radius:3px; margin-right:4px; cursor:pointer; font-size:11px;'>➕ Atividade</button>" +
