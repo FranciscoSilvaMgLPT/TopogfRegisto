@@ -39,17 +39,54 @@
     #main-content { display: none; }
     .menu-container { max-width: 600px; width: 100%; background: #1e293b; padding: 30px; border-radius: 18px; box-shadow: 0 0 30px rgba(0,0,0,0.4); text-align: center; }
     .user-info { margin-bottom: 20px; color: #94a3b8; font-size: 0.9em; }
-    .grid-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
-    .menu-card { background: #334155; padding: 20px; border-radius: 14px; text-decoration: none; color: white; display: flex; flex-direction: column; align-items: center; transition: transform 0.2s; font-size: 0.9em; }
+    
+    /* ===== MENU EM 3 COLUNAS ===== */
+    .grid-menu { 
+        display: grid; 
+        grid-template-columns: 1fr 1fr 1fr; 
+        gap: 15px 30px; /* LINHAS: 15px | COLUNAS: 30px (o dobro) */
+        margin-top: 20px; 
+    }
+    
+    .menu-card { 
+        background: #334155; 
+        padding: 20px 10px; 
+        border-radius: 14px; 
+        text-decoration: none; 
+        color: white; 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        justify-content: center; 
+        transition: transform 0.2s; 
+        text-align: center; 
+        gap: 8px;
+    }
     .menu-card:hover { transform: scale(1.03); background: #475569; }
+
+    .menu-icon {
+        font-size: 2.8em;
+        line-height: 1;
+    }
+
+    .menu-text {
+        font-size: 0.85em;
+        line-height: 1.3;
+    }
 
     /* Ajuste para dispositivos móveis */
     @media (max-width: 480px) {
-        .grid-menu { grid-template-columns: 1fr; gap: 14px; }
+        .grid-menu { 
+            grid-template-columns: 1fr 1fr; 
+            gap: 12px 24px; /* Mantém a proporção: 12px linhas | 24px colunas */
+        }
         .menu-container { padding: 20px; }
         #login-box { padding: 28px 22px; }
         .menu-container h1 { font-size: 26px; }
-        .menu-card { padding: 16px; font-size: 1em; }
+        
+        .menu-icon { font-size: 2.5em; }
+        .menu-text { font-size: 0.8em; }
+        .menu-card { padding: 16px 8px; }
     }
 
     /* ---- Banner de instalação PWA ---- */
@@ -107,10 +144,33 @@
     <h1>Painel de Controlo</h1>
     
     <div class="grid-menu">
-      <a href="registo_pedidos.html" class="menu-card"><div>📝 Registo de Pedidos</div></a>
-      <a href="registo_atividade.html" class="menu-card"><div>📊 Registo de Atividade</div></a>
-      <a href="ver_pedidos.html" class="menu-card"><div>📋 Consultar Pedidos</div></a>
-      <a href="ver_atividades.html" class="menu-card"><div>📈 Consultar Atividades</div></a>
+      <!-- ===== LINHA 1: REGISTOS ===== -->
+      <a href="registo_pedidos.html" class="menu-card">
+        <span class="menu-icon">📝</span>
+        <span class="menu-text">Registo de Pedidos</span>
+      </a>
+      <a href="registo_atividade.html" class="menu-card">
+        <span class="menu-icon">📊</span>
+        <span class="menu-text">Registo de Atividade</span>
+      </a>
+      <a href="registo_ocorrencia.html" class="menu-card">
+        <span class="menu-icon">🚨</span>
+        <span class="menu-text">Registo de Ocorrência</span>
+      </a>
+      
+      <!-- ===== LINHA 2: CONSULTAS ===== -->
+      <a href="ver_pedidos.html" class="menu-card">
+        <span class="menu-icon">📋</span>
+        <span class="menu-text">Consultar Pedidos</span>
+      </a>
+      <a href="ver_atividades.html" class="menu-card">
+        <span class="menu-icon">📈</span>
+        <span class="menu-text">Consultar Atividades</span>
+      </a>
+      <a href="ver_ocorrencias.html" class="menu-card">
+        <span class="menu-icon">📄</span>
+        <span class="menu-text">Consultar Ocorrências</span>
+      </a>
     </div>
 
     <button onclick="fazerLogout()" style="background:#ef4444; width: auto; margin-top:30px; padding: 10px 20px;">Sair da Conta</button>
@@ -189,9 +249,7 @@
     const DISMISS_COOLDOWN_MS = 1000 * 60 * 60 * 24 * 3; // 3 dias
 
     function estaInstalada() {
-      // App aberta em modo standalone (já instalada) - Android/Desktop
       const standaloneMatch = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
-      // iOS usa esta propriedade específica no Safari
       const iosStandalone = window.navigator.standalone === true;
       return standaloneMatch || iosStandalone;
     }
@@ -199,7 +257,6 @@
     function isIOS() {
       const ua = window.navigator.userAgent;
       const iOSDevice = /iPad|iPhone|iPod/.test(ua);
-      // iPads recentes reportam-se como Mac, mas têm suporte a touch
       const iPadOS = ua.includes('Macintosh') && navigator.maxTouchPoints > 1;
       return iOSDevice || iPadOS;
     }
@@ -218,7 +275,6 @@
       const btn = document.getElementById('install-btn');
 
       if (isIOS()) {
-        // No iOS não existe prompt nativo: dão-se instruções manuais
         msg.innerHTML = 'Para instalar: toca em <strong>Partilhar</strong> ⬆️ e depois em <strong>"Adicionar ao Ecrã Principal"</strong>';
         btn.style.display = 'none';
       } else {
@@ -241,27 +297,22 @@
       deferredInstallPrompt = null;
       document.getElementById('install-banner').classList.remove('show');
       if (outcome !== 'accepted') {
-        // Se recusou, não insistir de imediato
         localStorage.setItem(INSTALL_DISMISS_KEY, Date.now().toString());
       }
     }
 
-    // Chrome/Edge/Android disparam este evento quando a app é instalável
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredInstallPrompt = e;
       mostrarBannerInstalacao();
     });
 
-    // Depois de instalada, esconder o banner e limpar o estado
     window.addEventListener('appinstalled', () => {
       deferredInstallPrompt = null;
       document.getElementById('install-banner').classList.remove('show');
       localStorage.removeItem(INSTALL_DISMISS_KEY);
     });
 
-    // iOS não dispara 'beforeinstallprompt', por isso mostramos logo o banner
-    // (se ainda não estiver instalada) assim que a página carrega.
     window.addEventListener('load', () => {
       if (isIOS() && !estaInstalada()) {
         mostrarBannerInstalacao();
