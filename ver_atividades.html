@@ -707,7 +707,7 @@
                         (row.pedido_id && row.pedido_info
                             ? '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalPedido(dadosAtividadesPorId[' + row.id + '].pedido_info)">📋 Pedido associado #' + row.pedido_id + ' ' + (row.pedido_info.data_conclusao ? '(✅ Concluído)' : '(⏳ Pendente)') + '</a></p>'
                             : '') +
-                        '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalOcorrencia(dadosAtividadesPorId[' + row.id + '])">🚨 Adicionar ocorrência a esta atividade</a></p>' +
+                        '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalOcorrencia(dadosAtividadesPorId[' + row.id + '])">🚨 Adicionar ocorrência</a></p>' +
                         (row.anexo ? '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalAnexo(\'' + row.anexo + '\')">🖼️ Ver anexo</a></p>' : '');
                     document.getElementById('modal-evento').classList.add('aberta');
                     document.body.style.overflow = 'hidden';
