@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registo de Ocorrência</title>
+  <link rel="icon" type="image/jpeg" href="favicon.png">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0f172a; font-family: Arial, sans-serif; color: white; padding: 30px; }
+    .container { max-width: 900px; margin: auto; background: #1e293b; padding: 35px; border-radius: 18px; box-shadow: 0 0 30px rgba(0,0,0,0.4); }
+    .header-area { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
+    .user-info { color: #94a3b8; font-size: 0.9em; margin-bottom: 20px; }
+    h1 { font-size: 34px; }
+    .btn-voltar { background: #334155; color: white; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: bold; }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .full { grid-column: 1 / -1; }
+
+    label { display: block; margin-bottom: 8px; font-size: 14px; color: #cbd5e1; }
+    input, textarea, select { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #334155; color: white; font-size: 16px; }
+    textarea { min-height: 120px; resize: vertical; }
+
+    /* ===== Secção de associação de atividade ===== */
+    .atividade-association {
+      background: #1e293b;
+      border: 2px solid #3b82f6;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .atividade-association h3 { color: #60a5fa; margin-bottom: 15px; font-size: 18px; }
+    .atividade-select { min-height: 50px; cursor: pointer; }
+    .atividade-select option { padding: 10px; background: #334155; }
+
+    button { width: 100%; margin-top: 25px; padding: 16px; border: none; border-radius: 10px; background: #2563eb; color: white; font-size: 16px; font-weight: bold; cursor: pointer; }
+    button:disabled { background: #475569; cursor: not-allowed; }
+    .success { display: none; margin-top: 20px; background: #065f46; padding: 15px; border-radius: 10px; text-align: center; }
+
+    /* Ajuste para dispositivos móveis */
+    @media (max-width: 640px) {
+      body { padding: 15px; }
+      .container { padding: 20px; border-radius: 14px; }
+      h1 { font-size: 24px; }
+      .grid { grid-template-columns: 1fr; gap: 12px; }
+      .atividade-association { padding: 15px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header-area">
+      <h1>Registo de Ocorrência</h1>
+      <a href="index.html" class="btn-voltar">⬅ Voltar</a>
+    </div>
+
+    <div class="user-info">
+      Utilizador: <span id="user-display" style="color: #60a5fa;">A carregar...</span>
+    </div>
+
+    <!-- ===== Associação de atividade (opcional) ===== -->
+    <div class="atividade-association">
+      <h3>📊 Associar a Atividade (opcional)</h3>
+
+      <label>Selecionar Atividade</label>
+      <select id="selectAtividade" class="atividade-select">
+        <option value="">-- Nenhuma atividade associada --</option>
+      </select>
+    </div>
+
+    <form id="formularioOcorrencia">
+      <div class="grid">
+        <div class="full">
+          <label>Data *</label>
+          <input type="datetime-local" id="dataOcorrencia" name="data" required>
+        </div>
+
+        <div class="full">
+          <label>Ocorrência *</label>
+          <textarea name="ocorrencia" placeholder="Descreve a ocorrência..." required></textarea>
+        </div>
+      </div>
+
+      <button type="submit" id="btnEnviar">Gravar Ocorrência</button>
+    </form>
+
+    <div class="success" id="successMessage">✅ Ocorrência guardada com sucesso!</div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const selectAtividade = document.getElementById('selectAtividade');
+
+    // ===== Carregar atividades para o dropdown =====
+    async function carregarAtividades() {
+      selectAtividade.innerHTML = '<option value="">-- Nenhuma atividade associada --</option>';
+
+      try {
+        const { data: atividades, error } = await supabaseClient
+          .from('atividades')
+          .select('id, tecnico, local_obra, servico, data_hora_inicio')
+          .order('data_hora_inicio', { ascending: false });
+
+        if (error) throw error;
+
+        if (atividades && atividades.length > 0) {
+          atividades.forEach(atividade => {
+            const option = document.createElement('option');
+            option.value = atividade.id;
+
+            let dataTexto = 'Sem data';
+            if (atividade.data_hora_inicio) {
+              const [d, h] = atividade.data_hora_inicio.split('T');
+              const [ano, mes, dia] = d.split('-');
+              dataTexto = `${dia}/${mes}/${ano}${h ? ' ' + h.substring(0, 5) : ''}`;
+            }
+
+            const servicoCurto = (atividade.servico || '').substring(0, 35) + ((atividade.servico || '').length > 35 ? '...' : '');
+            option.textContent = `[#${atividade.id}] [${dataTexto}] ${atividade.tecnico || 'Sem técnico'} — ${atividade.local_obra || 'Sem local'} — ${servicoCurto}`;
+            selectAtividade.appendChild(option);
+          });
+        }
+      } catch (err) {
+        console.error("Erro ao carregar atividades:", err);
+        const option = document.createElement('option');
+        option.value = "";
+        option.textContent = "Erro ao carregar atividades";
+        option.disabled = true;
+        selectAtividade.appendChild(option);
+      }
+    }
+
+    window.onload = async () => {
+      const { data: { user }, error } = await supabaseClient.auth.getUser();
+      if (error || !user) {
+        window.location.href = 'index.html';
+      } else {
+        document.getElementById('user-display').innerText = user.email;
+        definirDataAtual();
+        carregarAtividades();
+      }
+    };
+
+    // Preenche a data com o momento atual
+    function definirDataAtual() {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      document.getElementById("dataOcorrencia").value = now.toISOString().slice(0, 16);
+    }
+
+    const form = document.getElementById("formularioOcorrencia");
+    const btnEnviar = document.getElementById("btnEnviar");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      btnEnviar.disabled = true;
+      btnEnviar.innerText = "A gravar...";
+
+      // Dados da ocorrência
+      const dadosParaEnviar = {
+        data: form.data.value,
+        ocorrencia: form.ocorrencia.value
+      };
+
+      // Associação da atividade (opcional)
+      const atividadeId = selectAtividade.value;
+      if (atividadeId) {
+        dadosParaEnviar.atividade_id = parseInt(atividadeId);
+      }
+
+      console.log("Dados a enviar para o Supabase:", dadosParaEnviar);
+
+      const { data, error } = await supabaseClient
+        .from('ocorrencias')
+        .insert([dadosParaEnviar]);
+
+      if (error) {
+        console.error("Erro detalhado do Supabase:", error);
+        alert("Erro ao gravar no Supabase: " + error.message);
+        btnEnviar.disabled = false;
+        btnEnviar.innerText = "Gravar Ocorrência";
+        return;
+      }
+
+      console.log("Inserido com sucesso:", data);
+
+      // Feedback de sucesso e reset
+      document.getElementById("successMessage").style.display = "block";
+      form.reset();
+      selectAtividade.value = "";
+      definirDataAtual();
+
+      setTimeout(() => {
+        document.getElementById("successMessage").style.display = "none";
+      }, 5000);
+
+      btnEnviar.disabled = false;
+      btnEnviar.innerText = "Gravar Ocorrência";
+    });
+  </script>
+
+</body>
+</html>
