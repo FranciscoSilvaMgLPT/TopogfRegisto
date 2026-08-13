@@ -230,17 +230,48 @@
       }
     };
 
-    function preSelecionarPedidoPorUrl() {
+
+    async function preSelecionarPedidoPorUrl() {
       const params = new URLSearchParams(window.location.search);
       const pedidoId = params.get('pedido');
       if (!pedidoId) return;
 
+      // 1. Pré-selecionar no dropdown
       const select = document.getElementById('selectPedido');
       if (select.querySelector('option[value="' + pedidoId + '"]')) {
         select.value = pedidoId;
         checkboxConcluido.disabled = false;
       } else {
         console.warn('Pedido ' + pedidoId + ' não encontrado nos pedidos pendentes (pode já estar concluído).');
+      }
+
+      // 2. Buscar dados do pedido para pré-preencher Local/Obra e Nº Obra
+      try {
+        const { data: pedido, error } = await supabaseClient
+          .from('pedidos')
+          .select('local_obra, numero_obra')
+          .eq('id', pedidoId)
+          .single();
+
+        if (error || !pedido) {
+          console.warn('Não foi possível carregar os dados do pedido #' + pedidoId);
+          return;
+        }
+
+        // Preencher os campos se estiverem vazios
+        const inputLocal = document.getElementById('inputLocalObra');
+        const inputObra = document.getElementById('inputNumeroObra');
+
+        if (pedido.local_obra && !inputLocal.value) {
+          inputLocal.value = pedido.local_obra;
+        }
+        if (pedido.numero_obra && !inputObra.value) {
+          inputObra.value = pedido.numero_obra;
+        }
+
+        console.log('Dados do pedido #' + pedidoId + ' pré-preenchidos:', pedido);
+      } catch (err) {
+        console.error('Erro ao buscar dados do pedido:', err);
       }
     }
 
