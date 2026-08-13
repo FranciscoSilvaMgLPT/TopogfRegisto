@@ -12,6 +12,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/locales/pt-br.global.min.js"></script>
+
+    <!-- Template Word em ficheiro separado -->
     <script src="template_docx.js"></script>
 
     <style>
@@ -49,6 +51,7 @@
         .modal-evento-conteudo p { margin: 6px 0; }
         .modal-evento-conteudo strong { color: #60a5fa; }
 
+        /* Estilo do formulário dentro das modals */
         .modal-evento-conteudo label { display: block; margin: 12px 0 6px; font-size: 13px; color: #cbd5e1; }
         .modal-evento-conteudo input,
         .modal-evento-conteudo textarea { width: 100%; padding: 10px; border: none; border-radius: 8px; background: #334155; color: white; font-size: 15px; }
@@ -117,6 +120,7 @@
         </div>
     </div>
 
+    <!-- Modal para criar ocorrência associada à atividade -->
     <div id="modal-ocorrencia" class="modal-anexo-overlay" onclick="fecharModalOcorrenciaSeBackdrop(event)">
         <div class="modal-evento-conteudo" onclick="event.stopPropagation()">
             <button type="button" class="modal-anexo-fechar" onclick="fecharModalOcorrencia()" aria-label="Fechar">✕</button>
@@ -460,6 +464,7 @@
             if (e.target.id === 'modal-pedido') fecharModalPedido();
         }
 
+        // ===== Modal de criação de ocorrência =====
         function abrirModalOcorrencia(rowData) {
             ocorrenciaAtividadeAtual = rowData;
             document.getElementById('modal-ocorrencia-titulo').innerText = '🚨 Nova Ocorrência — Atividade #' + rowData.id;
@@ -502,6 +507,13 @@
                 return;
             }
 
+            // Atualiza os dados locais para a modal do calendário mostrar já a nova ocorrência
+            const atividadeLocal = dadosAtividadesPorId[dados.atividade_id];
+            if (atividadeLocal) {
+                atividadeLocal.ocorrencias_info = atividadeLocal.ocorrencias_info || [];
+                atividadeLocal.ocorrencias_info.push(dados);
+            }
+
             fecharModalOcorrencia();
             alert("✅ Ocorrência gravada e associada à atividade #" + dados.atividade_id + "!");
         });
@@ -542,6 +554,7 @@
             dadosAtividadesPorId = {};
             data.forEach(a => { dadosAtividadesPorId[a.id] = a; });
 
+            // Carregar pedidos associados
             const pedidosIds = [...new Set(data.filter(a => a.pedido_id).map(a => a.pedido_id))];
             const mapaPedidos = {};
             if (pedidosIds.length > 0) {
@@ -557,6 +570,23 @@
                 }
             }
             data.forEach(a => { a.pedido_info = mapaPedidos[a.pedido_id] || null; });
+
+            // ===== Carregar ocorrências associadas às atividades =====
+            const { data: ocorrenciasData, error: errOcorrencias } = await sbClient
+                .from('ocorrencias')
+                .select('id, data, ocorrencia, atividade_id')
+                .not('atividade_id', 'is', null);
+
+            const mapaOcorrencias = {};
+            if (errOcorrencias) {
+                console.error("Erro ao carregar ocorrências:", errOcorrencias);
+            } else {
+                (ocorrenciasData || []).forEach(function (o) {
+                    if (!mapaOcorrencias[o.atividade_id]) mapaOcorrencias[o.atividade_id] = [];
+                    mapaOcorrencias[o.atividade_id].push(o);
+                });
+            }
+            data.forEach(a => { a.ocorrencias_info = mapaOcorrencias[a.id] || []; });
 
             table = new Tabulator("#tabela-atividades", {
                 data: data,
@@ -590,7 +620,7 @@
                         const valor = cell.getValue();
                         if (valor) abrirModalAnexo(valor);
                     }},
-
+                    // Coluna Ações com largura automática
                     { title: "Ações", formatter: function (cell) {
                         const temAnexo = !!cell.getRow().getData().anexo;
                         return "<button class='btn-docx'>📄 Docx</button>" +
@@ -707,7 +737,16 @@
                         (row.pedido_id && row.pedido_info
                             ? '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalPedido(dadosAtividadesPorId[' + row.id + '].pedido_info)">📋 Pedido associado #' + row.pedido_id + ' ' + (row.pedido_info.data_conclusao ? '(✅ Concluído)' : '(⏳ Pendente)') + '</a></p>'
                             : '') +
-                        '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalOcorrencia(dadosAtividadesPorId[' + row.id + '])">🚨 Adicionar ocorrência</a></p>' +
+                        // Listar ocorrências associadas (se existirem)
+                        (row.ocorrencias_info && row.ocorrencias_info.length > 0
+                            ? '<p><strong>🚨 Ocorrências associadas:</strong></p>' +
+                              row.ocorrencias_info.map(function (o) {
+                                  return '<p style="margin-left:6px; border-left:3px solid #a855f7; padding-left:8px; margin-bottom:6px;">' +
+                                         '<strong>' + (formatarDataHoraTexto(o.data) || 'Sem data') + ':</strong> ' + (o.ocorrencia || '') +
+                                         '</p>';
+                              }).join('')
+                            : '') +
+                        '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalOcorrencia(dadosAtividadesPorId[' + row.id + '])">🚨 Adicionar ocorrência a esta atividade</a></p>' +
                         (row.anexo ? '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalAnexo(\'' + row.anexo + '\')">🖼️ Ver anexo</a></p>' : '');
                     document.getElementById('modal-evento').classList.add('aberta');
                     document.body.style.overflow = 'hidden';
