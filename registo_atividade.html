@@ -190,7 +190,7 @@
             option.value = pedido.id;
             const data = new Date(pedido.data_hora_pedido).toLocaleDateString('pt-PT');
             const servicoCurto = (pedido.servico || '').substring(0, 40) + ((pedido.servico || '').length > 40 ? '...' : '');
-            option.textContent = `[#${pedido.id}] [${data}] ${pedido.requerente} - ${servicoCurto} (${pedido.local_obra || 'Sem local'})`;
+            option.textContent = `[${data}] ${pedido.requerente} - ${servicoCurto} (${pedido.local_obra || 'Sem local'})`;
             selectPedido.appendChild(option);
           });
         }
