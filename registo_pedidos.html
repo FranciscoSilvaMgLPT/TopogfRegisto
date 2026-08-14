@@ -109,14 +109,17 @@
         <div><label>Concelho *</label><input type="text" name="concelho" required></div>
         <div class="full"><label>Serviço solicitado *</label><textarea name="servico" required></textarea></div>
         <div class="full"><label>Observação</label><textarea name="observacao"></textarea></div>
-        <div><label>Tipo de Trabalho *</label>
-          <select name="tipo_trabalho" required>
-            <option value="Lev. Topográfico">Lev. Topográfico</option>
-            <option value="Monitorização">Monitorização</option>
-            <option value="Implantação">Implantação</option>
-            <option value="Gabinete / Estudos">Gabinete / Estudos</option>
-          </select>
+        
+        <div class="full">
+          <label>Tipo de Trabalho *</label>
+          <div class="tecnico-picker">
+            <label><input type="checkbox" name="tipo_trabalho" value="Lev. Topográfico" class="tipoTrabalhoCheck"> Lev. Topográfico</label>
+            <label><input type="checkbox" name="tipo_trabalho" value="Monitorização" class="tipoTrabalhoCheck"> Monitorização</label>
+            <label><input type="checkbox" name="tipo_trabalho" value="Implantação" class="tipoTrabalhoCheck"> Implantação</label>
+            <label><input type="checkbox" name="tipo_trabalho" value="Gabinete / Estudos" class="tipoTrabalhoCheck"> Gabinete / Estudos</label>
+          </div>
         </div>
+
         <div><label>Frequência *</label>
           <select name="frequencia" required>
             <option value="Única">Única</option>
@@ -152,8 +155,7 @@
       document.getElementById("dataHoraPedido").value = now.toISOString().slice(0, 16);
     }
 
-    // Mapas para preenchimento automático cruzado entre Local/Obra e Nº Obra,
-    // construídos a partir do histórico já existente (atividades + pedidos).
+    // Mapas para preenchimento automático cruzado entre Local/Obra e Nº Obra
     let mapaLocalParaObra = {};
     let mapaObraParaLocal = {};
 
@@ -204,7 +206,7 @@
       }
     }
 
-    // Ao escolher um Local/Obra já existente, preenche automaticamente o Nº Obra correspondente.
+    // Preenchimento automático Local -> Nº Obra
     document.getElementById('inputLocalObra').addEventListener('input', (e) => {
       const valor = e.target.value.trim();
       if (mapaLocalParaObra[valor]) {
@@ -212,7 +214,7 @@
       }
     });
 
-    // Ao escolher um Nº Obra já existente, preenche automaticamente o Local/Obra correspondente.
+    // Preenchimento automático Nº Obra -> Local
     document.getElementById('inputNumeroObra').addEventListener('input', (e) => {
       const valor = e.target.value.trim();
       if (mapaObraParaLocal[valor]) {
@@ -248,15 +250,32 @@
       btn.disabled = true; 
       btn.innerText = "A gravar...";
 
+      // 1. Validar se pelo menos um Tipo de Trabalho foi selecionado
+      const tiposSelecionados = Array.from(document.querySelectorAll('.tipoTrabalhoCheck:checked'))
+        .map(cb => cb.value);
+
+      if (tiposSelecionados.length === 0) {
+        alert("Por favor, selecione pelo menos um Tipo de Trabalho.");
+        btn.disabled = false; 
+        btn.innerText = "Enviar Pedido";
+        return;
+      }
+
       const formData = new FormData(form);
       const supabaseData = Object.fromEntries(formData.entries());
       
-      // Recolher múltiplos checkboxes de técnicos se aplicável
+      // Remover o que o FormData captou nativamente (pois só guarda uma opção se houver várias)
+      delete supabaseData.tipo_trabalho;
+
+      // 2. Recolher múltiplos checkboxes de técnicos (separados por vírgula)
       const tecnicosSelecionados = Array.from(document.querySelectorAll('.tecnicoCheck:checked'))
         .map(cb => cb.value);
       if (tecnicosSelecionados.length > 0) {
         supabaseData.tecnico = tecnicosSelecionados.join(', ');
       }
+
+      // 3. Inserir os Tipos de Trabalho separados por ";" no objeto final
+      supabaseData.tipo_trabalho = tiposSelecionados.join(';');
 
       if (supabaseData.via === "Outros") {
         supabaseData.via = "Outro: " + supabaseData.via_outro;
@@ -269,9 +288,9 @@
         delete dbData.data_conclusao;
       }
 
-if (!dbData.data_hora_limite || dbData.data_hora_limite.trim() === "") {
-    delete dbData.data_hora_limite;
-}
+      if (!dbData.data_hora_limite || dbData.data_hora_limite.trim() === "") {
+        delete dbData.data_hora_limite;
+      }
 
       // Inserção na tabela "pedidos"
       const { error } = await supabaseClient.from('pedidos').insert([dbData]);
@@ -288,6 +307,7 @@ if (!dbData.data_hora_limite || dbData.data_hora_limite.trim() === "") {
       form.reset();
       campoOutroDiv.style.display = "none";
       definirDataPedidoAtual();
+      
       setTimeout(() => { 
         document.getElementById("successMessage").style.display = "none"; 
       }, 5000);
