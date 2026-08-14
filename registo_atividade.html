@@ -182,44 +182,50 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // ===== 1. Carregar pedidos pendentes (Agora com numero_obra) =====
-    async function carregarPedidosPendentes() {
-      const selectPedido = document.getElementById('selectPedido');
-      selectPedido.innerHTML = '<option value="">-- Nenhum pedido associado --</option>';
+   // ===== 1. Carregar pedidos pendentes (Atualizado com empresa e tipo_trabalho) =====
+async function carregarPedidosPendentes() {
+  const selectPedido = document.getElementById('selectPedido');
+  selectPedido.innerHTML = '<option value="">-- Nenhum pedido associado --</option>';
 
-      try {
-        const { data: pedidos, error } = await supabaseClient
-          .from('pedidos')
-          // Adicionado o campo 'numero_obra' à query
-          .select('id, requerente, servico, local_obra, numero_obra, data_hora_pedido')
-          .is('data_conclusao', null)
-          .order('data_hora_pedido', { ascending: false });
+  try {
+    const { data: pedidos, error } = await supabaseClient
+      .from('pedidos')
+      // Adicionados os campos 'empresa' e 'tipo_trabalho' à query
+      .select('id, requerente, empresa, servico, local_obra, numero_obra, tipo_trabalho, data_hora_pedido')
+      .is('data_conclusao', null)
+      .order('data_hora_pedido', { ascending: false });
 
-        if (error) throw error;
+    if (error) throw error;
 
-        if (pedidos && pedidos.length > 0) {
-          pedidos.forEach(pedido => {
-            const option = document.createElement('option');
-            option.value = pedido.id;
-            
-            // Guardar dados nos atributos data-* do option para uso rápido
-            option.dataset.localObra = pedido.local_obra || '';
-            option.dataset.numeroObra = pedido.numero_obra || '';
-            
-            const data = new Date(pedido.data_hora_pedido).toLocaleDateString('pt-PT');
-            const servicoCurto = (pedido.servico || '').substring(0, 40) + ((pedido.servico || '').length > 40 ? '...' : '');
-            option.textContent = `[${data}] ${pedido.requerente} - ${servicoCurto} (${pedido.local_obra || 'Sem local'})`;
-            selectPedido.appendChild(option);
-          });
-        }
-      } catch (err) {
-        console.error("Erro ao carregar pedidos:", err);
+    if (pedidos && pedidos.length > 0) {
+      pedidos.forEach(pedido => {
         const option = document.createElement('option');
-        option.value = "";
-        option.textContent = "Erro ao carregar pedidos";
-        option.disabled = true;
+        option.value = pedido.id;
+        
+        // Guardar dados nos atributos data-* do option para uso rápido
+        option.dataset.localObra = pedido.local_obra || '';
+        option.dataset.numeroObra = pedido.numero_obra || '';
+        
+        // Novo formato: requerente (empresa) - serviço (local_obra) - tipo_trabalho
+        const requerente = pedido.requerente || 'Sem requerente';
+        const empresa = pedido.empresa || '';
+        const servicoCurto = (pedido.servico || '').substring(0, 40) + ((pedido.servico || '').length > 40 ? '...' : '');
+        const localObra = pedido.local_obra || 'Sem local';
+        const tipoTrabalho = pedido.tipo_trabalho || 'Sem tipo';
+        
+        option.textContent = `${requerente} (${empresa}) - ${servicoCurto} (${localObra}) - ${tipoTrabalho}`;
         selectPedido.appendChild(option);
-      }
+      });
     }
+  } catch (err) {
+    console.error("Erro ao carregar pedidos:", err);
+    const option = document.createElement('option');
+    option.value = "";
+    option.textContent = "Erro ao carregar pedidos";
+    option.disabled = true;
+    selectPedido.appendChild(option);
+  }
+}
 
     // ===== 2. Detetar mudança de seleção e preencher campos =====
     const selectPedido = document.getElementById('selectPedido');
