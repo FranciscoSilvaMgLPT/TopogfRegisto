@@ -153,6 +153,17 @@
           <textarea name="Atividade_Servico" required></textarea>
         </div>
 
+        <!-- ===== NOVO: Tipo de Trabalho (Checkboxes) ===== -->
+        <div class="full">
+          <label>Tipo de Trabalho *</label>
+          <div class="tecnico-picker">
+            <label><input type="checkbox" name="tipo_trabalho" value="Lev. Topográfico" class="tipoTrabalhoCheck"> Lev. Topográfico</label>
+            <label><input type="checkbox" name="tipo_trabalho" value="Monitorização" class="tipoTrabalhoCheck"> Monitorização</label>
+            <label><input type="checkbox" name="tipo_trabalho" value="Implantação" class="tipoTrabalhoCheck"> Implantação</label>
+            <label><input type="checkbox" name="tipo_trabalho" value="Gabinete / Estudos" class="tipoTrabalhoCheck"> Gabinete / Estudos</label>
+          </div>
+        </div>
+
         <div class="full">
           <label>Anexar Foto</label>
           <input type="file" id="fotoAnexo" name="anexo" accept="image/*">
@@ -335,6 +346,18 @@
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
+      
+      // ===== VALIDAÇÃO: Tipo de Trabalho =====
+      const tiposSelecionados = Array.from(document.querySelectorAll('.tipoTrabalhoCheck:checked'))
+        .map(cb => cb.value);
+
+      if (tiposSelecionados.length === 0) {
+        alert("Por favor, selecione pelo menos um Tipo de Trabalho.");
+        btnEnviar.disabled = false; 
+        btnEnviar.innerText = "Gravar Atividade";
+        return;
+      }
+
       btnEnviar.disabled = true;
       btnEnviar.innerText = "A carregar foto e a gravar...";
 
@@ -375,6 +398,7 @@
         local_obra: form.Atividade_Local_Obra.value,
         numero_obra: form.numero_obra.value,
         servico: form.Atividade_Servico.value,
+        tipo_trabalho: tiposSelecionados.join(';'),
         anexo: imageUrl
       };
 
