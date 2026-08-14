@@ -165,12 +165,12 @@
     <div class="success" id="successMessage">✅ Atividade guardada com sucesso!</div>
   </div>
 
-  <script>
+   <script>
     const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // ===== Carregar pedidos pendentes =====
+    // ===== 1. Carregar pedidos pendentes (Agora com numero_obra) =====
     async function carregarPedidosPendentes() {
       const selectPedido = document.getElementById('selectPedido');
       selectPedido.innerHTML = '<option value="">-- Nenhum pedido associado --</option>';
@@ -178,7 +178,8 @@
       try {
         const { data: pedidos, error } = await supabaseClient
           .from('pedidos')
-          .select('id, requerente, servico, local_obra, data_hora_pedido')
+          // Adicionado o campo 'numero_obra' à query
+          .select('id, requerente, servico, local_obra, numero_obra, data_hora_pedido')
           .is('data_conclusao', null)
           .order('data_hora_pedido', { ascending: false });
 
@@ -188,6 +189,11 @@
           pedidos.forEach(pedido => {
             const option = document.createElement('option');
             option.value = pedido.id;
+            
+            // Guardar dados nos atributos data-* do option para uso rápido
+            option.dataset.localObra = pedido.local_obra || '';
+            option.dataset.numeroObra = pedido.numero_obra || '';
+            
             const data = new Date(pedido.data_hora_pedido).toLocaleDateString('pt-PT');
             const servicoCurto = (pedido.servico || '').substring(0, 40) + ((pedido.servico || '').length > 40 ? '...' : '');
             option.textContent = `[${data}] ${pedido.requerente} - ${servicoCurto} (${pedido.local_obra || 'Sem local'})`;
@@ -204,14 +210,28 @@
       }
     }
 
-    // ===== Habilitar checkbox apenas quando há pedido selecionado =====
+    // ===== 2. Detetar mudança de seleção e preencher campos =====
     const selectPedido = document.getElementById('selectPedido');
     const checkboxConcluido = document.getElementById('checkboxConcluido');
 
     selectPedido.addEventListener('change', () => {
       if (selectPedido.value) {
         checkboxConcluido.disabled = false;
+        
+        // Obter a opção selecionada e os seus dados guardados
+        const selectedOption = selectPedido.options[selectPedido.selectedIndex];
+        const localObra = selectedOption.dataset.localObra;
+        const numeroObra = selectedOption.dataset.numeroObra;
+        
+        const inputLocal = document.getElementById('inputLocalObra');
+        const inputObra = document.getElementById('inputNumeroObra');
+
+        // Preencher os campos automaticamente
+        if (localObra) inputLocal.value = localObra;
+        if (numeroObra) inputObra.value = numeroObra;
+
       } else {
+        // Se voltar para "-- Nenhum pedido associado --"
         checkboxConcluido.disabled = true;
         checkboxConcluido.checked = false;
       }
@@ -230,48 +250,20 @@
       }
     };
 
-
+    // ===== 3. Simplificação do carregamento por URL =====
     async function preSelecionarPedidoPorUrl() {
       const params = new URLSearchParams(window.location.search);
       const pedidoId = params.get('pedido');
       if (!pedidoId) return;
 
-      // 1. Pré-selecionar no dropdown
       const select = document.getElementById('selectPedido');
       if (select.querySelector('option[value="' + pedidoId + '"]')) {
         select.value = pedidoId;
-        checkboxConcluido.disabled = false;
+        
+        // Dispara o evento 'change' criado acima para preencher os campos automaticamente
+        select.dispatchEvent(new Event('change'));
       } else {
         console.warn('Pedido ' + pedidoId + ' não encontrado nos pedidos pendentes (pode já estar concluído).');
-      }
-
-      // 2. Buscar dados do pedido para pré-preencher Local/Obra e Nº Obra
-      try {
-        const { data: pedido, error } = await supabaseClient
-          .from('pedidos')
-          .select('local_obra, numero_obra')
-          .eq('id', pedidoId)
-          .single();
-
-        if (error || !pedido) {
-          console.warn('Não foi possível carregar os dados do pedido #' + pedidoId);
-          return;
-        }
-
-        // Preencher os campos se estiverem vazios
-        const inputLocal = document.getElementById('inputLocalObra');
-        const inputObra = document.getElementById('inputNumeroObra');
-
-        if (pedido.local_obra && !inputLocal.value) {
-          inputLocal.value = pedido.local_obra;
-        }
-        if (pedido.numero_obra && !inputObra.value) {
-          inputObra.value = pedido.numero_obra;
-        }
-
-        console.log('Dados do pedido #' + pedidoId + ' pré-preenchidos:', pedido);
-      } catch (err) {
-        console.error('Erro ao buscar dados do pedido:', err);
       }
     }
 
@@ -321,6 +313,7 @@
       }
     }
 
+    // Preenchimento automático pelo histórico caso o utilizador digite o local/obra manualmente
     document.getElementById('inputLocalObra').addEventListener('input', (e) => {
       const valor = e.target.value.trim();
       if (mapaLocalParaObra[valor]) document.getElementById('inputNumeroObra').value = mapaLocalParaObra[valor];
@@ -348,7 +341,6 @@
       let imageUrl = null;
       const fileInput = document.getElementById("fotoAnexo");
 
-      // 1. Upload da foto (se houver)
       if (fileInput.files.length > 0) {
         const file = fileInput.files[0];
         const fileExt = file.name.split('.').pop();
@@ -372,12 +364,10 @@
         imageUrl = publicUrlData.publicUrl;
       }
 
-      // Recolher múltiplos checkboxes de técnicos
       const tecnicosSelecionados = Array.from(document.querySelectorAll('.tecnicoCheck:checked'))
         .map(cb => cb.value);
       let nomeTecnico = tecnicosSelecionados.length > 0 ? tecnicosSelecionados.join(', ') : '';
 
-      // 2. Dados da atividade
       const dadosParaEnviar = {
         tecnico: nomeTecnico,
         data_hora_inicio: form.Atividade_Inicio.value,
@@ -388,7 +378,6 @@
         anexo: imageUrl
       };
 
-      // Associação do pedido (se selecionado)
       const pedidoId = selectPedido.value;
       if (pedidoId) {
         dadosParaEnviar.pedido_id = parseInt(pedidoId);
@@ -396,7 +385,6 @@
 
       console.log("Dados a enviar para o Supabase:", dadosParaEnviar);
 
-      // 3. Gravar a atividade (.select() para obter o id da nova atividade)
       const { data: dataInserida, error } = await supabaseClient
         .from('atividades')
         .insert([dadosParaEnviar])
@@ -413,7 +401,6 @@
       console.log("Inserido com sucesso:", dataInserida);
       const novaAtividadeId = dataInserida && dataInserida[0] ? dataInserida[0].id : null;
 
-      // 4. Se a checkbox estiver marcada, atualiza o pedido (data_conclusao + estado)
       if (pedidoId && checkboxConcluido.checked) {
         const dataConclusao = new Date().toISOString();
 
@@ -433,14 +420,13 @@
         }
       }
 
-      // ===== 5. NOVO: criar ocorrência se a descrição estiver preenchida =====
       const textoOcorrencia = document.getElementById('ocorrenciaTexto').value.trim();
 
       if (textoOcorrencia && novaAtividadeId) {
         const { error: errOcorrencia } = await supabaseClient
           .from('ocorrencias')
           .insert([{
-            data: form.Atividade_Inicio.value, // data da ocorrência = início da atividade
+            data: form.Atividade_Inicio.value,
             ocorrencia: textoOcorrencia,
             atividade_id: novaAtividadeId
           }]);
@@ -453,14 +439,13 @@
         }
       }
 
-      // 6. Feedback de sucesso e reset
       document.getElementById("successMessage").style.display = "block";
       form.reset();
       selectPedido.value = "";
       checkboxConcluido.checked = false;
       checkboxConcluido.disabled = true;
       definirDataAtual();
-      carregarPedidosPendentes(); // refresca a lista (remove o pedido concluído)
+      carregarPedidosPendentes();
 
       setTimeout(() => {
         document.getElementById("successMessage").style.display = "none";
