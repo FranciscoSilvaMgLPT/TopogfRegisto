@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📥 Exportar Dados</title>
+  <link rel="icon" type="image/jpeg" href="favicon.png">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0f172a; font-family: Arial, sans-serif; color: white; padding: 30px; }
+    .container { max-width: 900px; margin: auto; background: #1e293b; padding: 35px; border-radius: 18px; box-shadow: 0 0 30px rgba(0,0,0,0.4); }
+    .header-area { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
+    .user-info { color: #94a3b8; font-size: 0.9em; margin-bottom: 20px; }
+    h1 { font-size: 34px; }
+    .btn-voltar { background: #334155; color: white; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: bold; }
+
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+
+    .card {
+      background: #334155;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+    .card h3 { font-size: 18px; color: #60a5fa; }
+    .card .count { color: #94a3b8; font-size: 14px; }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      background: #2563eb;
+      color: white;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover { background: #1d4ed8; }
+    button:disabled { background: #475569; cursor: not-allowed; }
+
+    .btn-all {
+      width: 100%;
+      margin-top: 20px;
+      padding: 16px;
+      background: #059669;
+      font-size: 16px;
+    }
+    .btn-all:hover { background: #047857; }
+
+    .success { display: none; margin-top: 20px; background: #065f46; padding: 15px; border-radius: 10px; text-align: center; }
+
+    @media (max-width: 640px) {
+      body { padding: 15px; }
+      .container { padding: 20px; border-radius: 14px; }
+      h1 { font-size: 24px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header-area">
+      <h1>📥 Exportar Dados</h1>
+      <a href="index.html" class="btn-voltar">⬅ Voltar</a>
+    </div>
+
+    <div class="user-info">
+      Utilizador: <span id="user-display" style="color: #60a5fa;">A carregar...</span>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>📋 Pedidos</h3>
+        <p class="count" id="countPedidos">A contar...</p>
+        <button id="btnPedidos">⬇ Download Pedidos</button>
+      </div>
+      <div class="card">
+        <h3>👣 Atividades</h3>
+        <p class="count" id="countAtividades">A contar...</p>
+        <button id="btnAtividades">⬇ Download Atividades</button>
+      </div>
+      <div class="card">
+        <h3>🚨 Ocorrências</h3>
+        <p class="count" id="countOcorrencias">A contar...</p>
+        <button id="btnOcorrencias">⬇ Download Ocorrências</button>
+      </div>
+    </div>
+
+    <button id="btnTudo" class="btn-all">⬇ Download Tudo (1 ficheiro Excel com 4 folhas: Pedidos, Atividades, Ocorrências e Resumo)</button>
+
+    <div class="success" id="statusMsg"></div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    window.onload = async () => {
+      const { data: { user }, error } = await supabaseClient.auth.getUser();
+      if (error || !user) {
+        window.location.href = 'index.html';
+      } else {
+        document.getElementById('user-display').innerText = user.email;
+        mostrarContagens();
+      }
+    };
+
+    async function mostrarContagens() {
+      const tabelas = [
+        ['pedidos', 'countPedidos'],
+        ['atividades', 'countAtividades'],
+        ['ocorrencias', 'countOcorrencias']
+      ];
+      for (const [tabela, id] of tabelas) {
+        const { count } = await supabaseClient
+          .from(tabela)
+          .select('*', { count: 'exact', head: true });
+        document.getElementById(id).textContent = (count || 0) + ' registos';
+      }
+    }
+
+    async function buscarTudo(tabela) {
+      let tudo = [];
+      let offset = 0;
+      const passo = 1000;
+      while (true) {
+        const { data, error } = await supabaseClient
+          .from(tabela)
+          .select('*')
+          .order('id', { ascending: true })
+          .range(offset, offset + passo - 1);
+
+        if (error) throw error;
+        tudo = tudo.concat(data);
+        if (data.length < passo) break;
+        offset += passo;
+      }
+      return tudo;
+    }
+
+    function obterColunas(rows) {
+      const cols = [];
+      rows.forEach(r => Object.keys(r).forEach(k => {
+        if (!cols.includes(k)) cols.push(k);
+      }));
+      return cols;
+    }
+
+    function ajustarLarguras(ws, rows, cols) {
+      ws['!cols'] = cols.map(c => {
+        let max = c.length;
+        rows.slice(0, 200).forEach(r => {
+          const v = r[c];
+          if (v !== null && v !== undefined) max = Math.max(max, String(v).length);
+        });
+        return { wch: Math.min(max + 2, 60) };
+      });
+    }
+
+    function criarFolha(rows) {
+      if (!rows || rows.length === 0) {
+        return XLSX.utils.aoa_to_sheet([['Sem registos']]);
+      }
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ajustarLarguras(ws, rows, obterColunas(rows));
+      return ws;
+    }
+
+    function contarSeparados(rows, campo, separador) {
+      const cont = {};
+      rows.forEach(r => {
+        (r[campo] || '').split(separador).map(v => v.trim()).filter(Boolean).forEach(v => {
+          cont[v] = (cont[v] || 0) + 1;
+        });
+      });
+      return Object.entries(cont).sort((a, b) => b[1] - a[1]);
+    }
+
+    function agruparPorCampo(rows, campo) {
+      const cont = {};
+      rows.forEach(r => {
+        const v = (r[campo] || '(vazio)').toString().trim() || '(vazio)';
+        cont[v] = (cont[v] || 0) + 1;
+      });
+      return Object.entries(cont).sort((a, b) => b[1] - a[1]);
+    }
+
+    // ===== Agrupar por mês (AAAA-MM) =====
+    function agruparPorMes(rows, campoData) {
+      const cont = {};
+      rows.forEach(r => {
+        const d = r[campoData];
+        if (!d) return;
+        const mes = String(d).substring(0, 7);
+        if (mes.length === 7) cont[mes] = (cont[mes] || 0) + 1;
+      });
+      return Object.entries(cont).sort((a, b) => a[0].localeCompare(b[0]));
+    }
+
+    function percent(num, den) {
+      if (!den) return '0%';
+      return (num / den * 100).toFixed(1) + '%';
+    }
+
+    function construirFolhaResumo(pedidos, atividades, ocorrencias) {
+      const linhas = [];
+      const agora = new Date();
+      const dataGeracao = agora.toLocaleDateString('pt-PT') + ' ' + agora.toLocaleTimeString('pt-PT').slice(0, 5);
+
+      const concluidos = pedidos.filter(p => p.data_conclusao).length;
+      const pendentes = pedidos.length - concluidos;
+
+      linhas.push(['RELATÓRIO RESUMO — gerado em ' + dataGeracao]);
+      linhas.push([]);
+
+      // ============== TOTAIS GERAIS ==============
+      linhas.push(['TOTAIS GERAIS']);
+      linhas.push(['Pedidos totais', pedidos.length]);
+      linhas.push(['Pedidos concluídos', concluidos, percent(concluidos, pedidos.length)]);
+      linhas.push(['Pedidos pendentes', pendentes, percent(pendentes, pedidos.length)]);
+      linhas.push(['Atividades totais', atividades.length]);
+      linhas.push(['Ocorrências totais', ocorrencias.length]);
+      linhas.push([]);
+
+      // ============== PEDIDOS POR EMPRESA ==============
+      linhas.push(['PEDIDOS POR EMPRESA']);
+      linhas.push(['Empresa', 'Total', 'Concluídos', 'Pendentes', 'Taxa conclusão']);
+      const porEmpresa = {};
+      pedidos.forEach(p => {
+        const emp = (p.empresa || '(sem empresa)').trim();
+        if (!porEmpresa[emp]) porEmpresa[emp] = { total: 0, conc: 0 };
+        porEmpresa[emp].total++;
+        if (p.data_conclusao) porEmpresa[emp].conc++;
+      });
+      Object.entries(porEmpresa)
+        .sort((a, b) => b[1].total - a[1].total)
+        .forEach(([emp, v]) => linhas.push([emp, v.total, v.conc, v.total - v.conc, percent(v.conc, v.total)]));
+      linhas.push([]);
+
+      // ============== PEDIDOS POR REQUERENTE (TOP 15) ==============
+      linhas.push(['PEDIDOS POR REQUERENTE (TOP 15)']);
+      linhas.push(['Requerente', 'Pedidos']);
+      agruparPorCampo(pedidos, 'requerente')
+        .slice(0, 15)
+        .forEach(([req, n]) => linhas.push([req, n]));
+      linhas.push([]);
+
+      // ============== PEDIDOS POR VIA DE COMUNICAÇÃO ==============
+      linhas.push(['PEDIDOS POR VIA DE COMUNICAÇÃO']);
+      linhas.push(['Via', 'Pedidos', '%']);
+      const porVia = agruparPorCampo(pedidos, 'via');
+      porVia.forEach(([via, n]) => linhas.push([via, n, percent(n, pedidos.length)]));
+      linhas.push([]);
+
+      // ============== PEDIDOS POR URGÊNCIA ==============
+      linhas.push(['PEDIDOS POR URGÊNCIA']);
+      linhas.push(['Urgência', 'Pedidos', '%']);
+      agruparPorCampo(pedidos, 'urgencia').forEach(([u, n]) => linhas.push([u, n, percent(n, pedidos.length)]));
+      linhas.push([]);
+
+      // ============== PEDIDOS POR FREQUÊNCIA ==============
+      linhas.push(['PEDIDOS POR FREQUÊNCIA']);
+      linhas.push(['Frequência', 'Pedidos', '%']);
+      agruparPorCampo(pedidos, 'frequencia').forEach(([f, n]) => linhas.push([f, n, percent(n, pedidos.length)]));
+      linhas.push([]);
+
+      // ============== ATIVIDADES POR TÉCNICO ==============
+      linhas.push(['ATIVIDADES POR TÉCNICO']);
+      linhas.push(['Técnico', 'Atividades']);
+      contarSeparados(atividades, 'tecnico', ',').forEach(([t, n]) => linhas.push([t, n]));
+      linhas.push([]);
+
+      // ============== TIPOS DE TRABALHO (PEDIDOS) ==============
+      linhas.push(['TIPOS DE TRABALHO (PEDIDOS)']);
+      linhas.push(['Tipo', 'Quantidade', '%']);
+      const tiposP = contarSeparados(pedidos, 'tipo_trabalho', ';');
+      const totalTiposP = tiposP.reduce((s, [, n]) => s + n, 0);
+      tiposP.forEach(([t, n]) => linhas.push([t, n, percent(n, totalTiposP)]));
+      linhas.push([]);
+
+      // ============== TIPOS DE TRABALHO (ATIVIDADES) ==============
+      linhas.push(['TIPOS DE TRABALHO (ATIVIDADES)']);
+      linhas.push(['Tipo', 'Quantidade', '%']);
+      const tiposA = contarSeparados(atividades, 'tipo_trabalho', ';');
+      const totalTiposA = tiposA.reduce((s, [, n]) => s + n, 0);
+      tiposA.forEach(([t, n]) => linhas.push([t, n, percent(n, totalTiposA)]));
+      linhas.push([]);
+
+      // ============== LOCAIS / OBRAS MAIS FREQUENTES (TOP 15) ==============
+      linhas.push(['LOCAIS / OBRAS MAIS FREQUENTES — ATIVIDADES (TOP 15)']);
+      linhas.push(['Local / Obra', 'Atividades']);
+      const porLocalA = {};
+      atividades.forEach(a => {
+        const local = (a.local_obra || '').trim();
+        if (local) porLocalA[local] = (porLocalA[local] || 0) + 1;
+      });
+      Object.entries(porLocalA)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 15)
+        .forEach(([local, n]) => linhas.push([local, n]));
+      linhas.push([]);
+
+      // ============== OCORRÊNCIAS POR LOCAL (TOP 15) ==============
+      linhas.push(['OCORRÊNCIAS POR LOCAL (TOP 15)']);
+      linhas.push(['Local / Obra', 'Ocorrências']);
+      const porLocalO = {};
+      ocorrencias.forEach(o => {
+        const local = (o.local_obra || '').trim();
+        if (local) porLocalO[local] = (porLocalO[local] || 0) + 1;
+      });
+      const locaisOc = Object.entries(porLocalO).sort((a, b) => b[1] - a[1]);
+      if (locaisOc.length === 0) {
+        linhas.push(['(sem registos)']);
+      } else {
+        locaisOc.slice(0, 15).forEach(([local, n]) => linhas.push([local, n]));
+      }
+      linhas.push([]);
+
+      // ============== EVOLUÇÃO MENSAL - PEDIDOS ==============
+      linhas.push(['EVOLUÇÃO MENSAL — PEDIDOS']);
+      linhas.push(['Mês', 'Pedidos']);
+      const pedidosMes = agruparPorMes(pedidos, 'data_hora_pedido');
+      if (pedidosMes.length === 0) {
+        linhas.push(['(sem registos)']);
+      } else {
+        pedidosMes.forEach(([mes, n]) => linhas.push([mes, n]));
+      }
+      linhas.push([]);
+
+      // ============== EVOLUÇÃO MENSAL - ATIVIDADES ==============
+      linhas.push(['EVOLUÇÃO MENSAL — ATIVIDADES']);
+      linhas.push(['Mês', 'Atividades']);
+      const ativMes = agruparPorMes(atividades, 'data_hora_inicio');
+      if (ativMes.length === 0) {
+        linhas.push(['(sem registos)']);
+      } else {
+        ativMes.forEach(([mes, n]) => linhas.push([mes, n]));
+      }
+
+      const ws = XLSX.utils.aoa_to_sheet(linhas);
+      ws['!cols'] = [{ wch: 48 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 16 }];
+      return ws;
+    }
+
+    function gerarExcel(folhas, nomeFicheiro) {
+      const wb = XLSX.utils.book_new();
+      folhas.forEach(f => {
+        XLSX.utils.book_append_sheet(wb, criarFolha(f.rows), f.nome);
+      });
+      XLSX.writeFile(wb, nomeFicheiro);
+    }
+
+    function hoje() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function mostrarStatus(msg) {
+      const el = document.getElementById('statusMsg');
+      el.textContent = msg;
+      el.style.display = 'block';
+      setTimeout(() => { el.style.display = 'none'; }, 5000);
+    }
+
+    async function exportarTabela(tabela, btn) {
+      btn.disabled = true;
+      btn.innerText = 'A preparar...';
+      try {
+        const rows = await buscarTudo(tabela);
+        if (!rows.length) {
+          alert('Não existem dados na tabela ' + tabela + '.');
+          return;
+        }
+        const nomeFolha = tabela.charAt(0).toUpperCase() + tabela.slice(1);
+        gerarExcel([{ nome: nomeFolha, rows }], `${tabela}_${hoje()}.xlsx`);
+        mostrarStatus(`✅ ${rows.length} registos de "${tabela}" exportados!`);
+      } catch (err) {
+        console.error('Erro ao exportar ' + tabela + ':', err);
+        alert('Erro ao exportar ' + tabela + ': ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '⬇ Download ' + tabela.charAt(0).toUpperCase() + tabela.slice(1);
+      }
+    }
+
+    async function exportarTudo(btn) {
+      btn.disabled = true;
+      btn.innerText = 'A preparar ficheiro completo...';
+      try {
+        const [pedidos, atividades, ocorrencias] = await Promise.all([
+          buscarTudo('pedidos'),
+          buscarTudo('atividades'),
+          buscarTudo('ocorrencias')
+        ]);
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, criarFolha(pedidos), 'Pedidos');
+        XLSX.utils.book_append_sheet(wb, criarFolha(atividades), 'Atividades');
+        XLSX.utils.book_append_sheet(wb, criarFolha(ocorrencias), 'Ocorrencias');
+        XLSX.utils.book_append_sheet(wb, construirFolhaResumo(pedidos, atividades, ocorrencias), 'Resumo');
+        XLSX.writeFile(wb, `topogf_dados_completos_${hoje()}.xlsx`);
+
+        mostrarStatus('✅ Ficheiro completo exportado com 4 folhas (Pedidos, Atividades, Ocorrências e Resumo)!');
+      } catch (err) {
+        console.error('Erro ao exportar tudo:', err);
+        alert('Erro ao exportar: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '⬇ Download Tudo (1 ficheiro Excel com 4 folhas: Pedidos, Atividades, Ocorrências e Resumo)';
+      }
+    }
+
+    document.getElementById('btnPedidos').addEventListener('click', (e) => {
+      exportarTabela('pedidos', e.target);
+    });
+    document.getElementById('btnAtividades').addEventListener('click', (e) => {
+      exportarTabela('atividades', e.target);
+    });
+    document.getElementById('btnOcorrencias').addEventListener('click', (e) => {
+      exportarTabela('ocorrencias', e.target);
+    });
+    document.getElementById('btnTudo').addEventListener('click', (e) => {
+      exportarTudo(e.target);
+    });
+  </script>
+
+</body>
+</html>
