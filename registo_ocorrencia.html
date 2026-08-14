@@ -30,42 +30,29 @@
       border-radius: 12px;
       padding: 20px;
       margin-bottom: 20px;
-      /* Permitir que o select "saia" do container se for preciso mais espaço */
-      overflow: visible;
     }
     .atividade-association h3 { color: #60a5fa; margin-bottom: 15px; font-size: 18px; }
-    
-    /* ===== Dropdown que se expande dinamicamente ===== */
-    .atividade-select {
-      min-height: 50px;
-      min-width: 100%;
-      max-width: none;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: width 0.3s ease, min-width 0.3s ease;
-      /* Impedir que o texto seja cortado dentro do select */
-      text-overflow: clip;
-    }
-    .atividade-select option {
-      padding: 10px;
+    .atividade-select { min-height: 50px; cursor: pointer; }
+    .atividade-select option { padding: 10px; background: #334155; }
+
+    /* ===== Painel com a informação completa da atividade selecionada ===== */
+    .atividade-details {
+      display: none;
+      margin-top: 12px;
+      padding: 12px 15px;
       background: #334155;
-      white-space: normal;
+      border-left: 4px solid #3b82f6;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #e2e8f0;
+      line-height: 1.5;
+      word-break: break-word;
+      white-space: pre-wrap;
     }
 
     button { width: 100%; margin-top: 25px; padding: 16px; border: none; border-radius: 10px; background: #2563eb; color: white; font-size: 16px; font-weight: bold; cursor: pointer; }
     button:disabled { background: #475569; cursor: not-allowed; }
     .success { display: none; margin-top: 20px; background: #065f46; padding: 15px; border-radius: 10px; text-align: center; }
-
-    /* Elemento temporário invisível para medir a largura do texto */
-    #medidorTexto {
-      position: absolute;
-      visibility: hidden;
-      white-space: nowrap;
-      font-size: 16px;
-      font-family: Arial, sans-serif;
-      padding: 0 14px;
-      left: -9999px;
-    }
 
     /* Ajuste para dispositivos móveis */
     @media (max-width: 640px) {
@@ -74,8 +61,6 @@
       h1 { font-size: 24px; }
       .grid { grid-template-columns: 1fr; gap: 12px; }
       .atividade-association { padding: 15px; }
-      /* Em mobile, o select não pode sair do ecrã */
-      .atividade-select { max-width: 100%; }
     }
   </style>
 </head>
@@ -99,6 +84,8 @@
       <select id="selectAtividade" class="atividade-select">
         <option value="">-- Nenhuma atividade associada --</option>
       </select>
+
+      <div id="detalhesAtividade" class="atividade-details"></div>
     </div>
 
     <form id="formularioOcorrencia">
@@ -108,12 +95,14 @@
           <input type="datetime-local" id="dataOcorrencia" name="data" required>
         </div>
 
+        <!-- ===== Local / Obra com datalist (existente ou novo) ===== -->
         <div>
           <label>Local / Obra</label>
           <input type="text" name="local_obra" id="inputLocalObra" list="lista-local-obra" autocomplete="off">
           <datalist id="lista-local-obra"></datalist>
         </div>
 
+        <!-- ===== Nº Obra com datalist (existente ou novo) ===== -->
         <div>
           <label>Nº Obra</label>
           <input type="text" name="numero_obra" id="inputNumeroObra" list="lista-numero-obra" autocomplete="off">
@@ -122,7 +111,7 @@
 
         <div class="full">
           <label>Ocorrência *</label>
-          <textarea name="ocorrencia" placeholder="Se algo correu mal ou houve imprevisto, descreve aqui..." required></textarea>
+          <textarea name="ocorrencia" placeholder="Se algo correu mal ou houve imprevisto, descreve aqui... " required></textarea>
         </div>
       </div>
 
@@ -132,34 +121,17 @@
     <div class="success" id="successMessage">✅ Ocorrência guardada com sucesso!</div>
   </div>
 
-  <!-- Elemento invisível para medir a largura do texto -->
-  <div id="medidorTexto"></div>
-
   <script>
     const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const selectAtividade = document.getElementById('selectAtividade');
-    const medidorTexto = document.getElementById('medidorTexto');
+    const detalhesAtividade = document.getElementById('detalhesAtividade');
 
     // ===== Mapas para preenchimento cruzado Local <-> Nº Obra =====
     let mapaLocalParaObra = {};
     let mapaObraParaLocal = {};
-
-    // ===== Função para ajustar a largura do select ao texto selecionado =====
-    function ajustarLarguraSelect() {
-      const textoSelecionado = selectAtividade.options[selectAtividade.selectedIndex]?.text || '';
-      
-      // Medir a largura do texto selecionado
-      medidorTexto.textContent = textoSelecionado;
-      const larguraTexto = medidorTexto.offsetWidth;
-      
-      // Adicionar um pouco de espaço extra para o ícone do select (a seta)
-      const larguraFinal = Math.max(larguraTexto + 40, selectAtividade.parentElement.offsetWidth);
-      
-      selectAtividade.style.width = larguraFinal + 'px';
-    }
 
     // ===== Carregar atividades para o dropdown =====
     async function carregarAtividades() {
@@ -185,8 +157,10 @@
             const localObra = atividade.local_obra || 'Sem local';
             const servico = atividade.servico || '';
 
-            // Texto COMPLETO, sem cortes
-            option.textContent = `${tecnico} - ${localObra} (${servico})`;
+            option.dataset.textoCompleto = `${tecnico} - ${localObra} (${servico})`;
+
+            const servicoCurto = servico.substring(0, 40) + (servico.length > 40 ? '...' : '');
+            option.textContent = `${tecnico} - ${localObra} (${servicoCurto})`;
 
             selectAtividade.appendChild(option);
           });
@@ -199,9 +173,6 @@
         option.disabled = true;
         selectAtividade.appendChild(option);
       }
-
-      // Ajustar largura após carregar todas as opções
-      ajustarLarguraSelect();
     }
 
     // ===== Carregar histórico de Locais e Nº Obra para os datalists =====
@@ -249,7 +220,7 @@
       }
     }
 
-    // ===== Preenchimento automático Local -> Nº Obra =====
+    // ===== Preenchimento automático Local -> Nº Obra (ao digitar/selecionar) =====
     document.getElementById('inputLocalObra').addEventListener('input', (e) => {
       const valor = e.target.value.trim();
       if (mapaLocalParaObra[valor]) {
@@ -265,16 +236,16 @@
       }
     });
 
-    // ===== Auto-preenchimento + alargamento do select ao selecionar =====
+    // ===== Auto-preenchimento + mostrar informação completa ao selecionar atividade =====
     selectAtividade.addEventListener('change', () => {
       const inputLocal = document.getElementById('inputLocalObra');
       const inputObra = document.getElementById('inputNumeroObra');
 
-      // Alargar o select para mostrar o texto completo
-      ajustarLarguraSelect();
-
       if (selectAtividade.value) {
         const selectedOption = selectAtividade.options[selectAtividade.selectedIndex];
+
+        detalhesAtividade.textContent = '📄 ' + selectedOption.dataset.textoCompleto;
+        detalhesAtividade.style.display = 'block';
 
         const localObra = selectedOption.dataset.localObra;
         const numeroObra = selectedOption.dataset.numeroObra;
@@ -282,6 +253,7 @@
         if (localObra) inputLocal.value = localObra;
         if (numeroObra) inputObra.value = numeroObra;
       } else {
+        detalhesAtividade.style.display = 'none';
         inputLocal.value = '';
         inputObra.value = '';
       }
@@ -299,6 +271,7 @@
       }
     };
 
+    // Preenche a data com o momento atual
     function definirDataAtual() {
       const now = new Date();
       now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -344,10 +317,9 @@
       document.getElementById("successMessage").style.display = "block";
       form.reset();
       selectAtividade.value = "";
-      // Voltar à largura inicial após reset
-      selectAtividade.style.width = '';
+      detalhesAtividade.style.display = "none";
       definirDataAtual();
-      carregarHistoricoLocais();
+      carregarHistoricoLocais(); // Atualiza os datalists com o novo registo
 
       setTimeout(() => {
         document.getElementById("successMessage").style.display = "none";
@@ -356,9 +328,6 @@
       btnEnviar.disabled = false;
       btnEnviar.innerText = "Gravar Ocorrência";
     });
-
-    // Reajustar a largura quando a janela é redimensionada
-    window.addEventListener('resize', ajustarLarguraSelect);
   </script>
 
 </body>
