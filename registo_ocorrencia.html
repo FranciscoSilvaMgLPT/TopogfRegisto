@@ -78,6 +78,16 @@
           <input type="datetime-local" id="dataOcorrencia" name="data" required>
         </div>
 
+        <div>
+          <label>Local / Obra</label>
+          <input type="text" name="local_obra" id="inputLocalObra" autocomplete="off">
+        </div>
+
+        <div>
+          <label>Nº Obra</label>
+          <input type="text" name="numero_obra" id="inputNumeroObra" autocomplete="off">
+        </div>
+
         <div class="full">
           <label>Ocorrência *</label>
           <textarea name="ocorrencia" placeholder="Descreve a ocorrência..." required></textarea>
@@ -104,7 +114,7 @@
       try {
         const { data: atividades, error } = await supabaseClient
           .from('atividades')
-          .select('id, tecnico, local_obra, servico, data_hora_inicio')
+          .select('id, tecnico, local_obra, numero_obra, servico, data_hora_inicio')
           .order('data_hora_inicio', { ascending: false });
 
         if (error) throw error;
@@ -113,16 +123,17 @@
           atividades.forEach(atividade => {
             const option = document.createElement('option');
             option.value = atividade.id;
+            
+            // Guardar dados nos atributos data-* para auto-preenchimento
+            option.dataset.localObra = atividade.local_obra || '';
+            option.dataset.numeroObra = atividade.numero_obra || '';
 
-            let dataTexto = 'Sem data';
-            if (atividade.data_hora_inicio) {
-              const [d, h] = atividade.data_hora_inicio.split('T');
-              const [ano, mes, dia] = d.split('-');
-              dataTexto = `${dia}/${mes}/${ano}${h ? ' ' + h.substring(0, 5) : ''}`;
-            }
-
-            const servicoCurto = (atividade.servico || '').substring(0, 35) + ((atividade.servico || '').length > 35 ? '...' : '');
-                     option.textContent = `[${dataTexto}] ${atividade.tecnico || 'Sem técnico'} — ${atividade.local_obra || 'Sem local'} — ${servicoCurto}`;
+            const servicoCurto = (atividade.servico || '').substring(0, 40) + ((atividade.servico || '').length > 40 ? '...' : '');
+            const tecnico = atividade.tecnico || 'Sem técnico';
+            const localObra = atividade.local_obra || 'Sem local';
+            
+            // Novo formato: tecnico - local_obra (serviço)
+            option.textContent = `${tecnico} - ${localObra} (${servicoCurto})`;
             selectAtividade.appendChild(option);
           });
         }
@@ -135,6 +146,25 @@
         selectAtividade.appendChild(option);
       }
     }
+
+    // ===== Auto-preenchimento ao selecionar atividade =====
+    selectAtividade.addEventListener('change', () => {
+      const inputLocal = document.getElementById('inputLocalObra');
+      const inputObra = document.getElementById('inputNumeroObra');
+      
+      if (selectAtividade.value) {
+        const selectedOption = selectAtividade.options[selectAtividade.selectedIndex];
+        const localObra = selectedOption.dataset.localObra;
+        const numeroObra = selectedOption.dataset.numeroObra;
+        
+        if (localObra) inputLocal.value = localObra;
+        if (numeroObra) inputObra.value = numeroObra;
+      } else {
+        // Limpar campos ao voltar para "-- Nenhuma atividade associada --"
+        inputLocal.value = '';
+        inputObra.value = '';
+      }
+    });
 
     window.onload = async () => {
       const { data: { user }, error } = await supabaseClient.auth.getUser();
@@ -165,7 +195,9 @@
       // Dados da ocorrência
       const dadosParaEnviar = {
         data: form.data.value,
-        ocorrencia: form.ocorrencia.value
+        ocorrencia: form.ocorrencia.value,
+        local_obra: form.local_obra.value,
+        numero_obra: form.numero_obra.value
       };
 
       // Associação da atividade (opcional)
