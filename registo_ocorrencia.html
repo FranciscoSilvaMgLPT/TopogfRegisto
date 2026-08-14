@@ -35,7 +35,7 @@
     .atividade-select { min-height: 50px; cursor: pointer; }
     .atividade-select option { padding: 10px; background: #334155; }
 
-    /* ===== NOVO: Painel com a informação completa da atividade selecionada ===== */
+    /* ===== Painel com a informação completa da atividade selecionada ===== */
     .atividade-details {
       display: none;
       margin-top: 12px;
@@ -85,7 +85,6 @@
         <option value="">-- Nenhuma atividade associada --</option>
       </select>
 
-      <!-- NOVO: mostra o texto completo da atividade selecionada -->
       <div id="detalhesAtividade" class="atividade-details"></div>
     </div>
 
@@ -96,19 +95,23 @@
           <input type="datetime-local" id="dataOcorrencia" name="data" required>
         </div>
 
+        <!-- ===== Local / Obra com datalist (existente ou novo) ===== -->
         <div>
           <label>Local / Obra</label>
-          <input type="text" name="local_obra" id="inputLocalObra" autocomplete="off">
+          <input type="text" name="local_obra" id="inputLocalObra" list="lista-local-obra" autocomplete="off">
+          <datalist id="lista-local-obra"></datalist>
         </div>
 
+        <!-- ===== Nº Obra com datalist (existente ou novo) ===== -->
         <div>
           <label>Nº Obra</label>
-          <input type="text" name="numero_obra" id="inputNumeroObra" autocomplete="off">
+          <input type="text" name="numero_obra" id="inputNumeroObra" list="lista-numero-obra" autocomplete="off">
+          <datalist id="lista-numero-obra"></datalist>
         </div>
 
         <div class="full">
           <label>Ocorrência *</label>
-          <textarea name="ocorrencia" placeholder="Se algo correu mal ou houve imprevisto, descreve aqui.." required></textarea>
+          <textarea name="ocorrencia" placeholder="Se algo correu mal ou houve imprevisto, descreve aqui... " required></textarea>
         </div>
       </div>
 
@@ -125,6 +128,10 @@
 
     const selectAtividade = document.getElementById('selectAtividade');
     const detalhesAtividade = document.getElementById('detalhesAtividade');
+
+    // ===== Mapas para preenchimento cruzado Local <-> Nº Obra =====
+    let mapaLocalParaObra = {};
+    let mapaObraParaLocal = {};
 
     // ===== Carregar atividades para o dropdown =====
     async function carregarAtividades() {
@@ -143,7 +150,6 @@
             const option = document.createElement('option');
             option.value = atividade.id;
 
-            // Guardar dados nos atributos data-* para auto-preenchimento
             option.dataset.localObra = atividade.local_obra || '';
             option.dataset.numeroObra = atividade.numero_obra || '';
 
@@ -151,10 +157,8 @@
             const localObra = atividade.local_obra || 'Sem local';
             const servico = atividade.servico || '';
 
-            // Texto COMPLETO (mostrado no painel após selecionar)
             option.dataset.textoCompleto = `${tecnico} - ${localObra} (${servico})`;
 
-            // Texto curto apenas para a lista ficar legível
             const servicoCurto = servico.substring(0, 40) + (servico.length > 40 ? '...' : '');
             option.textContent = `${tecnico} - ${localObra} (${servicoCurto})`;
 
@@ -171,7 +175,68 @@
       }
     }
 
-    // ===== Auto-preenchimento + mostrar informação completa ao selecionar =====
+    // ===== Carregar histórico de Locais e Nº Obra para os datalists =====
+    async function carregarHistoricoLocais() {
+      try {
+        const [{ data: atividadesData }, { data: pedidosData }, { data: ocorrenciasData }] = await Promise.all([
+          supabaseClient.from('atividades').select('local_obra, numero_obra').order('id', { ascending: false }),
+          supabaseClient.from('pedidos').select('local_obra, numero_obra').order('id', { ascending: false }),
+          supabaseClient.from('ocorrencias').select('local_obra, numero_obra').order('id', { ascending: false })
+        ]);
+
+        const combos = [...(atividadesData || []), ...(pedidosData || []), ...(ocorrenciasData || [])];
+        const locaisSet = new Set();
+        const obrasSet = new Set();
+
+        combos.forEach(item => {
+          const local = (item.local_obra || '').trim();
+          const obra = (item.numero_obra || '').trim();
+
+          if (local) {
+            locaisSet.add(local);
+            if (obra && !(local in mapaLocalParaObra)) mapaLocalParaObra[local] = obra;
+          }
+          if (obra) {
+            obrasSet.add(obra);
+            if (local && !(obra in mapaObraParaLocal)) mapaObraParaLocal[obra] = local;
+          }
+        });
+
+        const datalistLocal = document.getElementById('lista-local-obra');
+        locaisSet.forEach(local => {
+          const opt = document.createElement('option');
+          opt.value = local;
+          datalistLocal.appendChild(opt);
+        });
+
+        const datalistObra = document.getElementById('lista-numero-obra');
+        obrasSet.forEach(obra => {
+          const opt = document.createElement('option');
+          opt.value = obra;
+          datalistObra.appendChild(opt);
+        });
+      } catch (err) {
+        console.error("Erro ao carregar histórico de Local/Obra e Nº Obra:", err);
+      }
+    }
+
+    // ===== Preenchimento automático Local -> Nº Obra (ao digitar/selecionar) =====
+    document.getElementById('inputLocalObra').addEventListener('input', (e) => {
+      const valor = e.target.value.trim();
+      if (mapaLocalParaObra[valor]) {
+        document.getElementById('inputNumeroObra').value = mapaLocalParaObra[valor];
+      }
+    });
+
+    // ===== Preenchimento automático Nº Obra -> Local =====
+    document.getElementById('inputNumeroObra').addEventListener('input', (e) => {
+      const valor = e.target.value.trim();
+      if (mapaObraParaLocal[valor]) {
+        document.getElementById('inputLocalObra').value = mapaObraParaLocal[valor];
+      }
+    });
+
+    // ===== Auto-preenchimento + mostrar informação completa ao selecionar atividade =====
     selectAtividade.addEventListener('change', () => {
       const inputLocal = document.getElementById('inputLocalObra');
       const inputObra = document.getElementById('inputNumeroObra');
@@ -179,18 +244,15 @@
       if (selectAtividade.value) {
         const selectedOption = selectAtividade.options[selectAtividade.selectedIndex];
 
-        // Mostrar o texto completo (sem cortes) no painel
         detalhesAtividade.textContent = '📄 ' + selectedOption.dataset.textoCompleto;
         detalhesAtividade.style.display = 'block';
 
-        // Auto-preencher Local/Obra e Nº Obra
         const localObra = selectedOption.dataset.localObra;
         const numeroObra = selectedOption.dataset.numeroObra;
 
         if (localObra) inputLocal.value = localObra;
         if (numeroObra) inputObra.value = numeroObra;
       } else {
-        // Limpar tudo ao voltar para "-- Nenhuma atividade associada --"
         detalhesAtividade.style.display = 'none';
         inputLocal.value = '';
         inputObra.value = '';
@@ -204,6 +266,7 @@
       } else {
         document.getElementById('user-display').innerText = user.email;
         definirDataAtual();
+        carregarHistoricoLocais();
         carregarAtividades();
       }
     };
@@ -223,7 +286,6 @@
       btnEnviar.disabled = true;
       btnEnviar.innerText = "A gravar...";
 
-      // Dados da ocorrência
       const dadosParaEnviar = {
         data: form.data.value,
         ocorrencia: form.ocorrencia.value,
@@ -231,7 +293,6 @@
         numero_obra: form.numero_obra.value
       };
 
-      // Associação da atividade (opcional)
       const atividadeId = selectAtividade.value;
       if (atividadeId) {
         dadosParaEnviar.atividade_id = parseInt(atividadeId);
@@ -253,12 +314,12 @@
 
       console.log("Inserido com sucesso:", data);
 
-      // Feedback de sucesso e reset
       document.getElementById("successMessage").style.display = "block";
       form.reset();
       selectAtividade.value = "";
       detalhesAtividade.style.display = "none";
       definirDataAtual();
+      carregarHistoricoLocais(); // Atualiza os datalists com o novo registo
 
       setTimeout(() => {
         document.getElementById("successMessage").style.display = "none";
