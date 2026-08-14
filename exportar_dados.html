@@ -409,7 +409,7 @@
         XLSX.utils.book_append_sheet(wb, construirFolhaResumo(pedidos, atividades, ocorrencias), 'Resumo');
         XLSX.writeFile(wb, `topogf_dados_completos_${hoje()}.xlsx`);
 
-        mostrarStatus('✅ Ficheiro completo exportado com 4 folhas (Pedidos, Atividades, Ocorrências e Resumo)!');
+        mostrarStatus('✅ Ficheiro completo exportado!');
       } catch (err) {
         console.error('Erro ao exportar tudo:', err);
         alert('Erro ao exportar: ' + err.message);
