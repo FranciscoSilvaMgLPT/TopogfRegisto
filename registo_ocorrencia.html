@@ -35,6 +35,21 @@
     .atividade-select { min-height: 50px; cursor: pointer; }
     .atividade-select option { padding: 10px; background: #334155; }
 
+    /* ===== NOVO: Painel com a informação completa da atividade selecionada ===== */
+    .atividade-details {
+      display: none;
+      margin-top: 12px;
+      padding: 12px 15px;
+      background: #334155;
+      border-left: 4px solid #3b82f6;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #e2e8f0;
+      line-height: 1.5;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
     button { width: 100%; margin-top: 25px; padding: 16px; border: none; border-radius: 10px; background: #2563eb; color: white; font-size: 16px; font-weight: bold; cursor: pointer; }
     button:disabled { background: #475569; cursor: not-allowed; }
     .success { display: none; margin-top: 20px; background: #065f46; padding: 15px; border-radius: 10px; text-align: center; }
@@ -69,6 +84,9 @@
       <select id="selectAtividade" class="atividade-select">
         <option value="">-- Nenhuma atividade associada --</option>
       </select>
+
+      <!-- NOVO: mostra o texto completo da atividade selecionada -->
+      <div id="detalhesAtividade" class="atividade-details"></div>
     </div>
 
     <form id="formularioOcorrencia">
@@ -106,6 +124,7 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const selectAtividade = document.getElementById('selectAtividade');
+    const detalhesAtividade = document.getElementById('detalhesAtividade');
 
     // ===== Carregar atividades para o dropdown =====
     async function carregarAtividades() {
@@ -123,17 +142,22 @@
           atividades.forEach(atividade => {
             const option = document.createElement('option');
             option.value = atividade.id;
-            
+
             // Guardar dados nos atributos data-* para auto-preenchimento
             option.dataset.localObra = atividade.local_obra || '';
             option.dataset.numeroObra = atividade.numero_obra || '';
 
-            const servicoCurto = (atividade.servico || '').substring(0, 40) + ((atividade.servico || '').length > 40 ? '...' : '');
             const tecnico = atividade.tecnico || 'Sem técnico';
             const localObra = atividade.local_obra || 'Sem local';
-            
-            // Novo formato: tecnico - local_obra (serviço)
+            const servico = atividade.servico || '';
+
+            // Texto COMPLETO (mostrado no painel após selecionar)
+            option.dataset.textoCompleto = `${tecnico} - ${localObra} (${servico})`;
+
+            // Texto curto apenas para a lista ficar legível
+            const servicoCurto = servico.substring(0, 40) + (servico.length > 40 ? '...' : '');
             option.textContent = `${tecnico} - ${localObra} (${servicoCurto})`;
+
             selectAtividade.appendChild(option);
           });
         }
@@ -147,20 +171,27 @@
       }
     }
 
-    // ===== Auto-preenchimento ao selecionar atividade =====
+    // ===== Auto-preenchimento + mostrar informação completa ao selecionar =====
     selectAtividade.addEventListener('change', () => {
       const inputLocal = document.getElementById('inputLocalObra');
       const inputObra = document.getElementById('inputNumeroObra');
-      
+
       if (selectAtividade.value) {
         const selectedOption = selectAtividade.options[selectAtividade.selectedIndex];
+
+        // Mostrar o texto completo (sem cortes) no painel
+        detalhesAtividade.textContent = '📄 ' + selectedOption.dataset.textoCompleto;
+        detalhesAtividade.style.display = 'block';
+
+        // Auto-preencher Local/Obra e Nº Obra
         const localObra = selectedOption.dataset.localObra;
         const numeroObra = selectedOption.dataset.numeroObra;
-        
+
         if (localObra) inputLocal.value = localObra;
         if (numeroObra) inputObra.value = numeroObra;
       } else {
-        // Limpar campos ao voltar para "-- Nenhuma atividade associada --"
+        // Limpar tudo ao voltar para "-- Nenhuma atividade associada --"
+        detalhesAtividade.style.display = 'none';
         inputLocal.value = '';
         inputObra.value = '';
       }
@@ -226,6 +257,7 @@
       document.getElementById("successMessage").style.display = "block";
       form.reset();
       selectAtividade.value = "";
+      detalhesAtividade.style.display = "none";
       definirDataAtual();
 
       setTimeout(() => {
