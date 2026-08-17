@@ -3,189 +3,177 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controlo de Stock</title>
+    <title>📦Controlo de Stock - Topografia ©</title>
+    <link rel="icon" type="image/jpeg" href="favicon.png">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Configurações PWA / Instalar como App -->
     <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <!-- Suporte específico para iOS (Apple) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Topografia ©">
+    <link rel="apple-touch-icon" href="favicon.png">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: Arial, sans-serif;
-            background: #f0f2f5;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #0f172a;
+            color: white;
+            min-height: 100vh;
             padding: 20px;
         }
-        .container { max-width: 800px; margin: 0 auto; }
+        .container { max-width: 900px; margin: 0 auto; }
         
         /* Botão Voltar */
         .back-link {
             display: inline-block;
-            padding: 10px 20px;
-            background: #2c3e50;
+            padding: 12px 20px;
+            background: #334155;
             color: white;
             text-decoration: none;
             border-radius: 8px;
             margin-bottom: 20px;
+            transition: background 0.3s;
         }
-        .back-link:hover { background: #34495e; }
+        .back-link:hover { background: #475569; }
         
         header {
-            background: #2c3e50;
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        header h1 { margin-bottom: 5px; }
-        
-        /* Navegação rápida */
-        .quick-nav {
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .quick-nav a {
-            padding: 10px 20px;
-            background: #3498db;
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: bold;
-        }
-        .quick-nav a:hover { background: #2980b9; }
-        
-        .card {
-            background: white;
+            background: #1e293b;
             padding: 25px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 16px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
         }
-        .card h2 {
-            margin-bottom: 20px;
-            color: #2c3e50;
-            border-bottom: 3px solid #3498db;
-            padding-bottom: 10px;
-        }
+        header h1 { font-size: 1.8rem; margin-bottom: 8px; }
+        header p { color: #94a3b8; }
         
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #34495e;
-        }
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            font-size: 16px;
-        }
-        .form-group input:focus,
-        .form-group select:focus {
-            border-color: #3498db;
-            outline: none;
-        }
-        
-        /* BOTÃO ADICIONAR - BEM VISÍVEL */
-        .btn-add {
-            width: 100%;
-            padding: 15px;
-            background: #27ae60;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        .btn-add:hover {
-            background: #229954;
-        }
-        .btn-add:active {
-            transform: scale(0.98);
-        }
-        
-        /* Tabela de Stock */
-        .stock-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        .stock-table th,
-        .stock-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-        .stock-table th {
-            background: #f8f9fa;
-            font-weight: bold;
-        }
-        .stock-table tr:hover {
-            background: #f8f9fa;
-        }
-        
-        /* Botões de ação */
-        .btn-action {
-            padding: 8px 12px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            margin: 2px;
-        }
-        .btn-plus { background: #27ae60; color: white; }
-        .btn-minus { background: #e74c3c; color: white; }
-        .btn-delete { background: #c0392b; color: white; }
-        
-        .stock-badge {
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .stock-ok { background: #d4edda; color: #155724; }
-        .stock-low { background: #fff3cd; color: #856404; }
-        .stock-critical { background: #f8d7da; color: #721c24; }
-        
+        /* Estatísticas */
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
-        .stat-box {
-            background: white;
+        .stat-card {
+            background: #1e293b;
             padding: 20px;
-            border-radius: 10px;
+            border-radius: 12px;
             text-align: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
-        .stat-number {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #3498db;
+        .stat-value { font-size: 2rem; font-weight: bold; color: #3b82f6; }
+        .stat-label { font-size: 0.85rem; color: #94a3b8; margin-top: 5px; }
+        
+        .card {
+            background: #1e293b;
+            padding: 25px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
         }
-        .stat-label {
-            color: #7f8c8d;
-            font-size: 0.9rem;
+        .card h2 {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: white;
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 10px;
         }
         
-        .empty {
-            text-align: center;
-            padding: 40px;
-            color: #999;
+        .form-group { margin-bottom: 15px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #94a3b8;
+            font-size: 0.9rem;
         }
-        .empty-icon {
-            font-size: 3rem;
-            margin-bottom: 10px;
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: #0f172a;
+            color: white;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        
+        .btn {
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary { background: #3b82f6; color: white; width: 100%; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-success { background: #22c55e; color: white; }
+        .btn-success:hover { background: #16a34a; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-small { padding: 8px 12px; font-size: 0.85rem; }
+        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+        
+        .stock-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .stock-table th,
+        .stock-table td {
+            padding: 14px 12px;
+            text-align: left;
+            border-bottom: 1px solid #334155;
+        }
+        .stock-table th {
+            background: #334155;
+            font-weight: 600;
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stock-table tr:hover { background: #334155; }
+        
+        .stock-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .stock-ok { background: #166534; color: #4ade80; }
+        .stock-low { background: #854d0e; color: #fbbf24; }
+        .stock-critical { background: #991b1b; color: #fca5a5; }
+        
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: #64748b;
+        }
+        .empty-state-icon { font-size: 3rem; margin-bottom: 16px; }
+        
+        .search-box {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            background: #0f172a;
+            color: white;
+        }
+        .search-box:focus {
+            outline: none;
+            border-color: #3b82f6;
         }
         
         /* Notificação */
@@ -193,66 +181,102 @@
             position: fixed;
             top: 20px;
             right: 20px;
-            padding: 15px 25px;
+            padding: 16px 24px;
             border-radius: 8px;
             color: white;
-            font-weight: bold;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             transform: translateX(500px);
-            transition: transform 0.3s;
+            transition: transform 0.3s ease;
             z-index: 1000;
         }
         .notification.show { transform: translateX(0); }
-        .notification.success { background: #27ae60; }
-        .notification.error { background: #e74c3c; }
-        .notification.warning { background: #f39c12; }
+        .notification.success { background: #22c55e; }
+        .notification.error { background: #ef4444; }
+        .notification.warning { background: #f59e0b; }
+        
+        /* Loading Spinner */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* Overlay de loading */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .loading-overlay .loading { width: 40px; height: 40px; margin-bottom: 15px; }
+        .loading-overlay p { color: #94a3b8; font-size: 1.1rem; }
+        
+        @media (max-width: 768px) {
+            body { padding: 12px; }
+            header h1 { font-size: 1.5rem; }
+            .stock-table { font-size: 0.85rem; }
+            .stock-table th,
+            .stock-table td { padding: 10px 8px; }
+            .stats { grid-template-columns: repeat(2, 1fr); }
+        }
     </style>
 </head>
 <body>
+    <!-- Overlay de Loading -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading"></div>
+        <p>A carregar stock...</p>
+    </div>
+
     <div class="container">
         <a href="index.html" class="back-link">← Voltar ao Menu</a>
-        
+
         <header>
             <h1>📦 Controlo de Stock</h1>
-            <p>Gestão de materiais e unidades</p>
+            <p>Gestão de materiais e unidades em stock</p>
         </header>
 
-        <!-- Navegação Rápida -->
-        <div class="quick-nav">
-            <a href="#add-material">➕ Adicionar Material</a>
-            <a href="#stock-list">📋 Ver Stock</a>
-            <a href="#stats-section">📊 Estatísticas</a>
-        </div>
-
         <!-- Estatísticas -->
-        <div class="stats" id="stats-section">
-            <div class="stat-box">
-                <div class="stat-number" id="totalMateriais">0</div>
-                <div class="stat-label">Materiais</div>
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalItems">0</div>
+                <div class="stat-label">Total de Materiais</div>
             </div>
-            <div class="stat-box">
-                <div class="stat-number" id="totalUnidades">0</div>
-                <div class="stat-label">Unidades</div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalUnits">0</div>
+                <div class="stat-label">Unidades Totais</div>
             </div>
-            <div class="stat-box">
-                <div class="stat-number" id="stockBaixo">0</div>
+            <div class="stat-card">
+                <div class="stat-value" id="lowStock">0</div>
                 <div class="stat-label">Stock Baixo</div>
             </div>
         </div>
 
-        <!-- FORMULÁRIO ADICIONAR MATERIAL -->
-        <div class="card" id="add-material">
+        <!-- Adicionar Novo Material -->
+        <div class="card">
             <h2>➕ Adicionar Novo Material</h2>
-            <form id="formAdicionar">
+            <form id="addMaterialForm">
                 <div class="form-group">
-                    <label for="nome">Nome do Material *</label>
-                    <input type="text" id="nome" placeholder="Ex: Cabo Fibra Ótica" required>
+                    <label for="materialName">Nome do Material *</label>
+                    <input type="text" id="materialName" placeholder="Ex: Cabo de Fibra Ótica" required>
                 </div>
-                
                 <div class="form-group">
-                    <label for="categoria">Categoria *</label>
-                    <select id="categoria" required>
-                        <option value="">-- Selecionar --</option>
+                    <label for="materialCategory">Categoria *</label>
+                    <select id="materialCategory" required>
+                        <option value="">Selecione uma categoria</option>
                         <option value="Cabos">Cabos</option>
                         <option value="Conectores">Conectores</option>
                         <option value="Ferramentas">Ferramentas</option>
@@ -261,139 +285,174 @@
                         <option value="Outros">Outros</option>
                     </select>
                 </div>
-                
                 <div class="form-group">
-                    <label for="quantidade">Quantidade Inicial *</label>
-                    <input type="number" id="quantidade" min="0" value="0" required>
+                    <label for="materialQuantity">Quantidade Inicial *</label>
+                    <input type="number" id="materialQuantity" min="0" placeholder="0" required>
                 </div>
-                
                 <div class="form-group">
-                    <label for="minimo">Stock Mínimo (alerta) *</label>
-                    <input type="number" id="minimo" min="0" value="10" required>
+                    <label for="materialMinStock">Stock Mínimo (para alerta) *</label>
+                    <input type="number" id="materialMinStock" min="0" placeholder="10" required>
                 </div>
-
-                <!-- BOTÃO GRANDE E VISÍVEL -->
-                <button type="submit" class="btn-add">
-                    ➕ ADICIONAR MATERIAL
+                <button type="submit" class="btn btn-primary" id="btnAdicionar">
+                    ➕ Adicionar Material
                 </button>
             </form>
         </div>
 
-        <!-- LISTA DE MATERIAIS -->
-        <div class="card" id="stock-list">
+        <!-- Lista de Materiais -->
+        <div class="card">
             <h2>📋 Materiais em Stock</h2>
-            <div id="listaStock">
-                <div class="empty">
-                    <div class="empty-icon">📦</div>
-                    <p>Ainda não há materiais registados</p>
+            <input type="text" class="search-box" id="searchBox" placeholder="🔍 Pesquisar materiais...">
+            <div id="stockList">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📦</div>
+                    <p>A carregar materiais...</p>
                 </div>
             </div>
+        </div>
+
+        <!-- Exportar Dados -->
+        <div class="card">
+            <h2>📊 Exportar Dados</h2>
+            <button class="btn btn-success" onclick="exportToCSV()">📥 Exportar para CSV</button>
         </div>
     </div>
 
     <!-- Notificação -->
-    <div id="notificacao" class="notification"></div>
+    <div id="notification" class="notification"></div>
 
     <script>
-        // Classe para gerir o stock
-        class GestorStock {
-            constructor() {
-                this.chave = 'topogf_stock';
-                this.stock = this.carregar();
-            }
+        // ============================================
+        // CONFIGURAÇÃO SUPABASE
+        // ============================================
+        const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-            carregar() {
-                const dados = localStorage.getItem(this.chave);
-                return dados ? JSON.parse(dados) : [];
-            }
+        // Estado global
+        let stockData = [];
+        let filteredData = [];
 
-            guardar() {
-                localStorage.setItem(this.chave, JSON.stringify(this.stock));
-            }
+        // ============================================
+        // FUNÇÕES DE UTILIDADE
+        // ============================================
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            setTimeout(() => notification.classList.remove('show'), 3500);
+        }
 
-            adicionar(material) {
-                material.id = Date.now().toString();
-                material.data = new Date().toLocaleString('pt-PT');
-                this.stock.push(material);
-                this.guardar();
-                return material;
-            }
+        function showLoading() {
+            document.getElementById('loading-overlay').style.display = 'flex';
+        }
 
-            atualizar(id, alteracao) {
-                const item = this.stock.find(s => s.id === id);
-                if (item) {
-                    item.quantidade = Math.max(0, item.quantidade + alteracao);
-                    this.guardar();
-                    return item;
-                }
-                return null;
-            }
+        function hideLoading() {
+            document.getElementById('loading-overlay').style.display = 'none';
+        }
 
-            remover(id) {
-                this.stock = this.stock.filter(s => s.id !== id);
-                this.guardar();
-            }
+        // ============================================
+        // OPERAÇÕES SUPABASE - CRUD
+        // ============================================
 
-            obterEstatisticas() {
-                return {
-                    total: this.stock.length,
-                    unidades: this.stock.reduce((soma, item) => soma + item.quantidade, 0),
-                    baixo: this.stock.filter(item => item.quantidade <= item.minimo).length
-                };
+        // Ler todos os materiais
+        async function loadStock() {
+            try {
+                showLoading();
+                const { data, error } = await supabaseClient
+                    .from('stock')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                stockData = data || [];
+                filteredData = stockData;
+                renderStock();
+                updateStats();
+            } catch (error) {
+                console.error('Erro ao carregar stock:', error);
+                showNotification('Erro ao carregar o stock: ' + error.message, 'error');
+            } finally {
+                hideLoading();
             }
         }
 
-        const gestor = new GestorStock();
+        // Adicionar novo material
+        async function addMaterial(material) {
+            try {
+                const btn = document.getElementById('btnAdicionar');
+                btn.disabled = true;
+                btn.innerHTML = '<span class="loading"></span> A adicionar...';
 
-        // Mostrar notificação
-        function mostrarNotificacao(mensagem, tipo = 'success') {
-            const notif = document.getElementById('notificacao');
-            notif.textContent = mensagem;
-            notif.className = `notification ${tipo} show`;
-            setTimeout(() => notif.classList.remove('show'), 3000);
+                const { data, error } = await supabaseClient
+                    .from('stock')
+                    .insert([material])
+                    .select();
+
+                if (error) throw error;
+
+                showNotification(`✅ "${material.material}" adicionado com sucesso!`, 'success');
+                await loadStock(); // Recarregar a lista
+            } catch (error) {
+                console.error('Erro ao adicionar material:', error);
+                showNotification('Erro ao adicionar material: ' + error.message, 'error');
+            } finally {
+                const btn = document.getElementById('btnAdicionar');
+                btn.disabled = false;
+                btn.innerHTML = '➕ Adicionar Material';
+            }
         }
 
-        // FORMULÁRIO - ADICIONAR MATERIAL
-        document.getElementById('formAdicionar').addEventListener('submit', function(e) {
-            e.preventDefault();
+        // Atualizar quantidade de stock
+        async function updateStockQuantity(id, newQuantity) {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('stock')
+                    .update({ stockatual: newQuantity })
+                    .eq('id', id)
+                    .select();
 
-            // Obter valores
-            const material = {
-                nome: document.getElementById('nome').value.trim(),
-                categoria: document.getElementById('categoria').value,
-                quantidade: parseInt(document.getElementById('quantidade').value),
-                minimo: parseInt(document.getElementById('minimo').value)
-            };
+                if (error) throw error;
 
-            // Validar
-            if (!material.nome || !material.categoria) {
-                mostrarNotificacao('Preenche todos os campos!', 'error');
-                return;
+                await loadStock(); // Recarregar a lista
+            } catch (error) {
+                console.error('Erro ao atualizar stock:', error);
+                showNotification('Erro ao atualizar stock: ' + error.message, 'error');
             }
+        }
 
-            // Adicionar
-            gestor.adicionar(material);
-            mostrarNotificacao(`✅ "${material.nome}" adicionado!`, 'success');
+        // Remover material
+        async function deleteMaterial(id) {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('stock')
+                    .delete()
+                    .eq('id', id);
 
-            // Limpar formulário
-            this.reset();
-            document.getElementById('quantidade').value = '0';
-            document.getElementById('minimo').value = '10';
+                if (error) throw error;
 
-            // Atualizar lista
-            renderizarStock();
-            atualizarEstatisticas();
-        });
+                showNotification('🗑️ Material removido com sucesso!', 'success');
+                await loadStock(); // Recarregar a lista
+            } catch (error) {
+                console.error('Erro ao remover material:', error);
+                showNotification('Erro ao remover material: ' + error.message, 'error');
+            }
+        }
+
+        // ============================================
+        // FUNÇÕES DE INTERFACE
+        // ============================================
 
         // Renderizar lista de stock
-        function renderizarStock() {
-            const lista = document.getElementById('listaStock');
+        function renderStock() {
+            const stockList = document.getElementById('stockList');
 
-            if (gestor.stock.length === 0) {
-                lista.innerHTML = `
-                    <div class="empty">
-                        <div class="empty-icon">📦</div>
-                        <p>Ainda não há materiais registados</p>
+            if (filteredData.length === 0) {
+                stockList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📦</div>
+                        <p>${stockData.length === 0 ? 'Nenhum material registado ainda.' : 'Nenhum material encontrado para a pesquisa.'}</p>
                     </div>
                 `;
                 return;
@@ -405,7 +464,8 @@
                         <tr>
                             <th>Material</th>
                             <th>Categoria</th>
-                            <th>Quantidade</th>
+                            <th>Stock</th>
+                            <th>Mínimo</th>
                             <th>Estado</th>
                             <th>Ações</th>
                         </tr>
@@ -413,85 +473,183 @@
                     <tbody>
             `;
 
-            gestor.stock.forEach(item => {
-                let classe, estado;
-                
-                if (item.quantidade === 0) {
-                    classe = 'stock-critical';
-                    estado = 'Esgotado';
-                } else if (item.quantidade <= item.minimo) {
-                    classe = 'stock-critical';
-                    estado = 'Crítico';
-                } else if (item.quantidade <= item.minimo * 2) {
-                    classe = 'stock-low';
-                    estado = 'Baixo';
-                } else {
-                    classe = 'stock-ok';
-                    estado = 'OK';
+            filteredData.forEach(item => {
+                let stockClass = 'stock-ok';
+                let stockLabel = 'OK';
+
+                if (item.stockatual === 0) {
+                    stockClass = 'stock-critical';
+                    stockLabel = 'Esgotado';
+                } else if (item.stockatual <= item.stockminimo) {
+                    stockClass = 'stock-critical';
+                    stockLabel = 'Crítico';
+                } else if (item.stockatual <= item.stockminimo * 2) {
+                    stockClass = 'stock-low';
+                    stockLabel = 'Baixo';
                 }
 
                 html += `
                     <tr>
-                        <td><strong>${item.nome}</strong></td>
+                        <td><strong>${item.material}</strong></td>
                         <td>${item.categoria}</td>
-                        <td><strong>${item.quantidade}</strong></td>
-                        <td><span class="stock-badge ${classe}">${estado}</span></td>
+                        <td><strong>${item.stockatual}</strong></td>
+                        <td>${item.stockminimo}</td>
+                        <td><span class="stock-badge ${stockClass}">${stockLabel}</span></td>
                         <td>
-                            <button class="btn-action btn-plus" onclick="ajustarStock('${item.id}', 1)">+1</button>
-                            <button class="btn-action btn-minus" onclick="ajustarStock('${item.id}', -1)">-1</button>
-                            <button class="btn-action btn-delete" onclick="removerMaterial('${item.id}', '${item.nome}')">🗑️</button>
+                            <div class="btn-group">
+                                <button class="btn btn-success btn-small" onclick="adjustStock(${item.id}, 1)">+1</button>
+                                <button class="btn btn-success btn-small" onclick="adjustStock(${item.id}, 5)">+5</button>
+                                <button class="btn btn-danger btn-small" onclick="adjustStock(${item.id}, -1)">-1</button>
+                                <button class="btn btn-danger btn-small" onclick="confirmDelete(${item.id}, '${item.material}')">🗑️</button>
+                            </div>
                         </td>
                     </tr>
                 `;
             });
 
             html += '</tbody></table>';
-            lista.innerHTML = html;
+            stockList.innerHTML = html;
         }
 
         // Ajustar quantidade
-        function ajustarStock(id, alteracao) {
-            const item = gestor.atualizar(id, alteracao);
-            
-            if (item) {
-                const msg = alteracao > 0 
-                    ? `➕ Adicionada 1 unidade a "${item.nome}"`
-                    : `➖ Removida 1 unidade de "${item.nome}"`;
-                
-                mostrarNotificacao(msg, alteracao > 0 ? 'success' : 'warning');
+        async function adjustStock(id, change) {
+            const item = stockData.find(s => s.id === id);
+            if (!item) return;
 
-                if (item.quantidade === 0) {
-                    mostrarNotificacao(`⚠️ "${item.nome}" ESGOTADO!`, 'error');
-                } else if (item.quantidade <= item.minimo) {
-                    mostrarNotificacao(`⚠️ "${item.nome}" com stock baixo!`, 'warning');
-                }
+            const newQuantity = Math.max(0, item.stockatual + change);
 
-                renderizarStock();
-                atualizarEstatisticas();
+            if (newQuantity === item.stockatual) {
+                showNotification('⚠️ Não é possível reduzir abaixo de zero!', 'warning');
+                return;
+            }
+
+            await updateStockQuantity(id, newQuantity);
+
+            if (change > 0) {
+                showNotification(`➕ Adicionadas ${change} unidade(s) a "${item.material}"`, 'success');
+            } else {
+                showNotification(`➖ Removidas ${Math.abs(change)} unidade(s) de "${item.material}"`, 'warning');
+            }
+
+            if (newQuantity === 0) {
+                showNotification(`⚠️ "${item.material}" ESGOTADO!`, 'error');
+            } else if (newQuantity <= item.stockminimo) {
+                showNotification(`⚠️ "${item.material}" com stock baixo!`, 'warning');
             }
         }
 
-        // Remover material
-        function removerMaterial(id, nome) {
-            if (confirm(`Tens a certeza que queres remover "${nome}"?`)) {
-                gestor.remover(id);
-                mostrarNotificacao(`🗑️ "${nome}" removido!`, 'success');
-                renderizarStock();
-                atualizarEstatisticas();
+        // Confirmar eliminação
+        function confirmDelete(id, name) {
+            if (confirm(`Tens a certeza que queres remover "${name}" do stock?`)) {
+                deleteMaterial(id);
             }
         }
 
         // Atualizar estatísticas
-        function atualizarEstatisticas() {
-            const stats = gestor.obterEstatisticas();
-            document.getElementById('totalMateriais').textContent = stats.total;
-            document.getElementById('totalUnidades').textContent = stats.unidades;
-            document.getElementById('stockBaixo').textContent = stats.baixo;
+        function updateStats() {
+            const totalItems = stockData.length;
+            const totalUnits = stockData.reduce((sum, item) => sum + item.stockatual, 0);
+            const lowStock = stockData.filter(item => item.stockatual <= item.stockminimo).length;
+
+            document.getElementById('totalItems').textContent = totalItems;
+            document.getElementById('totalUnits').textContent = totalUnits;
+            document.getElementById('lowStock').textContent = lowStock;
         }
 
-        // Inicializar
-        renderizarStock();
-        atualizarEstatisticas();
+        // Pesquisar materiais
+        function searchMaterials(query) {
+            if (!query) {
+                filteredData = stockData;
+            } else {
+                const lowerQuery = query.toLowerCase();
+                filteredData = stockData.filter(item =>
+                    item.material.toLowerCase().includes(lowerQuery) ||
+                    item.categoria.toLowerCase().includes(lowerQuery)
+                );
+            }
+            renderStock();
+        }
+
+        // Exportar para CSV
+        function exportToCSV() {
+            if (stockData.length === 0) {
+                showNotification('Não há dados para exportar!', 'error');
+                return;
+            }
+
+            const headers = ['Nome', 'Categoria', 'Quantidade', 'Stock Mínimo', 'Estado', 'Data de Registo'];
+            const rows = stockData.map(item => {
+                let status = 'OK';
+                if (item.stockatual === 0) status = 'Esgotado';
+                else if (item.stockatual <= item.stockminimo) status = 'Crítico';
+                else if (item.stockatual <= item.stockminimo * 2) status = 'Baixo';
+
+                return [
+                    `"${item.material}"`,
+                    `"${item.categoria}"`,
+                    item.stockatual,
+                    item.stockminimo,
+                    `"${status}"`,
+                    new Date(item.created_at).toLocaleDateString('pt-PT')
+                ].join(',');
+            });
+
+            const csv = [headers.join(','), ...rows].join('\n');
+            const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `stock_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+
+            showNotification('📥 Dados exportados com sucesso!', 'success');
+        }
+
+        // ============================================
+        // EVENT LISTENERS
+        // ============================================
+
+        // Formulário de adicionar material
+        document.getElementById('addMaterialForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const material = {
+                material: document.getElementById('materialName').value.trim(),
+                categoria: document.getElementById('materialCategory').value,
+                stockatual: parseInt(document.getElementById('materialQuantity').value),
+                stockminimo: parseInt(document.getElementById('materialMinStock').value)
+            };
+
+            if (!material.material || !material.categoria) {
+                showNotification('Preenche todos os campos obrigatórios!', 'error');
+                return;
+            }
+
+            await addMaterial(material);
+            this.reset();
+            document.getElementById('materialQuantity').value = '0';
+            document.getElementById('materialMinStock').value = '10';
+        });
+
+        // Campo de pesquisa
+        document.getElementById('searchBox').addEventListener('input', function(e) {
+            searchMaterials(e.target.value);
+        });
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStock();
+        });
+
+        // Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then((reg) => console.log('Service Worker registado com sucesso:', reg.scope))
+                    .catch((err) => console.log('Erro ao registar o Service Worker:', err));
+            });
+        }
     </script>
 </body>
 </html>
