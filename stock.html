@@ -303,7 +303,7 @@
         <!-- Exportar Dados -->
         <div class="card">
             <h2>📊 Exportar Dados</h2>
-            <button class="btn btn-success" onclick="exportToCSV()">📥 Exportar Stock para CSV</button>
+            <button class="btn btn-success" onclick="exportHistoryToCSV()" style="background:#f59e0b;">📜 Exportar Histórico Detalhado</button>
         </div>
     </div>
 
@@ -345,7 +345,7 @@
 
                 const [stockRes, movRes] = await Promise.all([
                     supabaseClient.from('stock').select('*').order('created_at', { ascending: false }),
-                    supabaseClient.from('movimentos_stock').select('*').order('created_at', { ascending: false }).limit(100)
+                    supabaseClient.from('movimentos_stock').select('*').order('created_at', { ascending: false })
                 ]);
 
                 if (stockRes.error) throw stockRes.error;
@@ -586,29 +586,26 @@
             renderStock();
         }
 
-        function exportToCSV() {
-            if (stockData.length === 0) {
-                showNotification('Não há dados para exportar!', 'error');
+        function exportHistoryToCSV() {
+            if (movimentosData.length === 0) {
+                showNotification('Não há histórico para exportar!', 'error');
                 return;
             }
 
-            const headers = ['Material', 'Categoria', 'Stock Atual', 'Stock Mínimo', 'Total Compradas', 'Total Gastas', 'Estado'];
-            const rows = stockData.map(item => {
-                let status = 'OK';
-                if (item.stockatual === 0) status = 'Esgotado';
-                else if (item.stockatual <= item.stockminimo) status = 'Crítico';
-                else if (item.stockatual <= item.stockminimo * 2) status = 'Baixo';
-                return [`"${item.material}"`, `"${item.categoria}"`, item.stockatual, item.stockminimo,
-                    item.totalcompradas || 0, item.totalgastas || 0, `"${status}"`].join(',');
+            const headers = ['Data', 'Material', 'Tipo', 'Quantidade'];
+            const rows = movimentosData.map(m => {
+                const data = new Date(m.created_at).toLocaleString('pt-PT');
+                const tipo = m.tipo === 'entrada' ? 'Compra' : 'Gasto';
+                return [`"${data}"`, `"${m.material}"`, `"${tipo}"`, m.quantidade].join(',');
             });
 
             const csv = [headers.join(','), ...rows].join('\n');
             const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `stock_${new Date().toISOString().split('T')[0]}.csv`;
+            link.download = `historico_movimentos_${new Date().toISOString().split('T')[0]}.csv`;
             link.click();
-            showNotification('📥 Dados exportados com sucesso!', 'success');
+            showNotification('📥 Histórico exportado com sucesso!', 'success');
         }
 
         // ============================================
