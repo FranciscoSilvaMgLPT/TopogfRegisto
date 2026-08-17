@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Histórico de Pedidos</title>
-    <link rel="icon" href="data:,">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -13,7 +12,7 @@
     <link href="https://unpkg.com/tabulator-tables@6.2.1/dist/css/tabulator_midnight.min.css" rel="stylesheet">
     <script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.2.1/dist/js/tabulator.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales/pt-br.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/locales/pt-br.global.min.js"></script>
 
     <style>
         * { box-sizing: border-box; }
@@ -103,7 +102,7 @@
     <div class="toolbar-actions">
         <button onclick="window.location.href='https://franciscosilvamglpt.github.io/TopogfRegisto/registo_pedidos.html'" style="background: #3b82f6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">➕ Adicionar Pedido</button>
         <button id="btn-filtro-concluidos" onclick="toggleConcluidos()" style="background: #64748b; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">👁️ Mostrar Concluídos</button>
-        <button onclick="guardarAlteracoes()" style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">💾 Guardar Alterações</button>
+        <button id="btn-guardar" onclick="guardarAlteracoes()" style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">💾 Guardar Alterações</button>
         <button onclick="exportarParaExcel()" style="background: #8b5cf6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">⬇ Exportar Excel</button>
         <a href="index.html" class="btn-voltar">⬅ Voltar</a>
     </div>
@@ -154,7 +153,9 @@
     let mostrandoConcluidos = false; 
     let mapaAtividadesPorPedido = {};
     let mapaOcorrenciasPorPedido = {};
-    let mapaLinhasAlteradas = {}; // Rastreia apenas as linhas que foram editadas
+
+    // ===== Otimização: rastrear apenas as linhas realmente alteradas =====
+    let idsAlterados = new Set();
 
     function atualizarContador() {
         if(table) {
@@ -413,11 +414,8 @@ eventDidMount: function(info) {
             paginationSize: 50,
             paginationSizeSelector: [15, 50, 100],
        cellEdited: function(cell) {
-                // Rastreia a linha editada no mapa para guardar depois
-                const row = cell.getRow();
-                const dadosLinha = row.getData();
-                mapaLinhasAlteradas[dadosLinha.id] = dadosLinha;
-                
+                // Marca a linha como alterada para a otimização do guardar
+                idsAlterados.add(cell.getRow().getData().id);
                 aplicarFiltros();
                 renderizarCalendario(table.getData());
             },
@@ -475,6 +473,7 @@ eventDidMount: function(info) {
                         if(confirm("Apagar?")) { 
                             const id = cell.getRow().getData().id; 
                             sbClient.from('pedidos').delete().eq('id', id).then(() => { 
+                                idsAlterados.delete(id);
                                 cell.getRow().delete(); 
                                 aplicarFiltros(); 
                                 renderizarCalendario(table.getData()); 
@@ -513,71 +512,54 @@ table.on("tableBuilt", () => {
         aplicarFiltros();
     }
 
+    // ===== Guardar Alterações — otimizado =====
+    // 1) Só envia as linhas que foram efetivamente editadas (idsAlterados)
+    // 2) Envia todos os updates em paralelo (Promise.all) em vez de um a um
     async function guardarAlteracoes() {
-        // Pega apenas os IDs das linhas que foram realmente modificadas
-        const idsParaGuardar = Object.keys(mapaLinhasAlteradas);
-        
-        if (idsParaGuardar.length === 0) {
-            alert("Não há alterações para guardar.");
+        if (idsAlterados.size === 0) {
+            alert("Não há alterações por guardar.");
             return;
         }
 
-        // Mostra um indicador de que está a guardar
-        const btnGuardar = document.querySelector('[onclick="guardarAlteracoes()"]');
-        const textoOriginalBtn = btnGuardar.innerText;
-        btnGuardar.innerText = "⏳ A guardar...";
-        btnGuardar.disabled = true;
-
-        // Cria um array de Promessas (requisições) para executar em PARALELO
-        const promessas = idsParaGuardar.map(id => {
-            const item = mapaLinhasAlteradas[id];
-            return sbClient.from('pedidos').update({
-                tecnico: item.tecnico, 
-                data_hora_pedido: item.data_hora_pedido, 
-                requerente: item.requerente,
-                empresa: item.empresa, 
-                urgencia: item.urgencia, 
-                via: item.via, 
-                local_obra: item.local_obra,
-                concelho: item.concelho, 
-                servico: item.servico, 
-                observacao: item.observacao,
-                tipo_trabalho: item.tipo_trabalho, 
-                frequencia: item.frequencia, 
-                data_hora_limite: item.data_hora_limite,
-                estado: item.estado, 
-                data_conclusao: item.data_conclusao
-            }).eq('id', item.id);
-        });
+        const btn = document.getElementById('btn-guardar');
+        const textoOriginal = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = "⏳ A guardar...";
 
         try {
-            // Executa TODAS as requisições ao mesmo tempo!
-            await Promise.all(promessas);
-            
-            // Limpa o registo de alterações após guardar com sucesso
-            mapaLinhasAlteradas = {};
+            const dados = table.getData();
+            const linhasParaGuardar = dados.filter(item => idsAlterados.has(item.id));
 
-            alert("Guardado com sucesso!");
-            
-            // Recarrega os dados para garantir sincronização total
+            const resultados = await Promise.all(linhasParaGuardar.map(item =>
+                sbClient.from('pedidos').update({
+                    tecnico: item.tecnico, data_hora_pedido: item.data_hora_pedido, requerente: item.requerente,
+                    empresa: item.empresa, urgencia: item.urgencia, via: item.via, local_obra: item.local_obra,
+                    concelho: item.concelho, servico: item.servico, observacao: item.observacao,
+                    tipo_trabalho: item.tipo_trabalho, frequencia: item.frequencia, data_hora_limite: item.data_hora_limite,
+                    estado: item.estado, data_conclusao: item.data_conclusao
+                }).eq('id', item.id)
+            ));
+
+            const algumErro = resultados.find(r => r.error);
+            if (algumErro) {
+                console.error("Erro ao guardar:", algumErro.error);
+                alert("Ocorreu um erro ao guardar algumas alterações. Verifique a consola.");
+            } else {
+                alert("Guardado com sucesso!");
+                idsAlterados.clear();
+            }
+
             const { data: novosDados } = await sbClient.from('pedidos').select('*').order('id', { ascending: false });
-            
-            // Mantém os contadores de atividades/ocorrências após o reload
             novosDados.forEach(p => {
                 p.atividades_count = (mapaAtividadesPorPedido[p.id] || []).length;
                 p.ocorrencias_count = (mapaOcorrenciasPorPedido[p.id] || []).length;
             });
-            
             table.replaceData(novosDados);
             aplicarFiltros();
             renderizarCalendario(novosDados);
-        } catch (error) {
-            console.error("Erro ao guardar:", error);
-            alert("Ocorreu um erro ao guardar as alterações. Verifica a consola.");
         } finally {
-            // Restaura o botão
-            btnGuardar.innerText = textoOriginalBtn;
-            btnGuardar.disabled = false;
+            btn.disabled = false;
+            btn.innerText = textoOriginal;
         }
     }
 
