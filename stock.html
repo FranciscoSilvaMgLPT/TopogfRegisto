@@ -299,12 +299,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- Exportar Dados -->
-        <div class="card">
-            <h2>📊 Exportar Dados</h2>
-            <button class="btn btn-success" onclick="exportHistoryToCSV()" style="background:#f59e0b;">📜 Exportar Histórico Detalhado</button>
-        </div>
     </div>
 
     <div id="notification" class="notification"></div>
@@ -584,28 +578,6 @@
                 );
             }
             renderStock();
-        }
-
-        function exportHistoryToCSV() {
-            if (movimentosData.length === 0) {
-                showNotification('Não há histórico para exportar!', 'error');
-                return;
-            }
-
-            const headers = ['Data', 'Material', 'Tipo', 'Quantidade'];
-            const rows = movimentosData.map(m => {
-                const data = new Date(m.created_at).toLocaleString('pt-PT');
-                const tipo = m.tipo === 'entrada' ? 'Compra' : 'Gasto';
-                return [`"${data}"`, `"${m.material}"`, `"${tipo}"`, m.quantidade].join(',');
-            });
-
-            const csv = [headers.join(','), ...rows].join('\n');
-            const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `historico_movimentos_${new Date().toISOString().split('T')[0]}.csv`;
-            link.click();
-            showNotification('📥 Histórico exportado com sucesso!', 'success');
         }
 
         // ============================================
