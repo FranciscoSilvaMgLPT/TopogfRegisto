@@ -102,7 +102,7 @@
     <div class="toolbar-actions">
         <button onclick="window.location.href='https://franciscosilvamglpt.github.io/TopogfRegisto/registo_pedidos.html'" style="background: #3b82f6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">➕ Adicionar Pedido</button>
         <button id="btn-filtro-concluidos" onclick="toggleConcluidos()" style="background: #64748b; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">👁️ Mostrar Concluídos</button>
-        <button onclick="guardarAlteracoes()" style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">💾 Guardar Alterações</button>
+        <button id="btn-guardar" onclick="guardarAlteracoes()" style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">💾 Guardar Alterações</button>
         <button onclick="exportarParaExcel()" style="background: #8b5cf6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">⬇ Exportar Excel</button>
         <a href="index.html" class="btn-voltar">⬅ Voltar</a>
     </div>
@@ -153,6 +153,32 @@
     let mostrandoConcluidos = false; 
     let mapaAtividadesPorPedido = {};
     let mapaOcorrenciasPorPedido = {};
+
+    // ===== Otimização: rastrear apenas as linhas realmente alteradas =====
+    // idsAlterados é só um "hint" rápido; a deteção real e fiável é feita
+    // comparando o estado atual da tabela com dadosOriginais (snapshot).
+    let idsAlterados = new Set();
+    let dadosOriginais = {};
+    const CAMPOS_GUARDAVEIS = [
+        "tecnico", "data_hora_pedido", "requerente", "empresa", "urgencia",
+        "via", "local_obra", "concelho", "servico", "observacao",
+        "tipo_trabalho", "frequencia", "data_hora_limite", "estado", "data_conclusao"
+    ];
+
+    function guardarSnapshot(dados) {
+        dadosOriginais = {};
+        dados.forEach(item => {
+            const copia = {};
+            CAMPOS_GUARDAVEIS.forEach(campo => { copia[campo] = item[campo] ?? null; });
+            dadosOriginais[item.id] = copia;
+        });
+    }
+
+    function linhaFoiAlterada(item) {
+        const original = dadosOriginais[item.id];
+        if (!original) return true; // linha nova, sem snapshot -> guarda por segurança
+        return CAMPOS_GUARDAVEIS.some(campo => (item[campo] ?? null) !== (original[campo] ?? null));
+    }
 
     function atualizarContador() {
         if(table) {
@@ -404,6 +430,8 @@ eventDidMount: function(info) {
             p.ocorrencias_count = (mapaOcorrenciasPorPedido[p.id] || []).length;
         });
 
+        guardarSnapshot(data);
+
         table = new Tabulator("#tabela-pedidos", {
             data: data,
             layout: "fitData",
@@ -411,6 +439,8 @@ eventDidMount: function(info) {
             paginationSize: 50,
             paginationSizeSelector: [15, 50, 100],
        cellEdited: function(cell) {
+                // Marca a linha como alterada para a otimização do guardar
+                idsAlterados.add(cell.getRow().getData().id);
                 aplicarFiltros();
                 renderizarCalendario(table.getData());
             },
@@ -468,6 +498,7 @@ eventDidMount: function(info) {
                         if(confirm("Apagar?")) { 
                             const id = cell.getRow().getData().id; 
                             sbClient.from('pedidos').delete().eq('id', id).then(() => { 
+                                idsAlterados.delete(id);
                                 cell.getRow().delete(); 
                                 aplicarFiltros(); 
                                 renderizarCalendario(table.getData()); 
@@ -506,22 +537,65 @@ table.on("tableBuilt", () => {
         aplicarFiltros();
     }
 
+    // ===== Guardar Alterações — otimizado =====
+    // 1) Deteta as linhas alteradas comparando com o snapshot original
+    //    (mais fiável do que confiar só no evento cellEdited)
+    // 2) Envia todos os updates em paralelo (Promise.all) em vez de um a um
     async function guardarAlteracoes() {
-        const dados = table.getData();
-        for (const item of dados) {
-            await sbClient.from('pedidos').update({
-                tecnico: item.tecnico, data_hora_pedido: item.data_hora_pedido, requerente: item.requerente,
-                empresa: item.empresa, urgencia: item.urgencia, via: item.via, local_obra: item.local_obra,
-                concelho: item.concelho, servico: item.servico, observacao: item.observacao,
-                tipo_trabalho: item.tipo_trabalho, frequencia: item.frequencia, data_hora_limite: item.data_hora_limite,
-                estado: item.estado, data_conclusao: item.data_conclusao
-            }).eq('id', item.id);
+        // Força o fecho de qualquer editor de célula ainda aberto (ex: flatpickr),
+        // para garantir que a última alteração feita fica mesmo registada.
+        if (table.getEditedCells) {
+            // método pode não existir em todas as versões; ignorar se falhar
         }
-        alert("Guardado com sucesso!");
-        const { data: novosDados } = await sbClient.from('pedidos').select('*').order('id', { ascending: false });
-  table.replaceData(novosDados);
-        aplicarFiltros();
-        renderizarCalendario(novosDados);
+        document.activeElement && document.activeElement.blur();
+
+        const dados = table.getData();
+        // Une o hint do cellEdited com a comparação robusta ao snapshot
+        const linhasParaGuardar = dados.filter(item => idsAlterados.has(item.id) || linhaFoiAlterada(item));
+
+        if (linhasParaGuardar.length === 0) {
+            alert("Não há alterações por guardar.");
+            return;
+        }
+
+        const btn = document.getElementById('btn-guardar');
+        const textoOriginal = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = "⏳ A guardar...";
+
+        try {
+            const resultados = await Promise.all(linhasParaGuardar.map(item =>
+                sbClient.from('pedidos').update({
+                    tecnico: item.tecnico, data_hora_pedido: item.data_hora_pedido, requerente: item.requerente,
+                    empresa: item.empresa, urgencia: item.urgencia, via: item.via, local_obra: item.local_obra,
+                    concelho: item.concelho, servico: item.servico, observacao: item.observacao,
+                    tipo_trabalho: item.tipo_trabalho, frequencia: item.frequencia, data_hora_limite: item.data_hora_limite,
+                    estado: item.estado, data_conclusao: item.data_conclusao
+                }).eq('id', item.id)
+            ));
+
+            const algumErro = resultados.find(r => r.error);
+            if (algumErro) {
+                console.error("Erro ao guardar:", algumErro.error);
+                alert("Ocorreu um erro ao guardar algumas alterações. Verifique a consola.");
+            } else {
+                alert("Guardado com sucesso!");
+                idsAlterados.clear();
+            }
+
+            const { data: novosDados } = await sbClient.from('pedidos').select('*').order('id', { ascending: false });
+            novosDados.forEach(p => {
+                p.atividades_count = (mapaAtividadesPorPedido[p.id] || []).length;
+                p.ocorrencias_count = (mapaOcorrenciasPorPedido[p.id] || []).length;
+            });
+            guardarSnapshot(novosDados);
+            table.replaceData(novosDados);
+            aplicarFiltros();
+            renderizarCalendario(novosDados);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = textoOriginal;
+        }
     }
 
     async function exportarParaExcel() {
