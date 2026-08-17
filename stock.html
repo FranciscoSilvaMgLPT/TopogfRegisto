@@ -636,6 +636,26 @@
         });
 
         // ============================================
+// INICIALIZAÇÃO (com verificação de login)
+// ============================================
+document.addEventListener('DOMContentLoaded', async function() {
+    // Verifica se o utilizador está autenticado
+    const { data } = await supabaseClient.auth.getSession();
+    
+    if (!data.session) {
+        // Sem sessão → volta para o login
+        showNotification('⚠️ Faz login primeiro!', 'error');
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 1500);
+        return;
+    }
+    
+    // Com sessão → carrega o stock
+    loadStock();
+});
+        
+        // ============================================
         // INICIALIZAÇÃO
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
