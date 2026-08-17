@@ -3,13 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📦Controlo de Stock - Topografia ©</title>
+    <title>Controlo de Stock - Topografia ©</title>
     <link rel="icon" type="image/jpeg" href="favicon.png">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Configurações PWA / Instalar como App -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
-    <!-- Suporte específico para iOS (Apple) -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Topografia ©">
@@ -23,9 +21,7 @@
             min-height: 100vh;
             padding: 20px;
         }
-        .container { max-width: 900px; margin: 0 auto; }
-        
-        /* Botão Voltar */
+        .container { max-width: 1000px; margin: 0 auto; }
         .back-link {
             display: inline-block;
             padding: 12px 20px;
@@ -37,7 +33,6 @@
             transition: background 0.3s;
         }
         .back-link:hover { background: #475569; }
-        
         header {
             background: #1e293b;
             padding: 25px;
@@ -47,11 +42,9 @@
         }
         header h1 { font-size: 1.8rem; margin-bottom: 8px; }
         header p { color: #94a3b8; }
-        
-        /* Estatísticas */
         .stats {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 15px;
             margin-bottom: 25px;
         }
@@ -63,8 +56,9 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
         .stat-value { font-size: 2rem; font-weight: bold; color: #3b82f6; }
+        .stat-value.green { color: #22c55e; }
+        .stat-value.red { color: #ef4444; }
         .stat-label { font-size: 0.85rem; color: #94a3b8; margin-top: 5px; }
-        
         .card {
             background: #1e293b;
             padding: 25px;
@@ -79,7 +73,6 @@
             border-bottom: 2px solid #3b82f6;
             padding-bottom: 10px;
         }
-        
         .form-group { margin-bottom: 15px; }
         .form-group label {
             display: block;
@@ -100,11 +93,7 @@
             transition: border-color 0.3s;
         }
         .form-group input:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #3b82f6;
-        }
-        
+        .form-group select:focus { outline: none; border-color: #3b82f6; }
         .btn {
             padding: 14px 24px;
             border: none;
@@ -125,13 +114,14 @@
         .btn-danger:hover { background: #dc2626; }
         .btn-small { padding: 8px 12px; font-size: 0.85rem; }
         .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
-        
+        .table-wrap { overflow-x: auto; }
         .stock-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         .stock-table th,
         .stock-table td {
             padding: 14px 12px;
             text-align: left;
             border-bottom: 1px solid #334155;
+            white-space: nowrap;
         }
         .stock-table th {
             background: #334155;
@@ -142,7 +132,6 @@
             letter-spacing: 0.5px;
         }
         .stock-table tr:hover { background: #334155; }
-        
         .stock-badge {
             display: inline-block;
             padding: 5px 12px;
@@ -153,14 +142,10 @@
         .stock-ok { background: #166534; color: #4ade80; }
         .stock-low { background: #854d0e; color: #fbbf24; }
         .stock-critical { background: #991b1b; color: #fca5a5; }
-        
-        .empty-state {
-            text-align: center;
-            padding: 50px 20px;
-            color: #64748b;
-        }
+        .mov-entrada { background: #166534; color: #4ade80; }
+        .mov-saida { background: #991b1b; color: #fca5a5; }
+        .empty-state { text-align: center; padding: 50px 20px; color: #64748b; }
         .empty-state-icon { font-size: 3rem; margin-bottom: 16px; }
-        
         .search-box {
             width: 100%;
             padding: 12px 16px;
@@ -171,12 +156,7 @@
             background: #0f172a;
             color: white;
         }
-        .search-box:focus {
-            outline: none;
-            border-color: #3b82f6;
-        }
-        
-        /* Notificação */
+        .search-box:focus { outline: none; border-color: #3b82f6; }
         .notification {
             position: fixed;
             top: 20px;
@@ -194,8 +174,6 @@
         .notification.success { background: #22c55e; }
         .notification.error { background: #ef4444; }
         .notification.warning { background: #f59e0b; }
-        
-        /* Loading Spinner */
         .loading {
             display: inline-block;
             width: 20px;
@@ -206,14 +184,9 @@
             animation: spin 1s ease-in-out infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        
-        /* Overlay de loading */
         .loading-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(15, 23, 42, 0.9);
             display: flex;
             flex-direction: column;
@@ -223,19 +196,16 @@
         }
         .loading-overlay .loading { width: 40px; height: 40px; margin-bottom: 15px; }
         .loading-overlay p { color: #94a3b8; font-size: 1.1rem; }
-        
         @media (max-width: 768px) {
             body { padding: 12px; }
             header h1 { font-size: 1.5rem; }
             .stock-table { font-size: 0.85rem; }
-            .stock-table th,
-            .stock-table td { padding: 10px 8px; }
+            .stock-table th, .stock-table td { padding: 10px 8px; }
             .stats { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
 <body>
-    <!-- Overlay de Loading -->
     <div id="loading-overlay" class="loading-overlay">
         <div class="loading"></div>
         <p>A carregar stock...</p>
@@ -246,21 +216,29 @@
 
         <header>
             <h1>📦 Controlo de Stock</h1>
-            <p>Gestão de materiais e unidades em stock</p>
+            <p>Gestão de materiais, compras e gastos</p>
         </header>
 
         <!-- Estatísticas -->
         <div class="stats">
             <div class="stat-card">
                 <div class="stat-value" id="totalItems">0</div>
-                <div class="stat-label">Total de Materiais</div>
+                <div class="stat-label">Materiais</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="totalUnits">0</div>
-                <div class="stat-label">Unidades Totais</div>
+                <div class="stat-label">Unidades em Stock</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="lowStock">0</div>
+                <div class="stat-value green" id="totalBought">0</div>
+                <div class="stat-label">Total Compradas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value red" id="totalSpent">0</div>
+                <div class="stat-label">Total Gastas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="lowStock" style="color:#f59e0b;">0</div>
                 <div class="stat-label">Stock Baixo</div>
             </div>
         </div>
@@ -286,7 +264,7 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="materialQuantity">Quantidade Inicial *</label>
+                    <label for="materialQuantity">Quantidade Inicial (comprada) *</label>
                     <input type="number" id="materialQuantity" min="0" placeholder="0" required>
                 </div>
                 <div class="form-group">
@@ -303,7 +281,7 @@
         <div class="card">
             <h2>📋 Materiais em Stock</h2>
             <input type="text" class="search-box" id="searchBox" placeholder="🔍 Pesquisar materiais...">
-            <div id="stockList">
+            <div id="stockList" class="table-wrap">
                 <div class="empty-state">
                     <div class="empty-state-icon">📦</div>
                     <p>A carregar materiais...</p>
@@ -311,14 +289,24 @@
             </div>
         </div>
 
+        <!-- Histórico de Movimentos -->
+        <div class="card">
+            <h2>📜 Histórico de Movimentos (Compras e Gastos)</h2>
+            <div id="historyList" class="table-wrap">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📜</div>
+                    <p>Ainda não há movimentos registados.</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Exportar Dados -->
         <div class="card">
             <h2>📊 Exportar Dados</h2>
-            <button class="btn btn-success" onclick="exportToCSV()">📥 Exportar para CSV</button>
+            <button class="btn btn-success" onclick="exportToCSV()">📥 Exportar Stock para CSV</button>
         </div>
     </div>
 
-    <!-- Notificação -->
     <div id="notification" class="notification"></div>
 
     <script>
@@ -329,12 +317,12 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Estado global
         let stockData = [];
         let filteredData = [];
+        let movimentosData = [];
 
         // ============================================
-        // FUNÇÕES DE UTILIDADE
+        // UTILITÁRIOS
         // ============================================
         function showNotification(message, type = 'success') {
             const notification = document.getElementById('notification');
@@ -343,57 +331,53 @@
             setTimeout(() => notification.classList.remove('show'), 3500);
         }
 
-        function showLoading() {
-            document.getElementById('loading-overlay').style.display = 'flex';
-        }
-
-        function hideLoading() {
-            document.getElementById('loading-overlay').style.display = 'none';
-        }
+        function showLoading() { document.getElementById('loading-overlay').style.display = 'flex'; }
+        function hideLoading() { document.getElementById('loading-overlay').style.display = 'none'; }
 
         // ============================================
-        // OPERAÇÕES SUPABASE - CRUD
+        // OPERAÇÕES SUPABASE
         // ============================================
 
-        // Ler todos os materiais
+        // Carregar stock + histórico
         async function loadStock() {
             try {
                 showLoading();
-                const { data, error } = await supabaseClient
-                    .from('stock')
-                    .select('*')
-                    .order('created_at', { ascending: false });
 
-                if (error) throw error;
+                const [stockRes, movRes] = await Promise.all([
+                    supabaseClient.from('stock').select('*').order('created_at', { ascending: false }),
+                    supabaseClient.from('movimentos_stock').select('*').order('created_at', { ascending: false }).limit(100)
+                ]);
 
-                stockData = data || [];
+                if (stockRes.error) throw stockRes.error;
+                if (movRes.error) throw movRes.error;
+
+                stockData = stockRes.data || [];
+                movimentosData = movRes.data || [];
                 filteredData = stockData;
+
                 renderStock();
+                renderHistory();
                 updateStats();
             } catch (error) {
-                console.error('Erro ao carregar stock:', error);
-                showNotification('Erro ao carregar o stock: ' + error.message, 'error');
+                console.error('Erro ao carregar dados:', error);
+                showNotification('Erro ao carregar dados: ' + error.message, 'error');
             } finally {
                 hideLoading();
             }
         }
 
-        // Adicionar novo material
+        // Adicionar novo material (quantidade inicial conta como comprada)
         async function addMaterial(material) {
             try {
                 const btn = document.getElementById('btnAdicionar');
                 btn.disabled = true;
                 btn.innerHTML = '<span class="loading"></span> A adicionar...';
 
-                const { data, error } = await supabaseClient
-                    .from('stock')
-                    .insert([material])
-                    .select();
-
+                const { error } = await supabaseClient.from('stock').insert([material]);
                 if (error) throw error;
 
                 showNotification(`✅ "${material.material}" adicionado com sucesso!`, 'success');
-                await loadStock(); // Recarregar a lista
+                await loadStock();
             } catch (error) {
                 console.error('Erro ao adicionar material:', error);
                 showNotification('Erro ao adicionar material: ' + error.message, 'error');
@@ -404,18 +388,57 @@
             }
         }
 
-        // Atualizar quantidade de stock
-        async function updateStockQuantity(id, newQuantity) {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('stock')
-                    .update({ stockatual: newQuantity })
-                    .eq('id', id)
-                    .select();
+        // Atualizar stock + totais + registar movimento
+        async function adjustStock(id, change) {
+            const item = stockData.find(s => s.id === id);
+            if (!item) return;
 
+            const newQuantity = Math.max(0, item.stockatual + change);
+            if (newQuantity === item.stockatual) {
+                showNotification('⚠️ Não é possível reduzir abaixo de zero!', 'warning');
+                return;
+            }
+
+            try {
+                // 1. Atualizar stockatual + totalcompradas/totalgastas
+                const updates = { stockatual: newQuantity };
+                if (change > 0) {
+                    updates.totalcompradas = (item.totalcompradas || 0) + change;
+                } else {
+                    updates.totalgastas = (item.totalgastas || 0) + Math.abs(change);
+                }
+
+                const { error } = await supabaseClient
+                    .from('stock')
+                    .update(updates)
+                    .eq('id', id);
                 if (error) throw error;
 
-                await loadStock(); // Recarregar a lista
+                // 2. Registar no histórico de movimentos
+                const { error: movError } = await supabaseClient
+                    .from('movimentos_stock')
+                    .insert([{
+                        stock_id: id,
+                        material: item.material,
+                        tipo: change > 0 ? 'entrada' : 'saida',
+                        quantidade: Math.abs(change)
+                    }]);
+                if (movError) throw movError;
+
+                // 3. Notificações
+                if (change > 0) {
+                    showNotification(`➕ ${change} unidade(s) comprada(s) para "${item.material}"`, 'success');
+                } else {
+                    showNotification(`➖ ${Math.abs(change)} unidade(s) gasta(s) de "${item.material}"`, 'warning');
+                }
+
+                if (newQuantity === 0) {
+                    showNotification(`⚠️ "${item.material}" ESGOTADO!`, 'error');
+                } else if (newQuantity <= item.stockminimo) {
+                    showNotification(`⚠️ "${item.material}" com stock baixo!`, 'warning');
+                }
+
+                await loadStock();
             } catch (error) {
                 console.error('Erro ao atualizar stock:', error);
                 showNotification('Erro ao atualizar stock: ' + error.message, 'error');
@@ -425,15 +448,10 @@
         // Remover material
         async function deleteMaterial(id) {
             try {
-                const { data, error } = await supabaseClient
-                    .from('stock')
-                    .delete()
-                    .eq('id', id);
-
+                const { error } = await supabaseClient.from('stock').delete().eq('id', id);
                 if (error) throw error;
-
                 showNotification('🗑️ Material removido com sucesso!', 'success');
-                await loadStock(); // Recarregar a lista
+                await loadStock();
             } catch (error) {
                 console.error('Erro ao remover material:', error);
                 showNotification('Erro ao remover material: ' + error.message, 'error');
@@ -441,10 +459,9 @@
         }
 
         // ============================================
-        // FUNÇÕES DE INTERFACE
+        // INTERFACE
         // ============================================
 
-        // Renderizar lista de stock
         function renderStock() {
             const stockList = document.getElementById('stockList');
 
@@ -453,8 +470,7 @@
                     <div class="empty-state">
                         <div class="empty-state-icon">📦</div>
                         <p>${stockData.length === 0 ? 'Nenhum material registado ainda.' : 'Nenhum material encontrado para a pesquisa.'}</p>
-                    </div>
-                `;
+                    </div>`;
                 return;
             }
 
@@ -464,29 +480,21 @@
                         <tr>
                             <th>Material</th>
                             <th>Categoria</th>
-                            <th>Stock</th>
+                            <th>Stock Atual</th>
                             <th>Mínimo</th>
+                            <th>Compradas</th>
+                            <th>Gastas</th>
                             <th>Estado</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
-                    <tbody>
-            `;
+                    <tbody>`;
 
             filteredData.forEach(item => {
-                let stockClass = 'stock-ok';
-                let stockLabel = 'OK';
-
-                if (item.stockatual === 0) {
-                    stockClass = 'stock-critical';
-                    stockLabel = 'Esgotado';
-                } else if (item.stockatual <= item.stockminimo) {
-                    stockClass = 'stock-critical';
-                    stockLabel = 'Crítico';
-                } else if (item.stockatual <= item.stockminimo * 2) {
-                    stockClass = 'stock-low';
-                    stockLabel = 'Baixo';
-                }
+                let stockClass = 'stock-ok', stockLabel = 'OK';
+                if (item.stockatual === 0) { stockClass = 'stock-critical'; stockLabel = 'Esgotado'; }
+                else if (item.stockatual <= item.stockminimo) { stockClass = 'stock-critical'; stockLabel = 'Crítico'; }
+                else if (item.stockatual <= item.stockminimo * 2) { stockClass = 'stock-low'; stockLabel = 'Baixo'; }
 
                 html += `
                     <tr>
@@ -494,6 +502,8 @@
                         <td>${item.categoria}</td>
                         <td><strong>${item.stockatual}</strong></td>
                         <td>${item.stockminimo}</td>
+                        <td style="color:#4ade80; font-weight:bold;">${item.totalcompradas || 0}</td>
+                        <td style="color:#fca5a5; font-weight:bold;">${item.totalgastas || 0}</td>
                         <td><span class="stock-badge ${stockClass}">${stockLabel}</span></td>
                         <td>
                             <div class="btn-group">
@@ -503,95 +513,93 @@
                                 <button class="btn btn-danger btn-small" onclick="confirmDelete(${item.id}, '${item.material}')">🗑️</button>
                             </div>
                         </td>
-                    </tr>
-                `;
+                    </tr>`;
             });
 
             html += '</tbody></table>';
             stockList.innerHTML = html;
         }
 
-        // Ajustar quantidade
-        async function adjustStock(id, change) {
-            const item = stockData.find(s => s.id === id);
-            if (!item) return;
+        // Renderizar histórico de movimentos
+        function renderHistory() {
+            const el = document.getElementById('historyList');
 
-            const newQuantity = Math.max(0, item.stockatual + change);
-
-            if (newQuantity === item.stockatual) {
-                showNotification('⚠️ Não é possível reduzir abaixo de zero!', 'warning');
+            if (movimentosData.length === 0) {
+                el.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📜</div>
+                        <p>Ainda não há movimentos registados.</p>
+                    </div>`;
                 return;
             }
 
-            await updateStockQuantity(id, newQuantity);
+            let html = `
+                <table class="stock-table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Material</th>
+                            <th>Tipo</th>
+                            <th>Quantidade</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
 
-            if (change > 0) {
-                showNotification(`➕ Adicionadas ${change} unidade(s) a "${item.material}"`, 'success');
-            } else {
-                showNotification(`➖ Removidas ${Math.abs(change)} unidade(s) de "${item.material}"`, 'warning');
-            }
+            movimentosData.forEach(m => {
+                const isEntrada = m.tipo === 'entrada';
+                html += `
+                    <tr>
+                        <td>${new Date(m.created_at).toLocaleString('pt-PT')}</td>
+                        <td><strong>${m.material}</strong></td>
+                        <td><span class="stock-badge ${isEntrada ? 'mov-entrada' : 'mov-saida'}">${isEntrada ? '📥 Compra' : '📤 Gasto'}</span></td>
+                        <td><strong>${isEntrada ? '+' : '-'}${m.quantidade}</strong></td>
+                    </tr>`;
+            });
 
-            if (newQuantity === 0) {
-                showNotification(`⚠️ "${item.material}" ESGOTADO!`, 'error');
-            } else if (newQuantity <= item.stockminimo) {
-                showNotification(`⚠️ "${item.material}" com stock baixo!`, 'warning');
-            }
+            html += '</tbody></table>';
+            el.innerHTML = html;
         }
 
-        // Confirmar eliminação
         function confirmDelete(id, name) {
-            if (confirm(`Tens a certeza que queres remover "${name}" do stock?`)) {
+            if (confirm(`Tens a certeza que queres remover "${name}" do stock?\n(O histórico de movimentos será mantido)`)) {
                 deleteMaterial(id);
             }
         }
 
-        // Atualizar estatísticas
         function updateStats() {
-            const totalItems = stockData.length;
-            const totalUnits = stockData.reduce((sum, item) => sum + item.stockatual, 0);
-            const lowStock = stockData.filter(item => item.stockatual <= item.stockminimo).length;
-
-            document.getElementById('totalItems').textContent = totalItems;
-            document.getElementById('totalUnits').textContent = totalUnits;
-            document.getElementById('lowStock').textContent = lowStock;
+            document.getElementById('totalItems').textContent = stockData.length;
+            document.getElementById('totalUnits').textContent = stockData.reduce((s, i) => s + i.stockatual, 0);
+            document.getElementById('totalBought').textContent = stockData.reduce((s, i) => s + (i.totalcompradas || 0), 0);
+            document.getElementById('totalSpent').textContent = stockData.reduce((s, i) => s + (i.totalgastas || 0), 0);
+            document.getElementById('lowStock').textContent = stockData.filter(i => i.stockatual <= i.stockminimo).length;
         }
 
-        // Pesquisar materiais
         function searchMaterials(query) {
             if (!query) {
                 filteredData = stockData;
             } else {
-                const lowerQuery = query.toLowerCase();
-                filteredData = stockData.filter(item =>
-                    item.material.toLowerCase().includes(lowerQuery) ||
-                    item.categoria.toLowerCase().includes(lowerQuery)
+                const q = query.toLowerCase();
+                filteredData = stockData.filter(i =>
+                    i.material.toLowerCase().includes(q) || i.categoria.toLowerCase().includes(q)
                 );
             }
             renderStock();
         }
 
-        // Exportar para CSV
         function exportToCSV() {
             if (stockData.length === 0) {
                 showNotification('Não há dados para exportar!', 'error');
                 return;
             }
 
-            const headers = ['Nome', 'Categoria', 'Quantidade', 'Stock Mínimo', 'Estado', 'Data de Registo'];
+            const headers = ['Material', 'Categoria', 'Stock Atual', 'Stock Mínimo', 'Total Compradas', 'Total Gastas', 'Estado'];
             const rows = stockData.map(item => {
                 let status = 'OK';
                 if (item.stockatual === 0) status = 'Esgotado';
                 else if (item.stockatual <= item.stockminimo) status = 'Crítico';
                 else if (item.stockatual <= item.stockminimo * 2) status = 'Baixo';
-
-                return [
-                    `"${item.material}"`,
-                    `"${item.categoria}"`,
-                    item.stockatual,
-                    item.stockminimo,
-                    `"${status}"`,
-                    new Date(item.created_at).toLocaleDateString('pt-PT')
-                ].join(',');
+                return [`"${item.material}"`, `"${item.categoria}"`, item.stockatual, item.stockminimo,
+                    item.totalcompradas || 0, item.totalgastas || 0, `"${status}"`].join(',');
             });
 
             const csv = [headers.join(','), ...rows].join('\n');
@@ -600,23 +608,24 @@
             link.href = URL.createObjectURL(blob);
             link.download = `stock_${new Date().toISOString().split('T')[0]}.csv`;
             link.click();
-
             showNotification('📥 Dados exportados com sucesso!', 'success');
         }
 
         // ============================================
-        // EVENT LISTENERS
+        // EVENTOS + INICIALIZAÇÃO
         // ============================================
-
-        // Formulário de adicionar material
         document.getElementById('addMaterialForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+
+            const quantidade = parseInt(document.getElementById('materialQuantity').value);
 
             const material = {
                 material: document.getElementById('materialName').value.trim(),
                 categoria: document.getElementById('materialCategory').value,
-                stockatual: parseInt(document.getElementById('materialQuantity').value),
-                stockminimo: parseInt(document.getElementById('materialMinStock').value)
+                stockatual: quantidade,
+                stockminimo: parseInt(document.getElementById('materialMinStock').value),
+                totalcompradas: quantidade,  // quantidade inicial conta como comprada
+                totalgastas: 0
             };
 
             if (!material.material || !material.categoria) {
@@ -626,48 +635,25 @@
 
             await addMaterial(material);
             this.reset();
-            document.getElementById('materialQuantity').value = '0';
-            document.getElementById('materialMinStock').value = '10';
         });
 
-        // Campo de pesquisa
-        document.getElementById('searchBox').addEventListener('input', function(e) {
-            searchMaterials(e.target.value);
-        });
+        document.getElementById('searchBox').addEventListener('input', e => searchMaterials(e.target.value));
 
-        // ============================================
-// INICIALIZAÇÃO (com verificação de login)
-// ============================================
-document.addEventListener('DOMContentLoaded', async function() {
-    // Verifica se o utilizador está autenticado
-    const { data } = await supabaseClient.auth.getSession();
-    
-    if (!data.session) {
-        // Sem sessão → volta para o login
-        showNotification('⚠️ Faz login primeiro!', 'error');
-        setTimeout(() => {
-            window.location.href = 'index.html';
-        }, 1500);
-        return;
-    }
-    
-    // Com sessão → carrega o stock
-    loadStock();
-});
-        
-        // ============================================
-        // INICIALIZAÇÃO
-        // ============================================
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            const { data } = await supabaseClient.auth.getSession();
+            if (!data.session) {
+                showNotification('⚠️ Faz login primeiro!', 'error');
+                setTimeout(() => { window.location.href = 'index.html'; }, 1500);
+                return;
+            }
             loadStock();
         });
 
-        // Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
-                    .then((reg) => console.log('Service Worker registado com sucesso:', reg.scope))
-                    .catch((err) => console.log('Erro ao registar o Service Worker:', err));
+                    .then(reg => console.log('Service Worker registado:', reg.scope))
+                    .catch(err => console.log('Erro ao registar SW:', err));
             });
         }
     </script>
