@@ -3,186 +3,495 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controlo de Stock - TopogfRegisto</title>
+    <title>Controlo de Stock</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2c3e50">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: #f5f7fa;
-            color: #2c3e50;
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
             padding: 20px;
-            line-height: 1.6;
         }
-        .container { max-width: 900px; margin: 0 auto; }
-        header {
-            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 24px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        header h1 { font-size: 1.8rem; margin-bottom: 8px; }
-        header p { opacity: 0.9; font-size: 0.95rem; }
+        .container { max-width: 800px; margin: 0 auto; }
+        
+        /* Botão Voltar */
         .back-link {
             display: inline-block;
-            margin-bottom: 16px;
-            color: #2c3e50;
+            padding: 10px 20px;
+            background: #2c3e50;
+            color: white;
             text-decoration: none;
-            font-weight: 500;
-            padding: 8px 16px;
-            background: white;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            transition: all 0.2s;
+            margin-bottom: 20px;
         }
-        .back-link:hover { background: #e8ecf1; transform: translateX(-2px); }
+        .back-link:hover { background: #34495e; }
+        
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        header h1 { margin-bottom: 5px; }
+        
+        /* Navegação rápida */
+        .quick-nav {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .quick-nav a {
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+        .quick-nav a:hover { background: #2980b9; }
+        
         .card {
             background: white;
-            border-radius: 12px;
-            padding: 24px;
+            padding: 25px;
+            border-radius: 10px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         .card h2 {
-            font-size: 1.3rem;
-            margin-bottom: 16px;
+            margin-bottom: 20px;
             color: #2c3e50;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 8px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
         }
-        .form-group { margin-bottom: 16px; }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
         .form-group label {
             display: block;
-            margin-bottom: 6px;
-            font-weight: 500;
+            margin-bottom: 5px;
+            font-weight: bold;
             color: #34495e;
-            font-size: 0.9rem;
         }
-        .form-group input, .form-group select {
+        .form-group input,
+        .form-group select {
             width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e1e8ed;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border-color 0.2s;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
         }
-        .form-group input:focus, .form-group select:focus {
-            outline: none;
+        .form-group input:focus,
+        .form-group select:focus {
             border-color: #3498db;
+            outline: none;
         }
-        .btn {
-            padding: 12px 24px;
+        
+        /* BOTÃO ADICIONAR - BEM VISÍVEL */
+        .btn-add {
+            width: 100%;
+            padding: 15px;
+            background: #27ae60;
+            color: white;
             border: none;
             border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
+            font-size: 18px;
+            font-weight: bold;
             cursor: pointer;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
+            margin-top: 10px;
         }
-        .btn-primary { background: #3498db; color: white; }
-        .btn-primary:hover { background: #2980b9; }
-        .btn-success { background: #27ae60; color: white; }
-        .btn-danger { background: #e74c3c; color: white; }
-        .btn-small { padding: 8px 12px; font-size: 0.85rem; }
-        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
-        .stock-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-        .stock-table th, .stock-table td {
-            padding: 14px 12px;
+        .btn-add:hover {
+            background: #229954;
+        }
+        .btn-add:active {
+            transform: scale(0.98);
+        }
+        
+        /* Tabela de Stock */
+        .stock-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .stock-table th,
+        .stock-table td {
+            padding: 12px;
             text-align: left;
-            border-bottom: 1px solid #e1e8ed;
+            border-bottom: 1px solid #eee;
         }
         .stock-table th {
             background: #f8f9fa;
-            font-weight: 600;
-            color: #34495e;
-            font-size: 0.9rem;
-            text-transform: uppercase;
+            font-weight: bold;
         }
-        .stock-table tr:hover { background: #f8f9fa; }
-        .stock-level {
-            display: inline-block;
-            padding: 4px 10px;
+        .stock-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        /* Botões de ação */
+        .btn-action {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 2px;
+        }
+        .btn-plus { background: #27ae60; color: white; }
+        .btn-minus { background: #e74c3c; color: white; }
+        .btn-delete { background: #c0392b; color: white; }
+        
+        .stock-badge {
+            padding: 5px 12px;
             border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
+            font-size: 12px;
+            font-weight: bold;
         }
-        .stock-low { background: #fee2e2; color: #dc2626; }
-        .stock-medium { background: #fef3c7; color: #d97706; }
-        .stock-high { background: #d1fae5; color: #059669; }
-        .empty-state { text-align: center; padding: 48px 20px; color: #6b7280; }
-        .empty-state-icon { font-size: 3rem; margin-bottom: 16px; }
-        .search-box {
-            width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e1e8ed;
-            border-radius: 8px;
-            font-size: 1rem;
-            margin-bottom: 16px;
-        }
+        .stock-ok { background: #d4edda; color: #155724; }
+        .stock-low { background: #fff3cd; color: #856404; }
+        .stock-critical { background: #f8d7da; color: #721c24; }
+        
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 16px;
+            gap: 15px;
             margin-bottom: 20px;
         }
-        .stat-card {
+        .stat-box {
             background: white;
             padding: 20px;
-            border-radius: 12px;
+            border-radius: 10px;
             text-align: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
-        .stat-value { font-size: 2rem; font-weight: 700; color: #3498db; }
-        .stat-label { font-size: 0.85rem; color: #6b7280; margin-top: 4px; }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #3498db;
+        }
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+        
+        /* Notificação */
         .notification {
             position: fixed;
             top: 20px;
             right: 20px;
-            padding: 16px 24px;
+            padding: 15px 25px;
             border-radius: 8px;
             color: white;
-            font-weight: 500;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transform: translateX(500px);
+            transition: transform 0.3s;
             z-index: 1000;
         }
         .notification.show { transform: translateX(0); }
         .notification.success { background: #27ae60; }
         .notification.error { background: #e74c3c; }
         .notification.warning { background: #f39c12; }
-        @media (max-width: 768px) {
-            body { padding: 12px; }
-            header h1 { font-size: 1.5rem; }
-            .stock-table { font-size: 0.85rem; }
-            .stock-table th, .stock-table td { padding: 10px 8px; }
-            .stats { grid-template-columns: repeat(2, 1fr); }
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <a href="index.html" class="back-link">← Voltar ao Menu</a>
+        
         <header>
             <h1>📦 Controlo de Stock</h1>
-            <p>Gestão de materiais e unidades em stock</p>
+            <p>Gestão de materiais e unidades</p>
         </header>
 
-        <div class="stats">
-            <div class="stat-card">
-                <div class="stat-value" id="totalItems">0</div>
-                <div class="stat-label">Total de Materiais</div>
+        <!-- Navegação Rápida -->
+        <div class="quick-nav">
+            <a href="#add-material">➕ Adicionar Material</a>
+            <a href="#stock-list">📋 Ver Stock</a>
+            <a href="#stats-section">📊 Estatísticas</a>
+        </div>
+
+        <!-- Estatísticas -->
+        <div class="stats" id="stats-section">
+            <div class="stat-box">
+                <div class="stat-number" id="totalMateriais">0</div>
+                <div class="stat-label">Materiais</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-value" id="totalUnits">0</div>
-                <div class="stat-label">Unidades Totais</div>
+            <div class="stat-box">
+                <div class="stat-number" id="totalUnidades">0</div>
+                <div class="stat-label">Unidades</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-value" id="lowStock">0</div>
-                <div class="stat-label">Stock
+            <div class="stat-box">
+                <div class="stat-number" id="stockBaixo">0</div>
+                <div class="stat-label">Stock Baixo</div>
+            </div>
+        </div>
+
+        <!-- FORMULÁRIO ADICIONAR MATERIAL -->
+        <div class="card" id="add-material">
+            <h2>➕ Adicionar Novo Material</h2>
+            <form id="formAdicionar">
+                <div class="form-group">
+                    <label for="nome">Nome do Material *</label>
+                    <input type="text" id="nome" placeholder="Ex: Cabo Fibra Ótica" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="categoria">Categoria *</label>
+                    <select id="categoria" required>
+                        <option value="">-- Selecionar --</option>
+                        <option value="Cabos">Cabos</option>
+                        <option value="Conectores">Conectores</option>
+                        <option value="Ferramentas">Ferramentas</option>
+                        <option value="Equipamentos">Equipamentos</option>
+                        <option value="Consumíveis">Consumíveis</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="quantidade">Quantidade Inicial *</label>
+                    <input type="number" id="quantidade" min="0" value="0" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="minimo">Stock Mínimo (alerta) *</label>
+                    <input type="number" id="minimo" min="0" value="10" required>
+                </div>
+
+                <!-- BOTÃO GRANDE E VISÍVEL -->
+                <button type="submit" class="btn-add">
+                    ➕ ADICIONAR MATERIAL
+                </button>
+            </form>
+        </div>
+
+        <!-- LISTA DE MATERIAIS -->
+        <div class="card" id="stock-list">
+            <h2>📋 Materiais em Stock</h2>
+            <div id="listaStock">
+                <div class="empty">
+                    <div class="empty-icon">📦</div>
+                    <p>Ainda não há materiais registados</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notificação -->
+    <div id="notificacao" class="notification"></div>
+
+    <script>
+        // Classe para gerir o stock
+        class GestorStock {
+            constructor() {
+                this.chave = 'topogf_stock';
+                this.stock = this.carregar();
+            }
+
+            carregar() {
+                const dados = localStorage.getItem(this.chave);
+                return dados ? JSON.parse(dados) : [];
+            }
+
+            guardar() {
+                localStorage.setItem(this.chave, JSON.stringify(this.stock));
+            }
+
+            adicionar(material) {
+                material.id = Date.now().toString();
+                material.data = new Date().toLocaleString('pt-PT');
+                this.stock.push(material);
+                this.guardar();
+                return material;
+            }
+
+            atualizar(id, alteracao) {
+                const item = this.stock.find(s => s.id === id);
+                if (item) {
+                    item.quantidade = Math.max(0, item.quantidade + alteracao);
+                    this.guardar();
+                    return item;
+                }
+                return null;
+            }
+
+            remover(id) {
+                this.stock = this.stock.filter(s => s.id !== id);
+                this.guardar();
+            }
+
+            obterEstatisticas() {
+                return {
+                    total: this.stock.length,
+                    unidades: this.stock.reduce((soma, item) => soma + item.quantidade, 0),
+                    baixo: this.stock.filter(item => item.quantidade <= item.minimo).length
+                };
+            }
+        }
+
+        const gestor = new GestorStock();
+
+        // Mostrar notificação
+        function mostrarNotificacao(mensagem, tipo = 'success') {
+            const notif = document.getElementById('notificacao');
+            notif.textContent = mensagem;
+            notif.className = `notification ${tipo} show`;
+            setTimeout(() => notif.classList.remove('show'), 3000);
+        }
+
+        // FORMULÁRIO - ADICIONAR MATERIAL
+        document.getElementById('formAdicionar').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Obter valores
+            const material = {
+                nome: document.getElementById('nome').value.trim(),
+                categoria: document.getElementById('categoria').value,
+                quantidade: parseInt(document.getElementById('quantidade').value),
+                minimo: parseInt(document.getElementById('minimo').value)
+            };
+
+            // Validar
+            if (!material.nome || !material.categoria) {
+                mostrarNotificacao('Preenche todos os campos!', 'error');
+                return;
+            }
+
+            // Adicionar
+            gestor.adicionar(material);
+            mostrarNotificacao(`✅ "${material.nome}" adicionado!`, 'success');
+
+            // Limpar formulário
+            this.reset();
+            document.getElementById('quantidade').value = '0';
+            document.getElementById('minimo').value = '10';
+
+            // Atualizar lista
+            renderizarStock();
+            atualizarEstatisticas();
+        });
+
+        // Renderizar lista de stock
+        function renderizarStock() {
+            const lista = document.getElementById('listaStock');
+
+            if (gestor.stock.length === 0) {
+                lista.innerHTML = `
+                    <div class="empty">
+                        <div class="empty-icon">📦</div>
+                        <p>Ainda não há materiais registados</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <table class="stock-table">
+                    <thead>
+                        <tr>
+                            <th>Material</th>
+                            <th>Categoria</th>
+                            <th>Quantidade</th>
+                            <th>Estado</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            gestor.stock.forEach(item => {
+                let classe, estado;
+                
+                if (item.quantidade === 0) {
+                    classe = 'stock-critical';
+                    estado = 'Esgotado';
+                } else if (item.quantidade <= item.minimo) {
+                    classe = 'stock-critical';
+                    estado = 'Crítico';
+                } else if (item.quantidade <= item.minimo * 2) {
+                    classe = 'stock-low';
+                    estado = 'Baixo';
+                } else {
+                    classe = 'stock-ok';
+                    estado = 'OK';
+                }
+
+                html += `
+                    <tr>
+                        <td><strong>${item.nome}</strong></td>
+                        <td>${item.categoria}</td>
+                        <td><strong>${item.quantidade}</strong></td>
+                        <td><span class="stock-badge ${classe}">${estado}</span></td>
+                        <td>
+                            <button class="btn-action btn-plus" onclick="ajustarStock('${item.id}', 1)">+1</button>
+                            <button class="btn-action btn-minus" onclick="ajustarStock('${item.id}', -1)">-1</button>
+                            <button class="btn-action btn-delete" onclick="removerMaterial('${item.id}', '${item.nome}')">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            lista.innerHTML = html;
+        }
+
+        // Ajustar quantidade
+        function ajustarStock(id, alteracao) {
+            const item = gestor.atualizar(id, alteracao);
+            
+            if (item) {
+                const msg = alteracao > 0 
+                    ? `➕ Adicionada 1 unidade a "${item.nome}"`
+                    : `➖ Removida 1 unidade de "${item.nome}"`;
+                
+                mostrarNotificacao(msg, alteracao > 0 ? 'success' : 'warning');
+
+                if (item.quantidade === 0) {
+                    mostrarNotificacao(`⚠️ "${item.nome}" ESGOTADO!`, 'error');
+                } else if (item.quantidade <= item.minimo) {
+                    mostrarNotificacao(`⚠️ "${item.nome}" com stock baixo!`, 'warning');
+                }
+
+                renderizarStock();
+                atualizarEstatisticas();
+            }
+        }
+
+        // Remover material
+        function removerMaterial(id, nome) {
+            if (confirm(`Tens a certeza que queres remover "${nome}"?`)) {
+                gestor.remover(id);
+                mostrarNotificacao(`🗑️ "${nome}" removido!`, 'success');
+                renderizarStock();
+                atualizarEstatisticas();
+            }
+        }
+
+        // Atualizar estatísticas
+        function atualizarEstatisticas() {
+            const stats = gestor.obterEstatisticas();
+            document.getElementById('totalMateriais').textContent = stats.total;
+            document.getElementById('totalUnidades').textContent = stats.unidades;
+            document.getElementById('stockBaixo').textContent = stats.baixo;
+        }
+
+        // Inicializar
+        renderizarStock();
+        atualizarEstatisticas();
+    </script>
+</body>
+</html>
