@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Histórico de Pedidos</title>
+    <link rel="icon" href="data:,">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -12,7 +13,7 @@
     <link href="https://unpkg.com/tabulator-tables@6.2.1/dist/css/tabulator_midnight.min.css" rel="stylesheet">
     <script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.2.1/dist/js/tabulator.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/locales/pt-br.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales/pt-br.global.min.js"></script>
 
     <style>
         * { box-sizing: border-box; }
@@ -521,7 +522,7 @@ table.on("tableBuilt", () => {
             return;
         }
 
-        // Mostra um indicador de que está a guardar (opcional mas útil)
+        // Mostra um indicador de que está a guardar
         const btnGuardar = document.querySelector('[onclick="guardarAlteracoes()"]');
         const textoOriginalBtn = btnGuardar.innerText;
         btnGuardar.innerText = "⏳ A guardar...";
@@ -560,6 +561,13 @@ table.on("tableBuilt", () => {
             
             // Recarrega os dados para garantir sincronização total
             const { data: novosDados } = await sbClient.from('pedidos').select('*').order('id', { ascending: false });
+            
+            // Mantém os contadores de atividades/ocorrências após o reload
+            novosDados.forEach(p => {
+                p.atividades_count = (mapaAtividadesPorPedido[p.id] || []).length;
+                p.ocorrencias_count = (mapaOcorrenciasPorPedido[p.id] || []).length;
+            });
+            
             table.replaceData(novosDados);
             aplicarFiltros();
             renderizarCalendario(novosDados);
