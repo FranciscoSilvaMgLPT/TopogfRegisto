@@ -212,12 +212,17 @@
       return (num / den * 100).toFixed(1) + '%';
     }
 
+    // ===== Verifica se um pedido está concluído com base no campo "estado" =====
+    function estaConcluido(p) {
+      return (p.estado || '').trim().toLowerCase() === 'concluido';
+    }
+
     function construirFolhaResumo(pedidos, atividades, ocorrencias) {
       const linhas = [];
       const agora = new Date();
       const dataGeracao = agora.toLocaleDateString('pt-PT') + ' ' + agora.toLocaleTimeString('pt-PT').slice(0, 5);
 
-      const concluidos = pedidos.filter(p => p.data_conclusao).length;
+      const concluidos = pedidos.filter(estaConcluido).length;
       const pendentes = pedidos.length - concluidos;
 
       linhas.push(['RELATÓRIO RESUMO — gerado em ' + dataGeracao]);
@@ -240,7 +245,7 @@
         const emp = (p.empresa || '(sem empresa)').trim();
         if (!porEmpresa[emp]) porEmpresa[emp] = { total: 0, conc: 0 };
         porEmpresa[emp].total++;
-        if (p.data_conclusao) porEmpresa[emp].conc++;
+        if (estaConcluido(p)) porEmpresa[emp].conc++;
       });
       Object.entries(porEmpresa)
         .sort((a, b) => b[1].total - a[1].total)
