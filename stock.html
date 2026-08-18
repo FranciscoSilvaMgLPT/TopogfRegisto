@@ -115,13 +115,14 @@
         .btn-danger:hover { background: #dc2626; }
         .btn-small { padding: 8px 12px; font-size: 0.85rem; }
         
-        /* AJUSTE PARA GARANTIR LAYOUT HORIZONTAL DAS AÇÕES */
+        /* Grupo de botões horizontal e centrado */
         .btn-group { 
             display: flex; 
             flex-direction: row; 
             gap: 6px; 
             flex-wrap: nowrap; 
             align-items: center;
+            justify-content: center;
         }
         .btn-group .btn {
             width: auto;
@@ -130,14 +131,30 @@
         }
 
         .table-wrap { overflow-x: auto; }
-        .stock-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        
+        /* AJUSTE PARA LARGURA CONFORME O CONTEÚDO */
+        .stock-table { 
+            width: auto; 
+            min-width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 15px; 
+            table-layout: auto;
+        }
+        
         .stock-table th,
         .stock-table td {
-            padding: 14px 12px;
-            text-align: left;
+            padding: 14px 16px; /* Mais espaço horizontal */
+            text-align: center;
             border-bottom: 1px solid #334155;
-            white-space: nowrap;
+            white-space: nowrap; /* Impede que o texto quebre, forçando a coluna a alargar */
         }
+        
+        /* Exceção: manter a primeira coluna (Nome do Material) alinhada à esquerda */
+        .stock-table th:first-child,
+        .stock-table td:first-child {
+            text-align: left;
+        }
+
         .stock-table th {
             background: #334155;
             font-weight: 600;
