@@ -359,15 +359,33 @@
             }
         }
 
-        // Adicionar novo material (quantidade inicial conta como comprada)
+        // Adicionar novo material (quantidade inicial conta como comprada e gera movimento)
         async function addMaterial(material) {
             try {
                 const btn = document.getElementById('btnAdicionar');
                 btn.disabled = true;
                 btn.innerHTML = '<span class="loading"></span> A adicionar...';
 
-                const { error } = await supabaseClient.from('stock').insert([material]);
+                // 1. Inserir o novo material e devolver o registo criado (para obter o id)
+                const { data: novoMaterial, error } = await supabaseClient
+                    .from('stock')
+                    .insert([material])
+                    .select()
+                    .single();
                 if (error) throw error;
+
+                // 2. Se a quantidade inicial for maior que zero, registar como movimento de entrada
+                if (material.stockatual > 0) {
+                    const { error: movError } = await supabaseClient
+                        .from('movimentos_stock')
+                        .insert([{
+                            stock_id: novoMaterial.id,
+                            material: novoMaterial.material,
+                            tipo: 'entrada',
+                            quantidade: material.stockatual
+                        }]);
+                    if (movError) throw movError;
+                }
 
                 showNotification(`✅ "${material.material}" adicionado com sucesso!`, 'success');
                 await loadStock();
