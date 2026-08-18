@@ -357,7 +357,9 @@
                 if (stockRes.error) throw stockRes.error;
                 if (movRes.error) throw movRes.error;
 
-                stockData = stockRes.data || [];
+                stockData = (stockRes.data || []).sort((a, b) =>
+                    (a.material || '').localeCompare(b.material || '', 'pt', { sensitivity: 'base' })
+                );
                 movimentosData = movRes.data || [];
                 filteredData = stockData;
 
@@ -599,6 +601,9 @@
                     i.material.toLowerCase().includes(q) || i.categoria.toLowerCase().includes(q)
                 );
             }
+            filteredData = [...filteredData].sort((a, b) =>
+                (a.material || '').localeCompare(b.material || '', 'pt', { sensitivity: 'base' })
+            );
             renderStock();
         }
 
