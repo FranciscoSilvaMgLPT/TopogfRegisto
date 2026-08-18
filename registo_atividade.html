@@ -182,7 +182,7 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // ===== 1. Carregar pedidos pendentes (Agora com numero_obra) =====
-   // ===== 1. Carregar pedidos pendentes (Atualizado com empresa e tipo_trabalho) =====
+   // ===== 1. Carregar pedidos pendentes (Atualizado com empresa, tipo_trabalho e filtro de estado) =====
 async function carregarPedidosPendentes() {
   const selectPedido = document.getElementById('selectPedido');
   selectPedido.innerHTML = '<option value="">-- Nenhum pedido associado --</option>';
@@ -193,6 +193,7 @@ async function carregarPedidosPendentes() {
       // Adicionados os campos 'empresa' e 'tipo_trabalho' à query
       .select('id, requerente, empresa, servico, local_obra, numero_obra, tipo_trabalho, data_hora_pedido')
       .is('data_conclusao', null)
+      .eq('estado', 'Pendente') // 👈 Só mostra pedidos com estado explicitamente "Pendente"
       .order('data_hora_pedido', { ascending: false });
 
     if (error) throw error;
