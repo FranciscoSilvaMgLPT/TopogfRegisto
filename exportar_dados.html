@@ -17,7 +17,8 @@
     h1 { font-size: 34px; }
     .btn-voltar { background: #334155; color: white; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: bold; }
 
-    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
 
     .card {
       background: #334155;
@@ -93,9 +94,14 @@
         <p class="count" id="countOcorrencias">A contar...</p>
         <button id="btnOcorrencias">⬇ Download Ocorrências</button>
       </div>
+      <div class="card">
+        <h3>📦 Stock</h3>
+        <p class="count" id="countStock">A contar...</p>
+        <button id="btnStock">⬇ Download Stock</button>
+      </div>
     </div>
 
-    <button id="btnTudo" class="btn-all">⬇ Download Tudo (1 ficheiro Excel com 4 folhas: Pedidos, Atividades, Ocorrências e Resumo)</button>
+    <button id="btnTudo" class="btn-all">⬇ Download Tudo (1 ficheiro Excel com 6 folhas: Pedidos, Atividades, Ocorrências, Stock, Movimentos de Stock e Resumo)</button>
 
     <div class="success" id="statusMsg"></div>
   </div>
@@ -119,7 +125,8 @@
       const tabelas = [
         ['pedidos', 'countPedidos'],
         ['atividades', 'countAtividades'],
-        ['ocorrencias', 'countOcorrencias']
+        ['ocorrencias', 'countOcorrencias'],
+        ['stock', 'countStock']
       ];
       for (const [tabela, id] of tabelas) {
         const { count } = await supabaseClient
@@ -217,7 +224,9 @@
       return (p.estado || '').trim().toLowerCase() === 'concluido';
     }
 
-    function construirFolhaResumo(pedidos, atividades, ocorrencias) {
+    function construirFolhaResumo(pedidos, atividades, ocorrencias, stock, movimentos) {
+      stock = stock || [];
+      movimentos = movimentos || [];
       const linhas = [];
       const agora = new Date();
       const dataGeracao = agora.toLocaleDateString('pt-PT') + ' ' + agora.toLocaleTimeString('pt-PT').slice(0, 5);
@@ -235,6 +244,9 @@
       linhas.push(['Pedidos pendentes', pendentes, percent(pendentes, pedidos.length)]);
       linhas.push(['Atividades totais', atividades.length]);
       linhas.push(['Ocorrências totais', ocorrencias.length]);
+      linhas.push(['Materiais em stock (referências)', stock.length]);
+      linhas.push(['Unidades totais em stock', stock.reduce((s, i) => s + (i.stockatual || 0), 0)]);
+      linhas.push(['Materiais com stock crítico/esgotado', stock.filter(i => (i.stockatual || 0) <= (i.stockminimo || 0)).length]);
       linhas.push([]);
 
       // ============== PEDIDOS POR EMPRESA ==============
@@ -351,6 +363,77 @@
       } else {
         ativMes.forEach(([mes, n]) => linhas.push([mes, n]));
       }
+      linhas.push([]);
+
+      // ============== STOCK POR CATEGORIA ==============
+      linhas.push(['STOCK POR CATEGORIA']);
+      linhas.push(['Categoria', 'Nº Materiais', 'Unidades em Stock']);
+      const stockPorCategoria = {};
+      stock.forEach(i => {
+        const cat = (i.categoria || '(sem categoria)').trim() || '(sem categoria)';
+        if (!stockPorCategoria[cat]) stockPorCategoria[cat] = { n: 0, unidades: 0 };
+        stockPorCategoria[cat].n++;
+        stockPorCategoria[cat].unidades += (i.stockatual || 0);
+      });
+      if (stock.length === 0) {
+        linhas.push(['(sem registos)']);
+      } else {
+        Object.entries(stockPorCategoria)
+          .sort((a, b) => b[1].unidades - a[1].unidades)
+          .forEach(([cat, v]) => linhas.push([cat, v.n, v.unidades]));
+      }
+      linhas.push([]);
+
+      // ============== MATERIAIS COM STOCK CRÍTICO / ESGOTADO ==============
+      linhas.push(['MATERIAIS COM STOCK CRÍTICO / ESGOTADO']);
+      linhas.push(['Material', 'Categoria', 'Stock Atual', 'Qt. Alerta', 'Estado']);
+      const criticos = stock.filter(i => (i.stockatual || 0) <= (i.stockminimo || 0));
+      if (criticos.length === 0) {
+        linhas.push(['(nenhum material em estado crítico)']);
+      } else {
+        criticos
+          .sort((a, b) => (a.stockatual || 0) - (b.stockatual || 0))
+          .forEach(i => linhas.push([
+            i.material, i.categoria, i.stockatual || 0, i.stockminimo || 0,
+            (i.stockatual || 0) === 0 ? 'Esgotado' : 'Crítico'
+          ]));
+      }
+      linhas.push([]);
+
+      // ============== MATERIAIS MAIS GASTOS (TOP 15) ==============
+      linhas.push(['MATERIAIS MAIS GASTOS (TOP 15)']);
+      linhas.push(['Material', 'Total Gastas', 'Total Compradas', 'Stock Atual']);
+      const maisGastos = [...stock]
+        .filter(i => (i.totalgastas || 0) > 0)
+        .sort((a, b) => (b.totalgastas || 0) - (a.totalgastas || 0));
+      if (maisGastos.length === 0) {
+        linhas.push(['(sem registos)']);
+      } else {
+        maisGastos.slice(0, 15).forEach(i => linhas.push([
+          i.material, i.totalgastas || 0, i.totalcompradas || 0, i.stockatual || 0
+        ]));
+      }
+      linhas.push([]);
+
+      // ============== MOVIMENTOS DE STOCK POR MÊS ==============
+      linhas.push(['MOVIMENTOS DE STOCK POR MÊS']);
+      linhas.push(['Mês', 'Entradas (compras)', 'Saídas (gastos)']);
+      const movPorMes = {};
+      movimentos.forEach(m => {
+        const d = m.created_at;
+        if (!d) return;
+        const mes = String(d).substring(0, 7);
+        if (mes.length !== 7) return;
+        if (!movPorMes[mes]) movPorMes[mes] = { entradas: 0, saidas: 0 };
+        if (m.tipo === 'entrada') movPorMes[mes].entradas += (m.quantidade || 0);
+        else movPorMes[mes].saidas += (m.quantidade || 0);
+      });
+      const mesesMov = Object.keys(movPorMes).sort();
+      if (mesesMov.length === 0) {
+        linhas.push(['(sem registos)']);
+      } else {
+        mesesMov.forEach(mes => linhas.push([mes, movPorMes[mes].entradas, movPorMes[mes].saidas]));
+      }
 
       const ws = XLSX.utils.aoa_to_sheet(linhas);
       ws['!cols'] = [{ wch: 48 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 16 }];
@@ -397,21 +480,51 @@
       }
     }
 
+    async function exportarStock(btn) {
+      btn.disabled = true;
+      btn.innerText = 'A preparar...';
+      try {
+        const [stock, movimentos] = await Promise.all([
+          buscarTudo('stock'),
+          buscarTudo('movimentos_stock')
+        ]);
+        if (!stock.length) {
+          alert('Não existem dados na tabela stock.');
+          return;
+        }
+        gerarExcel([
+          { nome: 'Stock', rows: stock },
+          { nome: 'Movimentos', rows: movimentos }
+        ], `stock_${hoje()}.xlsx`);
+        mostrarStatus(`✅ ${stock.length} materiais e ${movimentos.length} movimentos de stock exportados!`);
+      } catch (err) {
+        console.error('Erro ao exportar stock:', err);
+        alert('Erro ao exportar stock: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '⬇ Download Stock';
+      }
+    }
+
     async function exportarTudo(btn) {
       btn.disabled = true;
       btn.innerText = 'A preparar ficheiro completo...';
       try {
-        const [pedidos, atividades, ocorrencias] = await Promise.all([
+        const [pedidos, atividades, ocorrencias, stock, movimentos] = await Promise.all([
           buscarTudo('pedidos'),
           buscarTudo('atividades'),
-          buscarTudo('ocorrencias')
+          buscarTudo('ocorrencias'),
+          buscarTudo('stock'),
+          buscarTudo('movimentos_stock')
         ]);
 
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, criarFolha(pedidos), 'Pedidos');
         XLSX.utils.book_append_sheet(wb, criarFolha(atividades), 'Atividades');
         XLSX.utils.book_append_sheet(wb, criarFolha(ocorrencias), 'Ocorrencias');
-        XLSX.utils.book_append_sheet(wb, construirFolhaResumo(pedidos, atividades, ocorrencias), 'Resumo');
+        XLSX.utils.book_append_sheet(wb, criarFolha(stock), 'Stock');
+        XLSX.utils.book_append_sheet(wb, criarFolha(movimentos), 'Movimentos');
+        XLSX.utils.book_append_sheet(wb, construirFolhaResumo(pedidos, atividades, ocorrencias, stock, movimentos), 'Resumo');
         XLSX.writeFile(wb, `topogf_dados_completos_${hoje()}.xlsx`);
 
         mostrarStatus('✅ Ficheiro completo exportado!');
@@ -420,7 +533,7 @@
         alert('Erro ao exportar: ' + err.message);
       } finally {
         btn.disabled = false;
-        btn.innerText = '⬇ Download Tudo (1 ficheiro Excel com 4 folhas: Pedidos, Atividades, Ocorrências e Resumo)';
+        btn.innerText = '⬇ Download Tudo (1 ficheiro Excel com 6 folhas: Pedidos, Atividades, Ocorrências, Stock, Movimentos de Stock e Resumo)';
       }
     }
 
@@ -432,6 +545,9 @@
     });
     document.getElementById('btnOcorrencias').addEventListener('click', (e) => {
       exportarTabela('ocorrencias', e.target);
+    });
+    document.getElementById('btnStock').addEventListener('click', (e) => {
+      exportarStock(e.target);
     });
     document.getElementById('btnTudo').addEventListener('click', (e) => {
       exportarTudo(e.target);
