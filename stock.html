@@ -159,6 +159,27 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
+
+        /* ESTILOS PARA ORDENAÇÃO CLICÁVEL */
+        .sortable {
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s, color 0.2s;
+        }
+        .sortable:hover {
+            background: #475569 !important;
+            color: #3b82f6;
+        }
+        .sort-icon {
+            font-size: 0.8rem;
+            margin-left: 4px;
+            opacity: 0.5;
+        }
+        .sortable.active .sort-icon {
+            opacity: 1;
+            color: #3b82f6;
+        }
+
         .stock-table tr:hover { background: #334155; }
         .stock-badge {
             display: inline-block;
@@ -266,7 +287,7 @@
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="lowStock" style="color:#f59e0b;">0</div>
-                <div class="stat-label">Stock Baixo</div>
+                <div class="stat-label">Stock Crítico/Esgotado</div>
             </div>
         </div>
 
@@ -335,6 +356,10 @@
         let filteredData = [];
         let movimentosData = [];
 
+        // Variáveis de estado para a ordenação
+        let sortColumn = 'material';
+        let sortDirection = 'asc';
+
         function showNotification(message, type = 'success') {
             const notification = document.getElementById('notification');
             notification.textContent = message;
@@ -344,6 +369,26 @@
 
         function showLoading() { document.getElementById('loading-overlay').style.display = 'flex'; }
         function hideLoading() { document.getElementById('loading-overlay').style.display = 'none'; }
+
+        // Função auxiliar para obter um valor numérico do estado para ordenação correta
+        function getEstadoRank(item) {
+            if (item.stockatual === 0) return 1; // Esgotado (aparece primeiro)
+            if (item.stockatual <= item.stockminimo) return 2; // Crítico
+            return 3; // OK
+        }
+
+        // Função principal de ordenação
+        function handleSort(column) {
+            if (sortColumn === column) {
+                // Se clicar na mesma coluna, inverte a direção
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                // Se clicar numa coluna nova, define como ascendente
+                sortColumn = column;
+                sortDirection = 'asc';
+            }
+            renderStock();
+        }
 
         async function loadStock() {
             try {
@@ -357,11 +402,9 @@
                 if (stockRes.error) throw stockRes.error;
                 if (movRes.error) throw movRes.error;
 
-                stockData = (stockRes.data || []).sort((a, b) =>
-                    (a.material || '').localeCompare(b.material || '', 'pt', { sensitivity: 'base' })
-                );
+                stockData = stockRes.data || [];
                 movimentosData = movRes.data || [];
-                filteredData = stockData;
+                filteredData = [...stockData];
 
                 renderStock();
                 renderHistory();
@@ -488,24 +531,62 @@
                 return;
             }
 
+            // 1. ORDENAR OS DADOS ANTES DE RENDERIZAR
+            filteredData.sort((a, b) => {
+                let valA, valB;
+
+                if (sortColumn === 'estado') {
+                    valA = getEstadoRank(a);
+                    valB = getEstadoRank(b);
+                } else {
+                    valA = a[sortColumn];
+                    valB = b[sortColumn];
+                }
+
+                // Tratar valores nulos ou indefinidos
+                valA = valA === undefined || valA === null ? '' : valA;
+                valB = valB === undefined || valB === null ? '' : valB;
+
+                let comparison = 0;
+                if (typeof valA === 'string' && typeof valB === 'string') {
+                    comparison = valA.localeCompare(valB, 'pt', { sensitivity: 'base' });
+                } else {
+                    comparison = Number(valA) - Number(valB);
+                }
+
+                return sortDirection === 'asc' ? comparison : -comparison;
+            });
+
+            // 2. GERAR HTML COM CABEÇALHOS CLICÁVEIS
+            const columns = [
+                { key: 'material', label: 'Material' },
+                { key: 'categoria', label: 'Categoria' },
+                { key: 'stockatual', label: 'Stock Atual' },
+                { key: 'stockminimo', label: 'Qt. Alerta' },
+                { key: 'totalcompradas', label: 'Compradas' },
+                { key: 'totalgastas', label: 'Gastas' },
+                { key: 'estado', label: 'Estado' }
+            ];
+
             let html = `
                 <table class="stock-table">
                     <thead>
-                        <tr>
-                            <th>Material</th>
-                            <th>Categoria</th>
-                            <th>Stock Atual</th>
-                            <th>Qt. Alerta</th>
-                            <th>Compradas</th>
-                            <th>Gastas</th>
-                            <th>Estado</th>
-                            <th>Ações</th>
+                        <tr>`;
+            
+            columns.forEach(col => {
+                const isActive = sortColumn === col.key;
+                const icon = isActive ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : ' ↕';
+                const activeClass = isActive ? 'active' : '';
+                // A primeira coluna mantém o alinhamento à esquerda via CSS, mas precisa da classe sortable
+                html += `<th class="sortable ${activeClass}" onclick="handleSort('${col.key}')">${col.label}<span class="sort-icon">${icon}</span></th>`;
+            });
+            
+            html += `       <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody>`;
 
             filteredData.forEach(item => {
-                // APENAS 3 ESTADOS: OK, ESGOTADO, CRÍTICO
                 let stockClass = 'stock-ok', stockLabel = 'OK';
                 if (item.stockatual === 0) { 
                     stockClass = 'stock-critical'; 
@@ -594,16 +675,14 @@
 
         function searchMaterials(query) {
             if (!query) {
-                filteredData = stockData;
+                filteredData = [...stockData];
             } else {
                 const q = query.toLowerCase();
                 filteredData = stockData.filter(i =>
                     i.material.toLowerCase().includes(q) || i.categoria.toLowerCase().includes(q)
                 );
             }
-            filteredData = [...filteredData].sort((a, b) =>
-                (a.material || '').localeCompare(b.material || '', 'pt', { sensitivity: 'base' })
-            );
+            // A ordenação é aplicada automaticamente dentro do renderStock()
             renderStock();
         }
 
