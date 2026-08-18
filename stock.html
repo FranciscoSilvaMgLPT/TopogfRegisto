@@ -21,7 +21,6 @@
             min-height: 100vh;
             padding: 20px;
         }
-        /* CONTAINER MAIS LARGO */
         .container { max-width: 1400px; width: 95%; margin: 0 auto; }
         .back-link {
             display: inline-block;
@@ -116,7 +115,6 @@
         .btn-danger:hover { background: #dc2626; }
         .btn-small { padding: 8px 12px; font-size: 0.85rem; }
         
-        /* Grupo de botões horizontal e centrado */
         .btn-group { 
             display: flex; 
             flex-direction: row; 
@@ -133,9 +131,8 @@
 
         .table-wrap { overflow-x: auto; }
         
-        /* TABELA COM LARGURA TOTAL */
         .stock-table { 
-            width: 100%; /* Alterado de auto para 100% */
+            width: 100%;
             border-collapse: collapse; 
             margin-top: 15px; 
             table-layout: auto;
@@ -143,13 +140,12 @@
         
         .stock-table th,
         .stock-table td {
-            padding: 14px 20px; /* Mais espaço horizontal */
+            padding: 14px 20px;
             text-align: center;
             border-bottom: 1px solid #334155;
             white-space: nowrap;
         }
         
-        /* Exceção: manter a primeira coluna (Nome do Material) alinhada à esquerda */
         .stock-table th:first-child,
         .stock-table td:first-child {
             text-align: left;
@@ -172,7 +168,6 @@
             font-weight: 600;
         }
         .stock-ok { background: #166534; color: #4ade80; }
-        .stock-low { background: #854d0e; color: #fbbf24; }
         .stock-critical { background: #991b1b; color: #fca5a5; }
         .mov-entrada { background: #166534; color: #4ade80; }
         .mov-saida { background: #991b1b; color: #fca5a5; }
@@ -252,7 +247,6 @@
             <p>Gestão de materiais, compras e gastos</p>
         </header>
 
-        <!-- Estatísticas -->
         <div class="stats">
             <div class="stat-card">
                 <div class="stat-value" id="totalItems">0</div>
@@ -276,7 +270,6 @@
             </div>
         </div>
 
-        <!-- Adicionar Novo Material -->
         <div class="card">
             <h2>➕ Adicionar Novo Material</h2>
             <form id="addMaterialForm">
@@ -304,12 +297,11 @@
                     <input type="number" id="materialMinStock" min="0" placeholder="10" required>
                 </div>
                 <button type="submit" class="btn btn-primary" id="btnAdicionar">
-                    ➕ Adicionar Material
+                     Adicionar Material
                 </button>
             </form>
         </div>
 
-        <!-- Lista de Materiais -->
         <div class="card">
             <h2>📋 Materiais em Stock</h2>
             <input type="text" class="search-box" id="searchBox" placeholder="🔍 Pesquisar materiais...">
@@ -321,7 +313,6 @@
             </div>
         </div>
 
-        <!-- Histórico de Movimentos -->
         <div class="card">
             <h2>📜 Histórico de Movimentos (Compras e Gastos)</h2>
             <div id="historyList" class="table-wrap">
@@ -336,9 +327,6 @@
     <div id="notification" class="notification"></div>
 
     <script>
-        // ============================================
-        // CONFIGURAÇÃO SUPABASE
-        // ============================================
         const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -347,9 +335,6 @@
         let filteredData = [];
         let movimentosData = [];
 
-        // ============================================
-        // UTILITÁRIOS
-        // ============================================
         function showNotification(message, type = 'success') {
             const notification = document.getElementById('notification');
             notification.textContent = message;
@@ -360,11 +345,6 @@
         function showLoading() { document.getElementById('loading-overlay').style.display = 'flex'; }
         function hideLoading() { document.getElementById('loading-overlay').style.display = 'none'; }
 
-        // ============================================
-        // OPERAÇÕES SUPABASE
-        // ============================================
-
-        // Carregar stock + histórico
         async function loadStock() {
             try {
                 showLoading();
@@ -392,14 +372,12 @@
             }
         }
 
-        // Adicionar novo material (quantidade inicial conta como comprada e gera movimento)
         async function addMaterial(material) {
             try {
                 const btn = document.getElementById('btnAdicionar');
                 btn.disabled = true;
                 btn.innerHTML = '<span class="loading"></span> A adicionar...';
 
-                // 1. Inserir o novo material e devolver o registo criado (para obter o id)
                 const { data: novoMaterial, error } = await supabaseClient
                     .from('stock')
                     .insert([material])
@@ -407,7 +385,6 @@
                     .single();
                 if (error) throw error;
 
-                // 2. Se a quantidade inicial for maior que zero, registar como movimento de entrada
                 if (material.stockatual > 0) {
                     const { error: movError } = await supabaseClient
                         .from('movimentos_stock')
@@ -432,7 +409,6 @@
             }
         }
 
-        // Atualizar stock + totais + registar movimento
         async function adjustStock(id, change) {
             const item = stockData.find(s => s.id === id);
             if (!item) return;
@@ -444,7 +420,6 @@
             }
 
             try {
-                // 1. Atualizar stockatual + totalcompradas/totalgastas
                 const updates = { stockatual: newQuantity };
                 if (change > 0) {
                     updates.totalcompradas = (item.totalcompradas || 0) + change;
@@ -458,7 +433,6 @@
                     .eq('id', id);
                 if (error) throw error;
 
-                // 2. Registar no histórico de movimentos
                 const { error: movError } = await supabaseClient
                     .from('movimentos_stock')
                     .insert([{
@@ -469,7 +443,6 @@
                     }]);
                 if (movError) throw movError;
 
-                // 3. Notificações
                 if (change > 0) {
                     showNotification(`➕ ${change} unidade(s) comprada(s) para "${item.material}"`, 'success');
                 } else {
@@ -477,9 +450,9 @@
                 }
 
                 if (newQuantity === 0) {
-                    showNotification(`️ "${item.material}" ESGOTADO!`, 'error');
+                    showNotification(`⚠️ "${item.material}" ESGOTADO!`, 'error');
                 } else if (newQuantity <= item.stockminimo) {
-                    showNotification(`️ "${item.material}" com stock baixo!`, 'warning');
+                    showNotification(`⚠️ "${item.material}" com stock crítico!`, 'warning');
                 }
 
                 await loadStock();
@@ -489,7 +462,6 @@
             }
         }
 
-        // Remover material
         async function deleteMaterial(id) {
             try {
                 const { error } = await supabaseClient.from('stock').delete().eq('id', id);
@@ -501,10 +473,6 @@
                 showNotification('Erro ao remover material: ' + error.message, 'error');
             }
         }
-
-        // ============================================
-        // INTERFACE
-        // ============================================
 
         function renderStock() {
             const stockList = document.getElementById('stockList');
@@ -535,10 +503,15 @@
                     <tbody>`;
 
             filteredData.forEach(item => {
+                // APENAS 3 ESTADOS: OK, ESGOTADO, CRÍTICO
                 let stockClass = 'stock-ok', stockLabel = 'OK';
-                if (item.stockatual === 0) { stockClass = 'stock-critical'; stockLabel = 'Esgotado'; }
-                else if (item.stockatual <= item.stockminimo) { stockClass = 'stock-critical'; stockLabel = 'Crítico'; }
-                else if (item.stockatual <= item.stockminimo * 2) { stockClass = 'stock-low'; stockLabel = 'Baixo'; }
+                if (item.stockatual === 0) { 
+                    stockClass = 'stock-critical'; 
+                    stockLabel = 'Esgotado'; 
+                } else if (item.stockatual <= item.stockminimo) { 
+                    stockClass = 'stock-critical'; 
+                    stockLabel = 'Crítico'; 
+                }
 
                 html += `
                     <tr>
@@ -564,7 +537,6 @@
             stockList.innerHTML = html;
         }
 
-        // Renderizar histórico de movimentos
         function renderHistory() {
             const el = document.getElementById('historyList');
 
@@ -630,9 +602,6 @@
             renderStock();
         }
 
-        // ============================================
-        // EVENTOS + INICIALIZAÇÃO
-        // ============================================
         document.getElementById('addMaterialForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -643,7 +612,7 @@
                 categoria: document.getElementById('materialCategory').value,
                 stockatual: quantidade,
                 stockminimo: parseInt(document.getElementById('materialMinStock').value),
-                totalcompradas: quantidade,  // quantidade inicial conta como comprada
+                totalcompradas: quantidade,
                 totalgastas: 0
             };
 
