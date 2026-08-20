@@ -760,7 +760,7 @@
             let titulo = row.tecnico || 'Sem técnico';
 
             if (row.local_obra) titulo += ' — ' + row.local_obra;
-            if (row.numero_obra) titulo += ' ("' + row.numero_obra + '")';
+            if (row.numero_obra) titulo += ' (' + row.numero_obra + ')';
             if (row.servico) titulo += ' - ' + truncarTexto(row.servico, 80);
 
             return titulo;
