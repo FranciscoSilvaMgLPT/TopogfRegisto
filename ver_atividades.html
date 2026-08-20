@@ -797,13 +797,7 @@
                 events: eventos,
                 datesSet: function (info) {
                     if (info.view.type.startsWith('list')) {
-                        setTimeout(() => {
-                            const tbody = document.querySelector('.fc-list-table tbody');
-                            if (!tbody) return;
-                            Array.from(tbody.children)
-                                .reverse()
-                                .forEach(el => tbody.appendChild(el));
-                        }, 0);
+                        setTimeout(reverterOrdemDiasNaLista, 0);
                     }
                 },
                 eventClick: function (info) {
@@ -833,6 +827,35 @@
                 }
             });
             calendario.render();
+        }
+
+        // Na vista de lista, o FullCalendar ordena os dias do mais antigo para o mais
+        // recente. Para mostrar o mais recente primeiro sem desarrumar cada dia,
+        // agrupamos as linhas por dia (cada bloco começa numa linha "fc-list-day")
+        // e invertemos só a ordem dos BLOCOS — as linhas DENTRO de cada dia mantêm
+        // a ordem original (cabeçalho do dia primeiro, atividades a seguir).
+        function reverterOrdemDiasNaLista() {
+            const tbody = document.querySelector('.fc-list-table tbody');
+            if (!tbody) return;
+
+            const linhas = Array.from(tbody.children);
+            const blocos = [];
+            let blocoAtual = null;
+
+            linhas.forEach(linha => {
+                if (linha.classList.contains('fc-list-day')) {
+                    blocoAtual = [linha];
+                    blocos.push(blocoAtual);
+                } else if (blocoAtual) {
+                    blocoAtual.push(linha);
+                } else {
+                    blocos.push([linha]);
+                }
+            });
+
+            blocos.reverse().forEach(bloco => {
+                bloco.forEach(linha => tbody.appendChild(linha));
+            });
         }
 
         function fecharModalEvento() {
