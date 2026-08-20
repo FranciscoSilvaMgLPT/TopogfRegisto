@@ -645,6 +645,9 @@
                 layout: "fitData",
                 pagination: "local",
                 paginationSize: 15,
+                                initialSort: [
+                    { column: "data_hora_inicio", dir: "desc" } 
+                ],
                 columns: [
                     { title: "Técnico", field: "tecnico", editor: "input" },
                     { title: "Início", field: "data_hora_inicio", formatter: formatarDataHora, editor: "input" },
