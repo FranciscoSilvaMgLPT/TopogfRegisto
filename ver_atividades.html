@@ -156,6 +156,7 @@
         let anexoBotaoAtual = null;
         let dadosAtividadesPorId = {};
         let ocorrenciaAtividadeAtual = null;
+        let idsEditados = new Set(); // linhas que foram efetivamente alteradas desde a última gravação
 
         // ===== VERIFICAÇÃO DE BIBLIOTECAS =====
         (function verificarBibliotecas() {
@@ -724,7 +725,10 @@
             table.on("dataFiltered", atualizarContador);
 
             renderizarCalendario(data);
-            table.on("cellEdited", function () { renderizarCalendario(table.getData()); });
+            table.on("cellEdited", function (cell) {
+                idsEditados.add(cell.getRow().getData().id);
+                renderizarCalendario(table.getData());
+            });
             table.on("rowDeleted", function () { renderizarCalendario(table.getData()); });
 
             document.getElementById("filtro-pesquisa").addEventListener("keyup", function () {
@@ -745,12 +749,29 @@
             return cores[Math.abs(hash) % cores.length];
         }
 
+        // Corta textos longos (ex.: serviço) para o título do calendário não ficar gigante
+        function truncarTexto(texto, tamanho) {
+            if (!texto) return '';
+            return texto.length > tamanho ? texto.substring(0, tamanho).trim() + '…' : texto;
+        }
+
+        // Monta o título do evento: "Técnico(s) — Local ("Nº Obra") - Serviço"
+        function montarTituloEvento(row) {
+            let titulo = row.tecnico || 'Sem técnico';
+
+            if (row.local_obra) titulo += ' — ' + row.local_obra;
+            if (row.numero_obra) titulo += ' ("' + row.numero_obra + '")';
+            if (row.servico) titulo += ' - ' + truncarTexto(row.servico, 80);
+
+            return titulo;
+        }
+
         function renderizarCalendario(dados) {
             const eventos = dados
                 .filter(row => row.data_hora_inicio)
                 .map(row => ({
                     id: row.id,
-                    title: (row.tecnico || 'Sem técnico') + (row.local_obra ? ' — ' + row.local_obra : ''),
+                    title: montarTituloEvento(row),
                     start: row.data_hora_inicio,
                     end: row.data_hora_fim || row.data_hora_inicio,
                     backgroundColor: corPorTecnico(row.tecnico),
@@ -825,11 +846,29 @@
 
         async function guardarAlteracoes() {
             if (!sbClient || !table) { avisarSemCliente(); return; }
-            const dados = table.getData();
-            let sucesso = true;
 
-            for (const item of dados) {
-                const { error } = await sbClient
+            // Só grava as linhas que foram efetivamente editadas (idsEditados),
+            // em vez de reenviar TODAS as linhas da tabela — isto é o que
+            // tornava o botão lento com muitas atividades.
+            if (idsEditados.size === 0) {
+                alert("Não há alterações por guardar.");
+                return;
+            }
+
+            const btn = document.querySelector('button[onclick="guardarAlteracoes()"]');
+            const textoOriginalBtn = btn ? btn.innerText : null;
+            if (btn) { btn.disabled = true; btn.innerText = "⏳ A guardar..."; }
+
+            const idsParaGravar = Array.from(idsEditados);
+            const dadosPorId = {};
+            table.getData().forEach(item => { dadosPorId[item.id] = item; });
+
+            // Todos os updates são independentes entre si, por isso correm
+            // em PARALELO (Promise.all) em vez de um a seguir ao outro.
+            const resultados = await Promise.all(idsParaGravar.map(id => {
+                const item = dadosPorId[id];
+                if (!item) return Promise.resolve({ id, error: null });
+                return sbClient
                     .from('atividades')
                     .update({
                         tecnico: item.tecnico,
@@ -839,18 +878,23 @@
                         numero_obra: item.numero_obra,
                         servico: item.servico
                     })
-                    .eq('id', item.id);
+                    .eq('id', item.id)
+                    .then(({ error }) => ({ id, error }));
+            }));
 
-                if (error) {
-                    console.error("Erro ao atualizar ID " + item.id, error);
-                    sucesso = false;
-                }
-            }
+            const falhas = resultados.filter(r => r.error);
+            falhas.forEach(r => console.error("Erro ao atualizar ID " + r.id, r.error));
 
-            if (sucesso) {
-                alert("Todas as alterações foram guardadas com sucesso!");
+            // Remove das pendentes só as que gravaram com sucesso, para as
+            // que falharam continuarem marcadas e serem retentadas depois.
+            resultados.filter(r => !r.error).forEach(r => idsEditados.delete(r.id));
+
+            if (btn) { btn.disabled = false; btn.innerText = textoOriginalBtn; }
+
+            if (falhas.length === 0) {
+                alert("Alterações guardadas com sucesso! (" + idsParaGravar.length + " registo(s))");
             } else {
-                alert("Alguns registos falharam ao guardar. Verifica a consola (F12).");
+                alert(falhas.length + " registo(s) falharam ao guardar. Verifica a consola (F12).");
             }
         }
 
