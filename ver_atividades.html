@@ -830,10 +830,12 @@
         }
 
         // Na vista de lista, o FullCalendar ordena os dias do mais antigo para o mais
-        // recente. Para mostrar o mais recente primeiro sem desarrumar cada dia,
-        // agrupamos as linhas por dia (cada bloco começa numa linha "fc-list-day")
-        // e invertemos só a ordem dos BLOCOS — as linhas DENTRO de cada dia mantêm
-        // a ordem original (cabeçalho do dia primeiro, atividades a seguir).
+        // recente, e dentro de cada dia as atividades da mais cedo para a mais tarde.
+        // Agrupamos as linhas por dia (cada bloco começa numa linha "fc-list-day") e:
+        //  - invertemos a ordem dos BLOCOS, para o dia mais recente aparecer primeiro;
+        //  - invertemos também a ordem das atividades DENTRO de cada bloco (mantendo
+        //    o cabeçalho do dia sempre na primeira posição), para a hora mais tarde
+        //    aparecer no topo e a mais cedo em baixo.
         function reverterOrdemDiasNaLista() {
             const tbody = document.querySelector('.fc-list-table tbody');
             if (!tbody) return;
@@ -854,7 +856,10 @@
             });
 
             blocos.reverse().forEach(bloco => {
-                bloco.forEach(linha => tbody.appendChild(linha));
+                const [cabecalho, ...atividades] = bloco;
+                atividades.reverse();
+                tbody.appendChild(cabecalho);
+                atividades.forEach(linha => tbody.appendChild(linha));
             });
         }
 
