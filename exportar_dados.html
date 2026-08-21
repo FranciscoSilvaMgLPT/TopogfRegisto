@@ -214,6 +214,33 @@
       return Object.entries(cont).sort((a, b) => a[0].localeCompare(b[0]));
     }
 
+    // ===== Duração em horas de uma atividade (data_hora_fim - data_hora_inicio) =====
+    // NOTA: assume que a tabela "atividades" tem os campos "data_hora_inicio" e "data_hora_fim".
+    // Se o nome do campo de fim for diferente, ajustar aqui.
+    function calcularDuracaoHoras(a) {
+      if (!a.data_hora_inicio || !a.data_hora_fim) return 0;
+      const inicio = new Date(a.data_hora_inicio);
+      const fim = new Date(a.data_hora_fim);
+      const diffMs = fim - inicio;
+      if (isNaN(diffMs) || diffMs <= 0) return 0;
+      return diffMs / (1000 * 60 * 60);
+    }
+
+    // ===== Agrupar total de horas, nº atividades e média por local/obra =====
+    function agruparHorasPorLocal(atividades) {
+      const horas = {};
+      const contagem = {};
+      atividades.forEach(a => {
+        const local = (a.local_obra || '(sem local)').toString().trim() || '(sem local)';
+        const h = calcularDuracaoHoras(a);
+        horas[local] = (horas[local] || 0) + h;
+        contagem[local] = (contagem[local] || 0) + 1;
+      });
+      return Object.entries(horas)
+        .map(([local, h]) => [local, h, contagem[local], contagem[local] ? h / contagem[local] : 0])
+        .sort((a, b) => b[1] - a[1]);
+    }
+
     function percent(num, den) {
       if (!den) return '0%';
       return (num / den * 100).toFixed(1) + '%';
@@ -325,6 +352,19 @@
         .sort((a, b) => b[1] - a[1])
         .slice(0, 15)
         .forEach(([local, n]) => linhas.push([local, n]));
+      linhas.push([]);
+
+      // ============== HORAS POR LOCAL / OBRA (TOP 20) ==============
+      linhas.push(['HORAS TRABALHADAS POR LOCAL / OBRA (TOP 20)']);
+      linhas.push(['Local / Obra', 'Total Horas', 'Nº Atividades', 'Média Horas/Atividade']);
+      const horasPorLocal = agruparHorasPorLocal(atividades);
+      if (horasPorLocal.length === 0) {
+        linhas.push(['(sem registos com data de início e fim)']);
+      } else {
+        horasPorLocal
+          .slice(0, 20)
+          .forEach(([local, h, n, media]) => linhas.push([local, h.toFixed(2), n, media.toFixed(2)]));
+      }
       linhas.push([]);
 
       // ============== OCORRÊNCIAS POR LOCAL (TOP 15) ==============
