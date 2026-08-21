@@ -241,6 +241,28 @@
         .sort((a, b) => b[1] - a[1]);
     }
 
+    // ===== Agrupar horas por local/obra e por técnico =====
+    // NOTA: quando uma atividade tem vários técnicos (separados por vírgula),
+    // as horas dessa atividade são contabilizadas na totalidade para CADA técnico
+    // (não são divididas entre eles), à semelhança do que já é feito em "Atividades por técnico".
+    function agruparHorasPorLocalETecnico(atividades) {
+      const porLocal = {};
+      atividades.forEach(a => {
+        const local = (a.local_obra || '(sem local)').toString().trim() || '(sem local)';
+        const h = calcularDuracaoHoras(a);
+        const tecnicos = (a.tecnico || '').split(',').map(t => t.trim()).filter(Boolean);
+        if (!porLocal[local]) porLocal[local] = { total: 0, tecnicos: {} };
+        porLocal[local].total += h;
+        const lista = tecnicos.length ? tecnicos : ['(sem técnico)'];
+        lista.forEach(t => {
+          if (!porLocal[local].tecnicos[t]) porLocal[local].tecnicos[t] = { horas: 0, n: 0 };
+          porLocal[local].tecnicos[t].horas += h;
+          porLocal[local].tecnicos[t].n += 1;
+        });
+      });
+      return porLocal;
+    }
+
     function percent(num, den) {
       if (!den) return '0%';
       return (num / den * 100).toFixed(1) + '%';
@@ -364,6 +386,25 @@
         horasPorLocal
           .slice(0, 20)
           .forEach(([local, h, n, media]) => linhas.push([local, h.toFixed(2), n, media.toFixed(2)]));
+      }
+      linhas.push([]);
+
+      // ============== HORAS POR LOCAL/OBRA E TÉCNICO (TOP 15 OBRAS) ==============
+      linhas.push(['HORAS POR LOCAL/OBRA E TÉCNICO (TOP 15 OBRAS)']);
+      linhas.push(['Local / Obra', 'Técnico', 'Total Horas', 'Nº Atividades']);
+      const dadosLocalTecnico = agruparHorasPorLocalETecnico(atividades);
+      const locaisOrdenadosLT = Object.entries(dadosLocalTecnico)
+        .sort((a, b) => b[1].total - a[1].total)
+        .slice(0, 15);
+      if (locaisOrdenadosLT.length === 0) {
+        linhas.push(['(sem registos)']);
+      } else {
+        locaisOrdenadosLT.forEach(([local, info]) => {
+          const tecnicosOrdenados = Object.entries(info.tecnicos).sort((a, b) => b[1].horas - a[1].horas);
+          tecnicosOrdenados.forEach(([tec, v], idx) => {
+            linhas.push([idx === 0 ? local : '', tec, v.horas.toFixed(2), v.n]);
+          });
+        });
       }
       linhas.push([]);
 
