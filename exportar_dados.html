@@ -6,7 +6,6 @@
   <title>📥 Exportar Dados</title>
   <link rel="icon" type="image/jpeg" href="favicon.png">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Substituído xlsx por exceljs para suportar gráficos nativos no Excel -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 
   <style>
@@ -102,7 +101,7 @@
       </div>
     </div>
 
-    <button id="btnTudo" class="btn-all">⬇ Download Completo (Dados + Folha "Dashboard" com Gráficos)</button>
+    <button id="btnTudo" class="btn-all">⬇ Download Completo (Dados + Folha "Dashboard" Visual)</button>
 
     <div class="success" id="statusMsg"></div>
   </div>
@@ -155,7 +154,7 @@
       return tudo;
     }
 
-    // ===== FUNÇÕES DE PROCESSAMENTO DE DADOS PARA GRÁFICOS =====
+    // ===== FUNÇÕES DE PROCESSAMENTO DE DADOS =====
     function calcularDuracaoHoras(a) {
       if (!a.data_hora_inicio || !a.data_hora_fim) return 0;
       const diffMs = new Date(a.data_hora_fim) - new Date(a.data_hora_inicio);
@@ -167,7 +166,7 @@
       rows.forEach(r => {
         const d = r[campoData];
         if (!d) return;
-        const mes = String(d).substring(0, 7); // "YYYY-MM"
+        const mes = String(d).substring(0, 7);
         if (mes.length === 7) cont[mes] = (cont[mes] || 0) + 1;
       });
       return cont;
@@ -185,8 +184,8 @@
         .slice(0, 20);
     }
 
-    // ===== FUNÇÃO PRINCIPAL: CRIAR EXCEL COM GRÁFICOS =====
-    async function gerarExcelComGraficos() {
+    // ===== FUNÇÃO PRINCIPAL: CRIAR EXCEL COM DASHBOARD VISUAL =====
+    async function gerarExcelCompleto() {
       const [pedidos, atividades, ocorrencias, stock, movimentos] = await Promise.all([
         buscarTudo('pedidos'),
         buscarTudo('atividades'),
@@ -199,7 +198,7 @@
       workbook.creator = 'Sistema Topogf';
       workbook.created = new Date();
 
-      // 1. Adicionar folhas de dados brutos
+      // Função auxiliar para adicionar folhas de dados
       const addSheet = (name, data) => {
         const ws = workbook.addWorksheet(name);
         if (data.length === 0) {
@@ -207,10 +206,16 @@
           return;
         }
         const headers = Object.keys(data[0]);
-        ws.addRow(headers);
-        ws.getRow(1).font = { bold: true };
+        const headerRow = ws.addRow(headers);
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+        
         data.forEach(row => ws.addRow(headers.map(h => row[h])));
-        ws.columns = headers.map(h => ({ header: h, key: h, width: 20 }));
+        
+        // Ajustar larguras
+        headers.forEach((h, i) => {
+          ws.getColumn(i + 1).width = Math.max(h.length + 2, 15);
+        });
       };
 
       addSheet('Pedidos', pedidos);
@@ -219,88 +224,83 @@
       addSheet('Stock', stock);
       addSheet('Movimentos', movimentos);
 
-      // 2. Criar a folha "Dashboard" com Gráficos
+      // ===== CRIAR FOLHA "DASHBOARD" VISUAL =====
       const wsDash = workbook.addWorksheet('📊 Dashboard');
-      
-      // --- GRÁFICO 1: Evolução Mensal ---
-      wsDash.getCell('A1').value = 'EVOLUÇÃO MENSAL: PEDIDOS VS ATIVIDADES';
-      wsDash.getCell('A1').font = { bold: true, size: 14, color: { argb: 'FF2563EB' } };
-      
-      wsDash.getCell('A3').value = 'Mês';
-      wsDash.getCell('B3').value = 'Pedidos';
-      wsDash.getCell('C3').value = 'Atividades';
-      wsDash.getRow(3).font = { bold: true };
+      wsDash.properties.defaultRowHeight = 20;
+
+      // Título
+      const titleRow = wsDash.getRow(1);
+      titleRow.getCell(1).value = 'RELATÓRIO VISUAL DE ATIVIDADES E PEDIDOS';
+      titleRow.getCell(1).font = { bold: true, size: 16, color: { argb: 'FF2563EB' } };
+      wsDash.mergeCells('A1:D1');
+
+      // --- SECÇÃO 1: EVOLUÇÃO MENSAL ---
+      wsDash.getRow(3).getCell(1).value = '📈 EVOLUÇÃO MENSAL: PEDIDOS VS ATIVIDADES';
+      wsDash.getRow(3).getCell(1).font = { bold: true, size: 12, color: { argb: 'FF0F172A' } };
+
+      wsDash.getRow(4).values = ['Mês', 'Pedidos', 'Atividades', 'Diferença'];
+      const headerRow1 = wsDash.getRow(4);
+      headerRow1.font = { bold: true };
+      headerRow1.eachCell(cell => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+        cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
+      });
 
       const pedidosPorMes = agruparPorMesObj(pedidos, 'data_hora_pedido');
       const atividadesPorMes = agruparPorMesObj(atividades, 'data_hora_inicio');
       const todosOsMeses = [...new Set([...Object.keys(pedidosPorMes), ...Object.keys(atividadesPorMes)])].sort();
 
-      let rowDash = 4;
+      let rowDash = 5;
       todosOsMeses.forEach(mes => {
         const [ano, mesNum] = mes.split('-');
-        wsDash.getCell(`A${rowDash}`).value = `${mesNum}/${ano}`;
-        wsDash.getCell(`B${rowDash}`).value = pedidosPorMes[mes] || 0;
-        wsDash.getCell(`C${rowDash}`).value = atividadesPorMes[mes] || 0;
+        const p = pedidosPorMes[mes] || 0;
+        const a = atividadesPorMes[mes] || 0;
+        const diff = a - p;
+        
+        const row = wsDash.getRow(rowDash);
+        row.values = [`${mesNum}/${ano}`, p, a, diff];
+        
+        // Formatação condicional visual simples
+        row.getCell(4).font = { color: { argb: diff >= 0 ? 'FF10B981' : 'FFEF4444' }, bold: true };
         rowDash++;
       });
-      const lastRowGraf1 = rowDash - 1;
+      
+      // Ajustar colunas da secção 1
+      wsDash.getColumn(1).width = 15;
+      wsDash.getColumn(2).width = 12;
+      wsDash.getColumn(3).width = 12;
+      wsDash.getColumn(4).width = 15;
 
-      // Adicionar Gráfico 1 (Colunas Agrupadas)
-      wsDash.addChart({
-        type: 'col',
-        title: 'Evolução Mensal',
-        series: [
-          { label: 'Pedidos', values: `'📊 Dashboard'!$B$4:$B$${lastRowGraf1}`, fill: { color: { argb: 'FF3B82F6' } } },
-          { label: 'Atividades', values: `'📊 Dashboard'!$C$4:$C$${lastRowGraf1}`, fill: { color: { argb: 'FF10B981' } } }
-        ],
-        categories: { label: 'Mês', values: `'📊 Dashboard'!$A$4:$A$${lastRowGraf1}` },
-        anchor: 'E3',
-        width: 800,
-        height: 400
+      // --- SECÇÃO 2: HORAS POR LOCAL (TOP 20) ---
+      const startRow2 = rowDash + 3;
+      wsDash.getRow(startRow2).getCell(1).value = '⏱️ HORAS TRABALHADAS POR LOCAL/OBRA (TOP 20)';
+      wsDash.getRow(startRow2).getCell(1).font = { bold: true, size: 12, color: { argb: 'FF0F172A' } };
+
+      wsDash.getRow(startRow2 + 2).values = ['Local / Obra', 'Total Horas', 'Representação Visual'];
+      const headerRow2 = wsDash.getRow(startRow2 + 2);
+      headerRow2.font = { bold: true };
+      headerRow2.eachCell(cell => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+        cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
       });
-
-      // --- GRÁFICO 2: Horas por Local (Top 20) ---
-      const startRowGraf2 = lastRowGraf1 + 5;
-      wsDash.getCell(`A${startRowGraf2}`).value = 'HORAS TRABALHADAS POR LOCAL/OBRA (TOP 20)';
-      wsDash.getCell(`A${startRowGraf2}`).font = { bold: true, size: 14, color: { argb: 'FFA855F7' } };
-
-      wsDash.getCell(`A${startRowGraf2 + 2}`).value = 'Local / Obra';
-      wsDash.getCell(`B${startRowGraf2 + 2}`).value = 'Horas Totais';
-      wsDash.getRow(startRowGraf2 + 2).font = { bold: true };
 
       const horasPorLocal = agruparHorasPorLocal(atividades);
-      let rowDash2 = startRowGraf2 + 3;
+      const maxHoras = horasPorLocal.length > 0 ? horasPorLocal[0].horas : 1;
       
-      // Inverter para o gráfico de barras horizontal ficar legível (maior em cima)
-      const horasInvertidas = [...horasPorLocal].reverse();
-      
-      horasInvertidas.forEach(item => {
-        wsDash.getCell(`A${rowDash2}`).value = item.local;
-        wsDash.getCell(`B${rowDash2}`).value = Math.round(item.horas * 100) / 100; // Arredondar a 2 casas
+      let rowDash2 = startRow2 + 3;
+      horasPorLocal.forEach(item => {
+        const row = wsDash.getRow(rowDash2);
+        row.values = [item.local, Math.round(item.horas * 100) / 100, '█'.repeat(Math.round((item.horas / maxHoras) * 20))];
+        
+        // Cor de fundo na barra visual
+        row.getCell(3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFA855F7' } };
+        row.getCell(3).font = { color: { argb: 'FFFFFFFF' }, bold: true };
         rowDash2++;
       });
-      const lastRowGraf2 = rowDash2 - 1;
 
-      // Adicionar Gráfico 2 (Barras Horizontais)
-      wsDash.addChart({
-        type: 'bar',
-        title: 'Horas por Local/Obra',
-        series: [
-          { label: 'Horas', values: `'📊 Dashboard'!$B$${startRowGraf2 + 3}:$B$${lastRowGraf2}`, fill: { color: { argb: 'FFA855F7' } } }
-        ],
-        categories: { label: 'Local', values: `'📊 Dashboard'!$A$${startRowGraf2 + 3}:$A$${lastRowGraf2}` },
-        anchor: `E${startRowGraf2}`,
-        width: 800,
-        height: 500
-      });
-
-      // Ajustar larguras das colunas do Dashboard
-      wsDash.getColumn('A').width = 30;
-      wsDash.getColumn('B').width = 15;
-      wsDash.getColumn('C').width = 15;
-      wsDash.getColumn('E').width = 5; // Espaçamento
-      wsDash.getColumn('F').width = 30;
-      wsDash.getColumn('G').width = 15;
+      wsDash.getColumn(1).width = 35;
+      wsDash.getColumn(2).width = 15;
+      wsDash.getColumn(3).width = 25;
 
       // 3. Gerar e fazer download do ficheiro
       const buffer = await workbook.xlsx.writeBuffer();
@@ -308,14 +308,14 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Topogf_Relatorio_Completo_Com_Graficos_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      a.download = `Topogf_Relatorio_Completo_${new Date().toISOString().slice(0, 10)}.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }
 
-    // ===== FUNÇÕES DE EXPORTAÇÃO INDIVIDUAL (Rápidas, sem gráficos) =====
+    // ===== FUNÇÕES DE EXPORTAÇÃO INDIVIDUAL =====
     function mostrarStatus(msg) {
       const el = document.getElementById('statusMsg');
       el.textContent = msg;
@@ -333,14 +333,15 @@
           return;
         }
         
-        // Usando ExcelJS também aqui para manter consistência
         const wb = new ExcelJS.Workbook();
         const ws = wb.addWorksheet(tabela.charAt(0).toUpperCase() + tabela.slice(1));
         const headers = Object.keys(rows[0]);
-        ws.addRow(headers);
-        ws.getRow(1).font = { bold: true };
+        const headerRow = ws.addRow(headers);
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+        
         rows.forEach(row => ws.addRow(headers.map(h => row[h])));
-        ws.columns = headers.map(h => ({ header: h, key: h, width: 20 }));
+        headers.forEach((h, i) => { ws.getColumn(i + 1).width = Math.max(h.length + 2, 15); });
 
         const buffer = await wb.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -375,10 +376,18 @@
         const wb = new ExcelJS.Workbook();
         
         const ws1 = wb.addWorksheet('Stock');
-        if(stock.length) { const h = Object.keys(stock[0]); ws1.addRow(h); ws1.getRow(1).font={bold:true}; stock.forEach(r=>ws1.addRow(h.map(k=>r[k]))); }
+        if(stock.length) { 
+          const h = Object.keys(stock[0]); 
+          const hr = ws1.addRow(h); hr.font={bold:true}; hr.fill={type:'pattern', pattern:'solid', fgColor:{argb:'FF2563EB'}}; hr.font={color:{argb:'FFFFFFFF'}};
+          stock.forEach(r=>ws1.addRow(h.map(k=>r[k]))); 
+        }
         
         const ws2 = wb.addWorksheet('Movimentos');
-        if(movimentos.length) { const h = Object.keys(movimentos[0]); ws2.addRow(h); ws2.getRow(1).font={bold:true}; movimentos.forEach(r=>ws2.addRow(h.map(k=>r[k]))); }
+        if(movimentos.length) { 
+          const h = Object.keys(movimentos[0]); 
+          const hr = ws2.addRow(h); hr.font={bold:true}; hr.fill={type:'pattern', pattern:'solid', fgColor:{argb:'FF2563EB'}}; hr.font={color:{argb:'FFFFFFFF'}};
+          movimentos.forEach(r=>ws2.addRow(h.map(k=>r[k]))); 
+        }
 
         const buffer = await wb.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -394,16 +403,16 @@
 
     document.getElementById('btnTudo').addEventListener('click', async (e) => {
       e.target.disabled = true;
-      e.target.innerText = '⏳ A gerar ficheiro com gráficos (pode demorar alguns segundos)...';
+      e.target.innerText = '⏳ A gerar ficheiro completo...';
       try {
-        await gerarExcelComGraficos();
-        mostrarStatus('✅ Ficheiro completo com Dashboard e Gráficos exportado!');
+        await gerarExcelCompleto();
+        mostrarStatus('✅ Ficheiro completo com Dashboard exportado!');
       } catch (err) {
         console.error('Erro ao exportar tudo:', err);
         alert('Erro ao exportar: ' + err.message);
       } finally {
         e.target.disabled = false;
-        e.target.innerText = '⬇ Download Completo (Dados + Folha "Dashboard" com Gráficos)';
+        e.target.innerText = '⬇ Download Completo (Dados + Folha "Dashboard" Visual)';
       }
     });
   </script>
