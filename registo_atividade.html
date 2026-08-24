@@ -250,9 +250,6 @@
     const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-
-    const NOME_BUCKET = 'fotos'; 
-
     let ficheirosOcorrencia = [];
     const inputFotosOcorrencia = document.getElementById('inputFotosOcorrencia');
     const previewFotosOcorrencia = document.getElementById('previewFotosOcorrencia');
@@ -291,36 +288,30 @@
       });
     }
 
-    async function carregarFotosOcorrenciaParaStorage(ocorrenciaId) {
-      const urls = [];
+    // ===== NOVA FUNÇÃO: Converter fotos para base64 (sem usar Storage) =====
+    function converterFicheiroParaBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result); // Retorna a string base64 completa (data:image/...)
+        reader.onerror = (error) => reject(error);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function converterTodasFotosParaBase64() {
+      const base64Array = [];
       for (let i = 0; i < ficheirosOcorrencia.length; i++) {
         const file = ficheirosOcorrencia[i];
-        fotoOcorrenciaStatus.textContent = `A carregar fotografia ${i + 1} de ${ficheirosOcorrencia.length}...`;
-
-        const extensao = (file.name.split('.').pop() || 'jpg').toLowerCase();
-        const nomeFicheiro = `${ocorrenciaId}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${extensao}`;
-        const caminho = `ocorrencias/${ocorrenciaId}/${nomeFicheiro}`;
-
-        const { error: uploadError } = await supabaseClient.storage
-          .from(NOME_BUCKET)
-          .upload(caminho, file, { cacheControl: '3600', upsert: false });
-
-        if (uploadError) {
-          console.error('Erro ao carregar fotografia:', uploadError);
-          alert('ERRO NO STORAGE: Verifica se o bucket "' + NOME_BUCKET + '" existe no menu Storage do Supabase.\nDetalhe: ' + uploadError.message);
-          continue;
-        }
-
-        const { data: urlData } = supabaseClient.storage
-          .from(NOME_BUCKET)
-          .getPublicUrl(caminho);
-
-        if (urlData && urlData.publicUrl) {
-          urls.push(urlData.publicUrl);
+        fotoOcorrenciaStatus.textContent = `A processar fotografia ${i + 1} de ${ficheirosOcorrencia.length}...`;
+        try {
+          const base64 = await converterFicheiroParaBase64(file);
+          base64Array.push(base64);
+        } catch (err) {
+          console.error('Erro ao converter foto para base64:', err);
         }
       }
       fotoOcorrenciaStatus.textContent = '';
-      return urls;
+      return base64Array;
     }
 
     async function carregarPedidosPendentes() {
@@ -462,7 +453,7 @@
       btnEnviar.disabled = true;
       btnEnviar.innerText = "A processar...";
 
-      // 1. Upload da foto da atividade (se existir)
+      // 1. Upload da foto da atividade (se existir) - esta continua a usar o bucket 'anexos'
       let imageUrl = null;
       const fileInput = document.getElementById("fotoAnexo");
       if (fileInput.files.length > 0) {
@@ -470,14 +461,14 @@
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
         
-        const { error: uploadError } = await supabaseClient.storage.from(NOME_BUCKET).upload(fileName, file);
+        const { error: uploadError } = await supabaseClient.storage.from('anexos').upload(fileName, file);
         if (uploadError) {
           alert("Erro ao carregar a imagem da atividade: " + uploadError.message);
           btnEnviar.disabled = false;
           btnEnviar.innerText = "Gravar Atividade";
           return;
         }
-        const { data: publicUrlData } = supabaseClient.storage.from(NOME_BUCKET).getPublicUrl(fileName);
+        const { data: publicUrlData } = supabaseClient.storage.from('anexos').getPublicUrl(fileName);
         imageUrl = publicUrlData.publicUrl;
       }
 
@@ -516,9 +507,16 @@
       // 4. Tratar Ocorrência (Texto e/ou Fotos)
       const textoOcorrencia = document.getElementById('ocorrenciaTexto').value.trim();
       if ((textoOcorrencia || ficheirosOcorrencia.length > 0) && novaAtividadeId) {
-        btnEnviar.innerText = "A gravar ocorrência...";
-        
-        // Cria o registo na tabela "ocorrencias"
+        btnEnviar.innerText = "A processar ocorrência...";
+
+        // Converter fotos para base64 ANTES de criar o registo
+        let fotosBase64 = [];
+        if (ficheirosOcorrencia.length > 0) {
+          btnEnviar.innerText = "A converter fotos...";
+          fotosBase64 = await converterTodasFotosParaBase64();
+        }
+
+        // Criar o registo da ocorrência COM as fotos já incluídas na coluna "fotos"
         const { data: dataOcorrencia, error: errOcorrenciaInsert } = await supabaseClient
           .from('ocorrencias')
           .insert([{
@@ -526,38 +524,16 @@
             ocorrencia: textoOcorrencia,
             local_obra: form.Atividade_Local_Obra.value,
             numero_obra: form.numero_obra.value,
-            atividade_id: novaAtividadeId
+            atividade_id: novaAtividadeId,
+            fotos: fotosBase64  // ⬅️ AQUI: as fotos são guardadas diretamente na coluna "fotos" da tabela "ocorrencias"
           }])
           .select();
 
         if (errOcorrenciaInsert) {
           console.error("Erro ao criar ocorrência:", errOcorrenciaInsert);
-          alert("Erro ao criar registo de ocorrência: " + errOcorrenciaInsert.message);
+          alert("Erro ao criar ocorrência: " + errOcorrenciaInsert.message);
         } else {
-          const novaOcorrenciaId = dataOcorrencia[0].id;
-
-          // Upload das fotos da ocorrência
-          if (ficheirosOcorrencia.length > 0) {
-            btnEnviar.innerText = "A carregar fotos da ocorrência...";
-            try {
-              const urlsFotos = await carregarFotosOcorrenciaParaStorage(novaOcorrenciaId);
-              
-              if (urlsFotos.length > 0) {
-                // ⚠️ AQUI ESTÁ A ATUALIZAÇÃO DA COLUNA "fotos" NA TABELA "ocorrencias" ⚠️
-                const { error: updateError } = await supabaseClient
-                  .from('ocorrencias')
-                  .update({ fotos: urlsFotos })
-                  .eq('id', novaOcorrenciaId);
-                
-                if (updateError) {
-                  console.error("Erro ao atualizar coluna fotos na tabela ocorrencias:", updateError);
-                  alert("Atividade gravada, mas falha ao guardar os links das fotos na tabela: " + updateError.message);
-                }
-              }
-            } catch (err) {
-              console.error("Erro no processo das fotos da ocorrência:", err);
-            }
-          }
+          console.log("Ocorrência criada com " + fotosBase64.length + " foto(s) guardada(s) na coluna 'fotos'.");
         }
       }
 
