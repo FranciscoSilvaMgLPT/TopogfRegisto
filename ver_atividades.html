@@ -58,11 +58,11 @@
         .modal-evento-conteudo textarea { min-height: 90px; resize: vertical; }
         .modal-evento-conteudo button[type="submit"] { width: 100%; margin-top: 15px; padding: 12px; border: none; border-radius: 8px; background: #2563eb; color: white; font-size: 15px; font-weight: bold; cursor: pointer; }
 
-        .modal-anexo-overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+        .modal-anexo-overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
         .modal-anexo-overlay.aberta { display: flex; }
         .modal-anexo-conteudo { position: relative; max-width: 90vw; max-height: 90vh; display: flex; }
         .modal-anexo-conteudo img { max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: 8px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); }
-        .modal-anexo-fechar { position: absolute; top: -14px; right: -14px; background: #ef4444; color: white; border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .modal-anexo-fechar { position: absolute; top: -14px; right: -14px; background: #ef4444; color: white; border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; }
 
         @media (max-width: 640px) {
             body { padding: 12px; }
@@ -97,6 +97,7 @@
 
     <input type="file" id="input-anexo" accept="image/*" capture="environment" style="display:none">
 
+    <!-- Modal para ver anexo da atividade -->
     <div id="modal-anexo" class="modal-anexo-overlay" onclick="fecharModalAnexoSeBackdrop(event)">
         <div class="modal-anexo-conteudo">
             <button type="button" class="modal-anexo-fechar" onclick="fecharModalAnexo()" aria-label="Fechar">✕</button>
@@ -104,6 +105,7 @@
         </div>
     </div>
 
+    <!-- Modal de detalhes do evento (calendário) -->
     <div id="modal-evento" class="modal-anexo-overlay" onclick="fecharModalEventoSeBackdrop(event)">
         <div class="modal-evento-conteudo" onclick="event.stopPropagation()">
             <button type="button" class="modal-anexo-fechar" onclick="fecharModalEvento()" aria-label="Fechar">✕</button>
@@ -112,6 +114,7 @@
         </div>
     </div>
 
+    <!-- Modal de detalhes do pedido -->
     <div id="modal-pedido" class="modal-anexo-overlay" onclick="fecharModalPedidoSeBackdrop(event)">
         <div class="modal-evento-conteudo" onclick="event.stopPropagation()">
             <button type="button" class="modal-anexo-fechar" onclick="fecharModalPedido()" aria-label="Fechar">✕</button>
@@ -144,6 +147,21 @@
         </div>
     </div>
 
+    <!-- NOVO: Modal para visualizar fotos da ocorrência -->
+    <div id="modal-fotos-ocorrencia" class="modal-anexo-overlay" onclick="fecharModalFotosOcorrenciaSeBackdrop(event)">
+        <div class="modal-anexo-conteudo" style="position: relative; max-width: 95vw; max-height: 95vh; flex-direction: column; align-items: center; justify-content: center;">
+            <button type="button" class="modal-anexo-fechar" onclick="fecharModalFotosOcorrencia()" aria-label="Fechar">✕</button>
+            
+            <button type="button" onclick="fotoOcorrenciaAnterior()" style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center;">‹</button>
+            
+            <img id="modal-fotos-ocorrencia-img" src="" alt="Fotografia da ocorrência" style="max-width: 95vw; max-height: 85vh; object-fit: contain; border-radius: 8px;">
+            
+            <button type="button" onclick="fotoOcorrenciaSeguinte()" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center;">›</button>
+            
+            <div id="modal-fotos-ocorrencia-contador" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; z-index: 10;"></div>
+        </div>
+    </div>
+
     <script>
         const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
@@ -156,7 +174,11 @@
         let anexoBotaoAtual = null;
         let dadosAtividadesPorId = {};
         let ocorrenciaAtividadeAtual = null;
-        let idsEditados = new Set(); // linhas que foram efetivamente alteradas desde a última gravação
+        let idsEditados = new Set();
+        
+        // Variáveis para o modal de fotos da ocorrência
+        let fotosOcorrenciaAtual = [];
+        let fotoOcorrenciaIndexAtual = 0;
 
         // ===== VERIFICAÇÃO DE BIBLIOTECAS =====
         (function verificarBibliotecas() {
@@ -314,7 +336,6 @@
                     .map(t => t.trim())
                     .filter(Boolean);
 
-                // ===== Serviço + ocorrências associadas (sem data) =====
                 const ocorrenciasDaAtividade =
                     (dadosAtividadesPorId[rowData.id] && dadosAtividadesPorId[rowData.id].ocorrencias_info) ||
                     rowData.ocorrencias_info ||
@@ -516,11 +537,39 @@
         function abrirModalOcorrencias(rowData) {
             const ocorrencias = rowData.ocorrencias_info || [];
             document.getElementById('modal-ocorrencias-titulo').innerText = '🚨 Ocorrências — Atividade #' + rowData.id;
-            document.getElementById('modal-ocorrencias-corpo').innerHTML = ocorrencias.map(function (o) {
-                return '<p style="margin-left:6px; border-left:3px solid #a855f7; padding-left:8px; margin-bottom:8px;">' +
-                       '<strong>' + (formatarDataHoraTexto(o.data) || 'Sem data') + ':</strong> ' + (o.ocorrencia || '') +
-                       '</p>';
-            }).join('');
+            
+            if (ocorrencias.length === 0) {
+                document.getElementById('modal-ocorrencias-corpo').innerHTML = 
+                    '<p style="color: #94a3b8; text-align: center; padding: 20px;">Sem ocorrências registadas.</p>';
+            } else {
+                document.getElementById('modal-ocorrencias-corpo').innerHTML = ocorrencias.map(function (o) {
+                    const temFotos = o.fotos && Array.isArray(o.fotos) && o.fotos.length > 0;
+                    let html = '<div style="margin-bottom: 16px; padding: 12px; background: #334155; border-radius: 8px;">';
+                    html += '<p style="margin: 0 0 8px 0;"><strong>' + (formatarDataHoraTexto(o.data) || 'Sem data') + ':</strong> ' + (o.ocorrencia || '') + '</p>';
+                    
+                    if (temFotos) {
+                        html += '<div style="margin-top: 10px;">';
+                        const fotosJson = JSON.stringify(o.fotos).replace(/'/g, "&#39;");
+                        html += '<button class="btn-ver-fotos" data-fotos=\'' + fotosJson + '\' style="background: #a855f7; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">';
+                        html += '📷 Ver ' + o.fotos.length + ' fotografia' + (o.fotos.length > 1 ? 's' : '');
+                        html += '</button>';
+                        html += '</div>';
+                    }
+                    html += '</div>';
+                    return html;
+                }).join('');
+                
+                // Adicionar event listeners aos botões de ver fotos
+                setTimeout(() => {
+                    document.querySelectorAll('.btn-ver-fotos').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const fotos = JSON.parse(this.getAttribute('data-fotos'));
+                            abrirModalFotosOcorrencia(fotos);
+                        });
+                    });
+                }, 0);
+            }
+            
             document.getElementById('modal-ocorrencias').classList.add('aberta');
             document.body.style.overflow = 'hidden';
         }
@@ -532,6 +581,47 @@
 
         function fecharModalOcorrenciasSeBackdrop(e) {
             if (e.target.id === 'modal-ocorrencias') fecharModalOcorrencias();
+        }
+
+        // ===== NOVO: Funções para o Modal de Fotos da Ocorrência =====
+        function abrirModalFotosOcorrencia(fotos) {
+            fotosOcorrenciaAtual = fotos;
+            fotoOcorrenciaIndexAtual = 0;
+            atualizarFotoOcorrencia();
+            document.getElementById('modal-fotos-ocorrencia').classList.add('aberta');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function fecharModalFotosOcorrencia() {
+            document.getElementById('modal-fotos-ocorrencia').classList.remove('aberta');
+            document.getElementById('modal-fotos-ocorrencia-img').src = '';
+            document.body.style.overflow = '';
+            fotosOcorrenciaAtual = [];
+        }
+
+        function fecharModalFotosOcorrenciaSeBackdrop(e) {
+            if (e.target.id === 'modal-fotos-ocorrencia') fecharModalFotosOcorrencia();
+        }
+
+        function fotoOcorrenciaAnterior() {
+            if (fotosOcorrenciaAtual.length === 0) return;
+            fotoOcorrenciaIndexAtual = (fotoOcorrenciaIndexAtual - 1 + fotosOcorrenciaAtual.length) % fotosOcorrenciaAtual.length;
+            atualizarFotoOcorrencia();
+        }
+
+        function fotoOcorrenciaSeguinte() {
+            if (fotosOcorrenciaAtual.length === 0) return;
+            fotoOcorrenciaIndexAtual = (fotoOcorrenciaIndexAtual + 1) % fotosOcorrenciaAtual.length;
+            atualizarFotoOcorrencia();
+        }
+
+        function atualizarFotoOcorrencia() {
+            const img = document.getElementById('modal-fotos-ocorrencia-img');
+            const contador = document.getElementById('modal-fotos-ocorrencia-contador');
+            if (fotosOcorrenciaAtual[fotoOcorrenciaIndexAtual]) {
+                img.src = fotosOcorrenciaAtual[fotoOcorrenciaIndexAtual];
+                contador.innerText = (fotoOcorrenciaIndexAtual + 1) + ' / ' + fotosOcorrenciaAtual.length;
+            }
         }
 
         document.getElementById('formOcorrencia').addEventListener('submit', async function (e) {
@@ -553,14 +643,12 @@
                 return;
             }
 
-            // Atualiza os dados locais para a modal do calendário mostrar já a nova ocorrência
             const atividadeLocal = dadosAtividadesPorId[dados.atividade_id];
             if (atividadeLocal) {
                 atividadeLocal.ocorrencias_info = atividadeLocal.ocorrencias_info || [];
                 atividadeLocal.ocorrencias_info.push(dados);
             }
 
-            // Refresca a linha da tabela para atualizar o contador de ocorrências
             if (table) {
                 const linhaTabela = table.getRow(dados.atividade_id);
                 if (linhaTabela) linhaTabela.update({});
@@ -571,7 +659,18 @@
         });
 
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') { fecharModalAnexo(); fecharModalEvento(); fecharModalPedido(); fecharModalOcorrencia(); fecharModalOcorrencias(); }
+            if (e.key === 'Escape') { 
+                fecharModalAnexo(); 
+                fecharModalEvento(); 
+                fecharModalPedido(); 
+                fecharModalOcorrencia(); 
+                fecharModalOcorrencias(); 
+                fecharModalFotosOcorrencia(); 
+            }
+            if (document.getElementById('modal-fotos-ocorrencia').classList.contains('aberta')) {
+                if (e.key === 'ArrowLeft') fotoOcorrenciaAnterior();
+                if (e.key === 'ArrowRight') fotoOcorrenciaSeguinte();
+            }
         });
 
         function formatarDataHoraTexto(valor) {
@@ -606,7 +705,6 @@
             dadosAtividadesPorId = {};
             data.forEach(a => { dadosAtividadesPorId[a.id] = a; });
 
-            // Carregar pedidos associados
             const pedidosIds = [...new Set(data.filter(a => a.pedido_id).map(a => a.pedido_id))];
             const mapaPedidos = {};
             if (pedidosIds.length > 0) {
@@ -623,10 +721,10 @@
             }
             data.forEach(a => { a.pedido_info = mapaPedidos[a.pedido_id] || null; });
 
-            // Carregar ocorrências associadas às atividades
+            // Carregar ocorrências associadas às atividades (AGORA INCLUI A COLUNA 'fotos')
             const { data: ocorrenciasData, error: errOcorrencias } = await sbClient
                 .from('ocorrencias')
-                .select('id, data, ocorrencia, atividade_id')
+                .select('id, data, ocorrencia, atividade_id, fotos')
                 .not('atividade_id', 'is', null);
 
             const mapaOcorrencias = {};
@@ -645,7 +743,7 @@
                 layout: "fitData",
                 pagination: "local",
                 paginationSize: 15,
-                                initialSort: [
+                initialSort: [
                     { column: "data_hora_inicio", dir: "desc" } 
                 ],
                 columns: [
@@ -684,7 +782,6 @@
                         const valor = cell.getValue();
                         if (valor) abrirModalAnexo(valor);
                     }},
-                    // Coluna Ações com largura automática
                     { title: "Ações", formatter: function (cell) {
                         const temAnexo = !!cell.getRow().getData().anexo;
                         return "<button class='btn-docx'>📄 Docx</button>" +
@@ -752,20 +849,16 @@
             return cores[Math.abs(hash) % cores.length];
         }
 
-        // Corta textos longos (ex.: serviço) para o título do calendário não ficar gigante
         function truncarTexto(texto, tamanho) {
             if (!texto) return '';
             return texto.length > tamanho ? texto.substring(0, tamanho).trim() + '…' : texto;
         }
 
-        // Monta o título do evento: "Técnico(s) — Local ("Nº Obra") - Serviço"
         function montarTituloEvento(row) {
             let titulo = row.tecnico || 'Sem técnico';
-
             if (row.local_obra) titulo += ' — ' + row.local_obra;
             if (row.numero_obra) titulo += ' (' + row.numero_obra + ')';
             if (row.servico) titulo += ' - ' + truncarTexto(row.servico, 80);
-
             return titulo;
         }
 
@@ -806,25 +899,34 @@
                 eventClick: function (info) {
                     const row = info.event.extendedProps;
                     document.getElementById('modal-evento-titulo').innerText = row.tecnico || 'Atividade';
-                    document.getElementById('modal-evento-corpo').innerHTML =
+                    
+                    let htmlCorpo = 
                         '<p><strong>Início:</strong> ' + (formatarDataHoraTexto(row.data_hora_inicio) || '—') + '</p>' +
                         '<p><strong>Fim:</strong> ' + (formatarDataHoraTexto(row.data_hora_fim) || '—') + '</p>' +
                         '<p><strong>Local/Obra:</strong> ' + (row.local_obra || '—') + '</p>' +
                         '<p><strong>Nº Obra:</strong> ' + (row.numero_obra || '—') + '</p>' +
-                        '<p><strong>Serviço:</strong> ' + (row.servico || '—') + '</p>' +
-                        (row.pedido_id && row.pedido_info
-                            ? '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalPedido(dadosAtividadesPorId[' + row.id + '].pedido_info)">📋 Pedido associado #' + row.pedido_id + ' ' + (row.pedido_info.data_conclusao ? '(✅ Concluído)' : '(⏳ Pendente)') + '</a></p>'
-                            : '') +
-                        (row.ocorrencias_info && row.ocorrencias_info.length > 0
-                            ? '<p><strong>🚨 Ocorrências associadas:</strong></p>' +
-                              row.ocorrencias_info.map(function (o) {
-                                  return '<p style="margin-left:6px; border-left:3px solid #a855f7; padding-left:8px; margin-bottom:6px;">' +
+                        '<p><strong>Serviço:</strong> ' + (row.servico || '—') + '</p>';
+                        
+                    if (row.pedido_id && row.pedido_info) {
+                        htmlCorpo += '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalPedido(dadosAtividadesPorId[' + row.id + '].pedido_info)">📋 Pedido associado #' + row.pedido_id + ' ' + (row.pedido_info.data_conclusao ? '(✅ Concluído)' : '(⏳ Pendente)') + '</a></p>';
+                    }
+                    
+                    if (row.ocorrencias_info && row.ocorrencias_info.length > 0) {
+                        htmlCorpo += '<p style="margin-top:12px;"><strong>🚨 Ocorrências associadas:</strong></p>';
+                        row.ocorrencias_info.forEach(function (o) {
+                            htmlCorpo += '<p style="margin-left:6px; border-left:3px solid #a855f7; padding-left:8px; margin-bottom:6px; font-size: 13px;">' +
                                          '<strong>' + (formatarDataHoraTexto(o.data) || 'Sem data') + ':</strong> ' + (o.ocorrencia || '') +
                                          '</p>';
-                              }).join('')
-                            : '') +
-                        '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalOcorrencia(dadosAtividadesPorId[' + row.id + '])">🚨 Adicionar ocorrência a esta atividade</a></p>' +
-                        (row.anexo ? '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalAnexo(\'' + row.anexo + '\')">🖼️ Ver anexo</a></p>' : '');
+                        });
+                    }
+                    
+                    htmlCorpo += '<p style="margin-top:12px;"><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalOcorrencia(dadosAtividadesPorId[' + row.id + '])">🚨 Adicionar ocorrência a esta atividade</a></p>';
+                    
+                    if (row.anexo) {
+                        htmlCorpo += '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalAnexo(\'' + row.anexo + '\')">🖼️ Ver anexo</a></p>';
+                    }
+                    
+                    document.getElementById('modal-evento-corpo').innerHTML = htmlCorpo;
                     document.getElementById('modal-evento').classList.add('aberta');
                     document.body.style.overflow = 'hidden';
                 }
@@ -832,13 +934,6 @@
             calendario.render();
         }
 
-        // Na vista de lista, o FullCalendar ordena os dias do mais antigo para o mais
-        // recente, e dentro de cada dia as atividades da mais cedo para a mais tarde.
-        // Agrupamos as linhas por dia (cada bloco começa numa linha "fc-list-day") e:
-        //  - invertemos a ordem dos BLOCOS, para o dia mais recente aparecer primeiro;
-        //  - invertemos também a ordem das atividades DENTRO de cada bloco (mantendo
-        //    o cabeçalho do dia sempre na primeira posição), para a hora mais tarde
-        //    aparecer no topo e a mais cedo em baixo.
         function reverterOrdemDiasNaLista() {
             const tbody = document.querySelector('.fc-list-table tbody');
             if (!tbody) return;
@@ -878,9 +973,6 @@
         async function guardarAlteracoes() {
             if (!sbClient || !table) { avisarSemCliente(); return; }
 
-            // Só grava as linhas que foram efetivamente editadas (idsEditados),
-            // em vez de reenviar TODAS as linhas da tabela — isto é o que
-            // tornava o botão lento com muitas atividades.
             if (idsEditados.size === 0) {
                 alert("Não há alterações por guardar.");
                 return;
@@ -894,8 +986,6 @@
             const dadosPorId = {};
             table.getData().forEach(item => { dadosPorId[item.id] = item; });
 
-            // Todos os updates são independentes entre si, por isso correm
-            // em PARALELO (Promise.all) em vez de um a seguir ao outro.
             const resultados = await Promise.all(idsParaGravar.map(id => {
                 const item = dadosPorId[id];
                 if (!item) return Promise.resolve({ id, error: null });
@@ -916,8 +1006,6 @@
             const falhas = resultados.filter(r => r.error);
             falhas.forEach(r => console.error("Erro ao atualizar ID " + r.id, r.error));
 
-            // Remove das pendentes só as que gravaram com sucesso, para as
-            // que falharam continuarem marcadas e serem retentadas depois.
             resultados.filter(r => !r.error).forEach(r => idsEditados.delete(r.id));
 
             if (btn) { btn.disabled = false; btn.innerText = textoOriginalBtn; }
