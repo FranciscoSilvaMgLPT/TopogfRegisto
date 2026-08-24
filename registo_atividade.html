@@ -58,7 +58,6 @@
     }
     .ocorrencia-association h3 { color: #c084fc; margin-bottom: 15px; font-size: 18px; }
 
-    /* ===== Input de fotografias direto e limpo ===== */
     .foto-input-direto {
       width: 100%;
       padding: 16px;
@@ -251,9 +250,10 @@
     const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // ⚠️ IMPORTANTE: Confirma no teu Supabase (Storage -> Buckets) qual é o nome exato.
-    // Se o bucket se chamar 'ocorrencias' ou 'fotos', altera a palavra 'anexos' abaixo.
-    const NOME_BUCKET_FOTOS_OCORRENCIA = 'anexos'; 
+    // ⚠️ IMPORTANTE: Este é o nome da PASTA (Bucket) no menu "Storage" do Supabase.
+    // Como a foto da atividade já funcionava em 'anexos', usamos o mesmo. 
+    // Se no teu Supabase a pasta se chamar "ocorrencias" ou "fotos", muda aqui para esse nome exato.
+    const NOME_BUCKET = 'anexos'; 
 
     let ficheirosOcorrencia = [];
     const inputFotosOcorrencia = document.getElementById('inputFotosOcorrencia');
@@ -300,22 +300,21 @@
         fotoOcorrenciaStatus.textContent = `A carregar fotografia ${i + 1} de ${ficheirosOcorrencia.length}...`;
 
         const extensao = (file.name.split('.').pop() || 'jpg').toLowerCase();
-        // Caminho organizado por pasta da ocorrência
         const nomeFicheiro = `${ocorrenciaId}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${extensao}`;
         const caminho = `ocorrencias/${ocorrenciaId}/${nomeFicheiro}`;
 
         const { error: uploadError } = await supabaseClient.storage
-          .from(NOME_BUCKET_FOTOS_OCORRENCIA)
+          .from(NOME_BUCKET)
           .upload(caminho, file, { cacheControl: '3600', upsert: false });
 
         if (uploadError) {
           console.error('Erro ao carregar fotografia:', uploadError);
-          alert('Erro ao carregar foto: ' + uploadError.message);
+          alert('ERRO NO STORAGE: Verifica se o bucket "' + NOME_BUCKET + '" existe no menu Storage do Supabase.\nDetalhe: ' + uploadError.message);
           continue;
         }
 
         const { data: urlData } = supabaseClient.storage
-          .from(NOME_BUCKET_FOTOS_OCORRENCIA)
+          .from(NOME_BUCKET)
           .getPublicUrl(caminho);
 
         if (urlData && urlData.publicUrl) {
@@ -473,14 +472,14 @@
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
         
-        const { error: uploadError } = await supabaseClient.storage.from('anexos').upload(fileName, file);
+        const { error: uploadError } = await supabaseClient.storage.from(NOME_BUCKET).upload(fileName, file);
         if (uploadError) {
           alert("Erro ao carregar a imagem da atividade: " + uploadError.message);
           btnEnviar.disabled = false;
           btnEnviar.innerText = "Gravar Atividade";
           return;
         }
-        const { data: publicUrlData } = supabaseClient.storage.from('anexos').getPublicUrl(fileName);
+        const { data: publicUrlData } = supabaseClient.storage.from(NOME_BUCKET).getPublicUrl(fileName);
         imageUrl = publicUrlData.publicUrl;
       }
 
@@ -521,6 +520,7 @@
       if ((textoOcorrencia || ficheirosOcorrencia.length > 0) && novaAtividadeId) {
         btnEnviar.innerText = "A gravar ocorrência...";
         
+        // Cria o registo na tabela "ocorrencias"
         const { data: dataOcorrencia, error: errOcorrenciaInsert } = await supabaseClient
           .from('ocorrencias')
           .insert([{
@@ -543,19 +543,21 @@
             btnEnviar.innerText = "A carregar fotos da ocorrência...";
             try {
               const urlsFotos = await carregarFotosOcorrenciaParaStorage(novaOcorrenciaId);
+              
               if (urlsFotos.length > 0) {
-                // Atualiza a coluna "fotos" na tabela "ocorrencias" com o array de URLs
+                // ⚠️ AQUI ESTÁ A ATUALIZAÇÃO DA COLUNA "fotos" NA TABELA "ocorrencias" ⚠️
                 const { error: updateError } = await supabaseClient
                   .from('ocorrencias')
                   .update({ fotos: urlsFotos })
                   .eq('id', novaOcorrenciaId);
                 
                 if (updateError) {
-                  console.error("Erro ao atualizar coluna fotos:", updateError);
+                  console.error("Erro ao atualizar coluna fotos na tabela ocorrencias:", updateError);
+                  alert("Atividade gravada, mas falha ao guardar os links das fotos na tabela: " + updateError.message);
                 }
               }
             } catch (err) {
-              console.error("Erro no upload das fotos da ocorrência:", err);
+              console.error("Erro no processo das fotos da ocorrência:", err);
             }
           }
         }
