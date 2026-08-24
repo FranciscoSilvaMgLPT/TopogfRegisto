@@ -27,7 +27,6 @@
     .tecnico-picker label { display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 0; font-size: 15px; color: white; }
     .tecnico-picker input[type="checkbox"] { width: auto; }
 
-    /* ===== Secção de associação de pedido ===== */
     .pedido-association {
       background: #1e293b;
       border: 2px solid #3b82f6;
@@ -50,7 +49,6 @@
     .checkbox-container label { margin: 0; font-size: 15px; color: white; cursor: pointer; flex: 1; }
     .checkbox-container:has(input:disabled) { opacity: 0.5; cursor: not-allowed; }
 
-    /* ===== Secção de ocorrência ===== */
     .ocorrencia-association {
       background: #1e293b;
       border: 2px solid #a855f7;
@@ -60,7 +58,7 @@
     }
     .ocorrencia-association h3 { color: #c084fc; margin-bottom: 15px; font-size: 18px; }
 
-    /* ===== Input de fotografias direto e limpo (Reutilizado) ===== */
+    /* ===== Input de fotografias direto e limpo ===== */
     .foto-input-direto {
       width: 100%;
       padding: 16px;
@@ -135,7 +133,6 @@
     button:disabled { background: #475569; cursor: not-allowed; }
     .success { display: none; margin-top: 20px; background: #065f46; padding: 15px; border-radius: 10px; text-align: center; }
 
-    /* Ajuste para dispositivos móveis */
     @media (max-width: 640px) {
       body { padding: 15px; }
       .container { padding: 20px; border-radius: 14px; }
@@ -165,7 +162,6 @@
       Utilizador: <span id="user-display" style="color: #60a5fa;">A carregar...</span>
     </div>
 
-    <!-- ===== Secção de associação de pedido ===== -->
     <div class="pedido-association">
       <h3>📋 Associar a Pedido (opcional)</h3>
       <label>Selecionar Pedido</label>
@@ -181,7 +177,6 @@
 
     <form id="formularioAtividade">
 
-      <!-- ===== Secção de ocorrência (opcional) ===== -->
       <div class="ocorrencia-association">
         <h3>🚨 Ocorrência (opcional)</h3>
         <label>Descrição da ocorrência</label>
@@ -256,18 +251,20 @@
     const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // ===== Variáveis para fotografias da ocorrência =====
+    // ⚠️ IMPORTANTE: Confirma no teu Supabase (Storage -> Buckets) qual é o nome exato.
+    // Se o bucket se chamar 'ocorrencias' ou 'fotos', altera a palavra 'anexos' abaixo.
+    const NOME_BUCKET_FOTOS_OCORRENCIA = 'anexos'; 
+
     let ficheirosOcorrencia = [];
     const inputFotosOcorrencia = document.getElementById('inputFotosOcorrencia');
     const previewFotosOcorrencia = document.getElementById('previewFotosOcorrencia');
     const fotoOcorrenciaStatus = document.getElementById('fotoOcorrenciaStatus');
-    const NOME_BUCKET_FOTOS_OCORRENCIA = 'fotos-ocorrencias';
 
     inputFotosOcorrencia.addEventListener('change', (e) => {
       const novosFicheiros = Array.from(e.target.files || []);
       ficheirosOcorrencia = ficheirosOcorrencia.concat(novosFicheiros);
       renderizarPreviewsOcorrencia();
-      e.target.value = ''; // Permite selecionar o mesmo ficheiro novamente se necessário
+      e.target.value = ''; 
     });
 
     function renderizarPreviewsOcorrencia() {
@@ -303,6 +300,7 @@
         fotoOcorrenciaStatus.textContent = `A carregar fotografia ${i + 1} de ${ficheirosOcorrencia.length}...`;
 
         const extensao = (file.name.split('.').pop() || 'jpg').toLowerCase();
+        // Caminho organizado por pasta da ocorrência
         const nomeFicheiro = `${ocorrenciaId}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${extensao}`;
         const caminho = `ocorrencias/${ocorrenciaId}/${nomeFicheiro}`;
 
@@ -312,6 +310,7 @@
 
         if (uploadError) {
           console.error('Erro ao carregar fotografia:', uploadError);
+          alert('Erro ao carregar foto: ' + uploadError.message);
           continue;
         }
 
@@ -327,7 +326,6 @@
       return urls;
     }
 
-    // ===== 1. Carregar pedidos pendentes =====
     async function carregarPedidosPendentes() {
       const selectPedido = document.getElementById('selectPedido');
       selectPedido.innerHTML = '<option value="">-- Nenhum pedido associado --</option>';
@@ -364,7 +362,6 @@
       }
     }
 
-    // ===== 2. Detetar mudança de seleção e preencher campos =====
     const selectPedido = document.getElementById('selectPedido');
     const checkboxConcluido = document.getElementById('checkboxConcluido');
 
@@ -380,7 +377,6 @@
       }
     });
 
-    // ===== 3. Carregamento por URL =====
     async function preSelecionarPedidoPorUrl() {
       const params = new URLSearchParams(window.location.search);
       const pedidoId = params.get('pedido');
@@ -393,7 +389,6 @@
       }
     }
 
-    // ===== 4. Histórico de Locais =====
     let mapaLocalParaObra = {};
     let mapaObraParaLocal = {};
 
@@ -455,7 +450,6 @@
       document.getElementById("dataHoraInicio").value = now.toISOString().slice(0, 16);
     }
 
-    // ===== 5. Submissão do Formulário =====
     const form = document.getElementById("formularioAtividade");
     const btnEnviar = document.getElementById("btnEnviar");
 
@@ -540,6 +534,7 @@
 
         if (errOcorrenciaInsert) {
           console.error("Erro ao criar ocorrência:", errOcorrenciaInsert);
+          alert("Erro ao criar registo de ocorrência: " + errOcorrenciaInsert.message);
         } else {
           const novaOcorrenciaId = dataOcorrencia[0].id;
 
@@ -549,7 +544,15 @@
             try {
               const urlsFotos = await carregarFotosOcorrenciaParaStorage(novaOcorrenciaId);
               if (urlsFotos.length > 0) {
-                await supabaseClient.from('ocorrencias').update({ fotos: urlsFotos }).eq('id', novaOcorrenciaId);
+                // Atualiza a coluna "fotos" na tabela "ocorrencias" com o array de URLs
+                const { error: updateError } = await supabaseClient
+                  .from('ocorrencias')
+                  .update({ fotos: urlsFotos })
+                  .eq('id', novaOcorrenciaId);
+                
+                if (updateError) {
+                  console.error("Erro ao atualizar coluna fotos:", updateError);
+                }
               }
             } catch (err) {
               console.error("Erro no upload das fotos da ocorrência:", err);
@@ -565,7 +568,6 @@
       checkboxConcluido.checked = false;
       checkboxConcluido.disabled = true;
       
-      // Limpar fotos da ocorrência
       ficheirosOcorrencia = [];
       renderizarPreviewsOcorrencia();
       fotoOcorrenciaStatus.textContent = '';
@@ -581,7 +583,6 @@
       btnEnviar.innerText = "Gravar Atividade";
     });
 
-    // ===== Inicialização =====
     window.onload = async () => {
       const { data: { user }, error } = await supabaseClient.auth.getUser();
       if (error || !user) {
