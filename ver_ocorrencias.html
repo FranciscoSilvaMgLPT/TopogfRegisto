@@ -21,6 +21,20 @@
         .link-anexo { color: #60a5fa; text-decoration: none; }
         .sem-registo { color: #64748b; }
 
+        /* ===== Botão/indicador de fotos na tabela ===== */
+        .btn-fotos {
+            background: #334155;
+            color: #60a5fa;
+            border: 1px solid #3b82f6;
+            padding: 4px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        .btn-fotos:hover { background: #3b4a63; }
+
         .modal-overlay {
             display: none;
             position: fixed;
@@ -73,6 +87,35 @@
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
         }
 
+        /* ===== Modal galeria de fotografias da ocorrência ===== */
+        .modal-fotos-conteudo {
+            position: relative;
+            background: #1e293b;
+            border-radius: 10px;
+            padding: 24px;
+            max-width: 640px;
+            width: 90vw;
+            max-height: 85vh;
+            overflow-y: auto;
+            color: white;
+        }
+        .galeria-fotos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 14px;
+        }
+        .foto-galeria-thumb {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #475569;
+            cursor: pointer;
+            transition: transform 0.15s, border-color 0.15s;
+        }
+        .foto-galeria-thumb:hover { transform: scale(1.03); border-color: #3b82f6; }
+
         @media (max-width: 640px) {
             body { padding: 12px; }
             .toolbar-actions a, .toolbar-actions button { flex: 1 1 auto; text-align: center; margin-right: 0; }
@@ -107,11 +150,20 @@
         </div>
     </div>
 
-    <!-- Modal para visualizar o anexo (foto) da atividade -->
+    <!-- Modal galeria de fotografias da ocorrência -->
+    <div id="modal-fotos" class="modal-overlay" onclick="fecharModalFotosSeBackdrop(event)">
+        <div class="modal-fotos-conteudo" onclick="event.stopPropagation()">
+            <button type="button" class="modal-fechar" onclick="fecharModalFotos()" aria-label="Fechar">✕</button>
+            <h3 id="modal-fotos-titulo" style="margin-top:0;"></h3>
+            <div id="modal-fotos-corpo" class="galeria-fotos-grid"></div>
+        </div>
+    </div>
+
+    <!-- Modal para visualizar uma foto/anexo em tamanho grande -->
     <div id="modal-anexo" class="modal-overlay" onclick="fecharModalAnexoSeBackdrop(event)">
         <div class="modal-imagem-conteudo">
             <button type="button" class="modal-fechar" onclick="fecharModalAnexo()" aria-label="Fechar">✕</button>
-            <img id="modal-anexo-img" src="" alt="Anexo da atividade">
+            <img id="modal-anexo-img" src="" alt="Fotografia">
         </div>
     </div>
 
@@ -139,6 +191,21 @@
             return formatarDataHoraTexto(valor);
         }
 
+        // ===== Normalizar o campo "fotos" (pode vir como array ou como texto JSON) =====
+        function obterListaFotos(valor) {
+            if (!valor) return [];
+            if (Array.isArray(valor)) return valor;
+            if (typeof valor === 'string') {
+                try {
+                    const parsed = JSON.parse(valor);
+                    return Array.isArray(parsed) ? parsed : [];
+                } catch (e) {
+                    return [];
+                }
+            }
+            return [];
+        }
+
         // ===== Modais =====
         function abrirModalAtividade(a) {
             if (!a) return;
@@ -164,6 +231,40 @@
             if (e.target.id === 'modal-atividade') fecharModalAtividade();
         }
 
+        // ===== Modal galeria de fotografias da ocorrência =====
+        function abrirModalFotos(fotos, ocorrenciaId) {
+            const lista = obterListaFotos(fotos);
+            if (lista.length === 0) return;
+
+            document.getElementById('modal-fotos-titulo').innerText = `📷 Fotografias da Ocorrência #${ocorrenciaId} (${lista.length})`;
+
+            const corpo = document.getElementById('modal-fotos-corpo');
+            corpo.innerHTML = '';
+            lista.forEach(url => {
+                const img = document.createElement('img');
+                img.src = url;
+                img.alt = 'Fotografia da ocorrência';
+                img.className = 'foto-galeria-thumb';
+                img.addEventListener('click', () => {
+                    fecharModalFotos();
+                    abrirModalAnexo(url);
+                });
+                corpo.appendChild(img);
+            });
+
+            document.getElementById('modal-fotos').classList.add('aberta');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function fecharModalFotos() {
+            document.getElementById('modal-fotos').classList.remove('aberta');
+            document.body.style.overflow = '';
+        }
+
+        function fecharModalFotosSeBackdrop(e) {
+            if (e.target.id === 'modal-fotos') fecharModalFotos();
+        }
+
         function abrirModalAnexo(url) {
             document.getElementById('modal-anexo-img').src = url;
             document.getElementById('modal-anexo').classList.add('aberta');
@@ -181,7 +282,7 @@
         }
 
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') { fecharModalAtividade(); fecharModalAnexo(); }
+            if (e.key === 'Escape') { fecharModalAtividade(); fecharModalFotos(); fecharModalAnexo(); }
         });
 
         // ===== Contador =====
@@ -241,6 +342,15 @@
                     }, width: 100, hozAlign: "center", cellClick: function (e, cell) {
                         const rowData = cell.getRow().getData();
                         if (rowData.atividade_info) abrirModalAtividade(rowData.atividade_info);
+                    }},
+                    // ===== Coluna de fotografias associadas à ocorrência =====
+                    { title: "Fotos", field: "fotos", formatter: function (cell) {
+                        const lista = obterListaFotos(cell.getValue());
+                        if (lista.length === 0) return "<span class='sem-registo'>—</span>";
+                        return "<button class='btn-fotos'>📷 " + lista.length + "</button>";
+                    }, width: 100, hozAlign: "center", cellClick: function (e, cell) {
+                        const rowData = cell.getRow().getData();
+                        abrirModalFotos(rowData.fotos, rowData.id);
                     }},
                     { title: "Ações", formatter: function (cell) {
                         return "<button class='btn-apagar'>Apagar</button>";
