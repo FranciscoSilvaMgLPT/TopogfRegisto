@@ -250,10 +250,8 @@
     const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // ⚠️ IMPORTANTE: Este é o nome da PASTA (Bucket) no menu "Storage" do Supabase.
-    // Como a foto da atividade já funcionava em 'anexos', usamos o mesmo. 
-    // Se no teu Supabase a pasta se chamar "ocorrencias" ou "fotos", muda aqui para esse nome exato.
-    const NOME_BUCKET = 'anexos'; 
+
+    const NOME_BUCKET = 'fotos'; 
 
     let ficheirosOcorrencia = [];
     const inputFotosOcorrencia = document.getElementById('inputFotosOcorrencia');
