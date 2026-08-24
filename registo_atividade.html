@@ -21,7 +21,6 @@
 
     label { display: block; margin-bottom: 8px; font-size: 14px; color: #cbd5e1; }
     input, textarea, select { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #334155; color: white; font-size: 16px; }
-    input[type="file"] { padding: 10px; cursor: pointer; }
     textarea { min-height: 80px; resize: vertical; }
 
     .tecnico-picker { background: #334155; padding: 14px; border-radius: 10px; min-height: 50px; display: flex; align-items: center; justify-content: space-around; flex-wrap: wrap; gap: 10px; }
@@ -51,7 +50,7 @@
     .checkbox-container label { margin: 0; font-size: 15px; color: white; cursor: pointer; flex: 1; }
     .checkbox-container:has(input:disabled) { opacity: 0.5; cursor: not-allowed; }
 
-    /* ===== NOVO: Secção de ocorrência ===== */
+    /* ===== Secção de ocorrência ===== */
     .ocorrencia-association {
       background: #1e293b;
       border: 2px solid #a855f7;
@@ -60,6 +59,77 @@
       margin-bottom: 20px;
     }
     .ocorrencia-association h3 { color: #c084fc; margin-bottom: 15px; font-size: 18px; }
+
+    /* ===== Input de fotografias direto e limpo (Reutilizado) ===== */
+    .foto-input-direto {
+      width: 100%;
+      padding: 16px;
+      border: 2px dashed #475569;
+      border-radius: 10px;
+      background: #334155;
+      color: #cbd5e1;
+      font-size: 15px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      display: block;
+      margin-top: 8px;
+    }
+    .foto-input-direto:hover { border-color: #a855f7; background: #3b4a63; }
+    
+    .foto-input-direto::file-selector-button {
+      background: #a855f7;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      margin-right: 12px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    .foto-input-direto::file-selector-button:hover { background: #9333ea; }
+
+    .foto-preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .foto-thumb {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #0f172a;
+      border: 1px solid #475569;
+    }
+    .foto-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .foto-remove {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.85);
+      color: #f87171;
+      border: none;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+    .foto-upload-status {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #94a3b8;
+    }
 
     button { width: 100%; margin-top: 25px; padding: 16px; border: none; border-radius: 10px; background: #2563eb; color: white; font-size: 16px; font-weight: bold; cursor: pointer; }
     button:disabled { background: #475569; cursor: not-allowed; }
@@ -72,6 +142,14 @@
       h1 { font-size: 24px; }
       .grid { grid-template-columns: 1fr; gap: 12px; }
       .pedido-association, .ocorrencia-association { padding: 15px; }
+      
+      .foto-input-direto { padding: 20px 10px; }
+      .foto-input-direto::file-selector-button {
+        display: block;
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 10px;
+      }
     }
   </style>
 </head>
@@ -90,7 +168,6 @@
     <!-- ===== Secção de associação de pedido ===== -->
     <div class="pedido-association">
       <h3>📋 Associar a Pedido (opcional)</h3>
-
       <label>Selecionar Pedido</label>
       <select id="selectPedido" class="pedido-select">
         <option value="">-- Nenhum pedido associado --</option>
@@ -104,25 +181,24 @@
 
     <form id="formularioAtividade">
 
-      <!-- ===== NOVO: Secção de ocorrência (opcional) ===== -->
+      <!-- ===== Secção de ocorrência (opcional) ===== -->
       <div class="ocorrencia-association">
         <h3>🚨 Ocorrência (opcional)</h3>
         <label>Descrição da ocorrência</label>
         <textarea id="ocorrenciaTexto" placeholder="Se algo correu mal ou houve imprevisto, descreve aqui. A ocorrência fica associada a esta atividade."></textarea>
+        
+        <label style="margin-top: 15px;">📷 Fotografias da Ocorrência (opcional)</label>
+        <input type="file" id="inputFotosOcorrencia" class="foto-input-direto" accept="image/*" multiple>
+        <div id="previewFotosOcorrencia" class="foto-preview-grid"></div>
+        <div id="fotoOcorrenciaStatus" class="foto-upload-status"></div>
       </div>
 
       <div class="grid">
         <div class="full">
           <label>Nome do Técnico *</label>
           <div class="tecnico-picker">
-            <label>
-              <input type="checkbox" name="Tecnico_Nome" value="Daniel P" class="tecnicoCheck">
-              Daniel P
-            </label>
-            <label>
-              <input type="checkbox" name="Tecnico_Nome" value="Francisco S" class="tecnicoCheck">
-              Francisco S
-            </label>
+            <label><input type="checkbox" name="Tecnico_Nome" value="Daniel P" class="tecnicoCheck"> Daniel P</label>
+            <label><input type="checkbox" name="Tecnico_Nome" value="Francisco S" class="tecnicoCheck"> Francisco S</label>
           </div>
         </div>
 
@@ -153,7 +229,6 @@
           <textarea name="Atividade_Servico" required></textarea>
         </div>
 
-        <!-- ===== NOVO: Tipo de Trabalho (Checkboxes) ===== -->
         <div class="full">
           <label>Tipo de Trabalho *</label>
           <div class="tecnico-picker">
@@ -165,7 +240,7 @@
         </div>
 
         <div class="full">
-          <label>Anexar Foto</label>
+          <label>Anexar Foto (da Atividade)</label>
           <input type="file" id="fotoAnexo" name="anexo" accept="image/*">
         </div>
       </div>
@@ -176,57 +251,118 @@
     <div class="success" id="successMessage">✅ Atividade guardada com sucesso!</div>
   </div>
 
-   <script>
+  <script>
     const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // ===== 1. Carregar pedidos pendentes (Agora com numero_obra) =====
-   // ===== 1. Carregar pedidos pendentes (Atualizado com empresa, tipo_trabalho e filtro de estado) =====
-async function carregarPedidosPendentes() {
-  const selectPedido = document.getElementById('selectPedido');
-  selectPedido.innerHTML = '<option value="">-- Nenhum pedido associado --</option>';
+    // ===== Variáveis para fotografias da ocorrência =====
+    let ficheirosOcorrencia = [];
+    const inputFotosOcorrencia = document.getElementById('inputFotosOcorrencia');
+    const previewFotosOcorrencia = document.getElementById('previewFotosOcorrencia');
+    const fotoOcorrenciaStatus = document.getElementById('fotoOcorrenciaStatus');
+    const NOME_BUCKET_FOTOS_OCORRENCIA = 'fotos-ocorrencias';
 
-  try {
-    const { data: pedidos, error } = await supabaseClient
-      .from('pedidos')
-      // Adicionados os campos 'empresa' e 'tipo_trabalho' à query
-      .select('id, requerente, empresa, servico, local_obra, numero_obra, tipo_trabalho, data_hora_pedido')
-      .is('data_conclusao', null)
-      .eq('estado', 'Pendente') // 👈 Só mostra pedidos com estado explicitamente "Pendente"
-      .order('data_hora_pedido', { ascending: false });
+    inputFotosOcorrencia.addEventListener('change', (e) => {
+      const novosFicheiros = Array.from(e.target.files || []);
+      ficheirosOcorrencia = ficheirosOcorrencia.concat(novosFicheiros);
+      renderizarPreviewsOcorrencia();
+      e.target.value = ''; // Permite selecionar o mesmo ficheiro novamente se necessário
+    });
 
-    if (error) throw error;
+    function renderizarPreviewsOcorrencia() {
+      previewFotosOcorrencia.innerHTML = '';
+      ficheirosOcorrencia.forEach((file, index) => {
+        const url = URL.createObjectURL(file);
+        const thumb = document.createElement('div');
+        thumb.className = 'foto-thumb';
 
-    if (pedidos && pedidos.length > 0) {
-      pedidos.forEach(pedido => {
-        const option = document.createElement('option');
-        option.value = pedido.id;
-        
-        // Guardar dados nos atributos data-* do option para uso rápido
-        option.dataset.localObra = pedido.local_obra || '';
-        option.dataset.numeroObra = pedido.numero_obra || '';
-        
-        // Novo formato: requerente (empresa) - serviço (local_obra) - tipo_trabalho
-        const requerente = pedido.requerente || 'Sem requerente';
-        const empresa = pedido.empresa || '';
-        const servicoCurto = (pedido.servico || '').substring(0, 40) + ((pedido.servico || '').length > 40 ? '...' : '');
-        const localObra = pedido.local_obra || 'Sem local';
-        const tipoTrabalho = pedido.tipo_trabalho || 'Sem tipo';
-        
-        option.textContent = `${requerente} (${empresa}) - ${servicoCurto} (${localObra}) - ${tipoTrabalho}`;
-        selectPedido.appendChild(option);
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = 'Fotografia da ocorrência';
+
+        const btnRemover = document.createElement('button');
+        btnRemover.type = 'button';
+        btnRemover.className = 'foto-remove';
+        btnRemover.textContent = '✕';
+        btnRemover.addEventListener('click', () => {
+          ficheirosOcorrencia.splice(index, 1);
+          renderizarPreviewsOcorrencia();
+        });
+
+        thumb.appendChild(img);
+        thumb.appendChild(btnRemover);
+        previewFotosOcorrencia.appendChild(thumb);
       });
     }
-  } catch (err) {
-    console.error("Erro ao carregar pedidos:", err);
-    const option = document.createElement('option');
-    option.value = "";
-    option.textContent = "Erro ao carregar pedidos";
-    option.disabled = true;
-    selectPedido.appendChild(option);
-  }
-}
+
+    async function carregarFotosOcorrenciaParaStorage(ocorrenciaId) {
+      const urls = [];
+      for (let i = 0; i < ficheirosOcorrencia.length; i++) {
+        const file = ficheirosOcorrencia[i];
+        fotoOcorrenciaStatus.textContent = `A carregar fotografia ${i + 1} de ${ficheirosOcorrencia.length}...`;
+
+        const extensao = (file.name.split('.').pop() || 'jpg').toLowerCase();
+        const nomeFicheiro = `${ocorrenciaId}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${extensao}`;
+        const caminho = `ocorrencias/${ocorrenciaId}/${nomeFicheiro}`;
+
+        const { error: uploadError } = await supabaseClient.storage
+          .from(NOME_BUCKET_FOTOS_OCORRENCIA)
+          .upload(caminho, file, { cacheControl: '3600', upsert: false });
+
+        if (uploadError) {
+          console.error('Erro ao carregar fotografia:', uploadError);
+          continue;
+        }
+
+        const { data: urlData } = supabaseClient.storage
+          .from(NOME_BUCKET_FOTOS_OCORRENCIA)
+          .getPublicUrl(caminho);
+
+        if (urlData && urlData.publicUrl) {
+          urls.push(urlData.publicUrl);
+        }
+      }
+      fotoOcorrenciaStatus.textContent = '';
+      return urls;
+    }
+
+    // ===== 1. Carregar pedidos pendentes =====
+    async function carregarPedidosPendentes() {
+      const selectPedido = document.getElementById('selectPedido');
+      selectPedido.innerHTML = '<option value="">-- Nenhum pedido associado --</option>';
+
+      try {
+        const { data: pedidos, error } = await supabaseClient
+          .from('pedidos')
+          .select('id, requerente, empresa, servico, local_obra, numero_obra, tipo_trabalho, data_hora_pedido')
+          .is('data_conclusao', null)
+          .eq('estado', 'Pendente')
+          .order('data_hora_pedido', { ascending: false });
+
+        if (error) throw error;
+
+        if (pedidos && pedidos.length > 0) {
+          pedidos.forEach(pedido => {
+            const option = document.createElement('option');
+            option.value = pedido.id;
+            option.dataset.localObra = pedido.local_obra || '';
+            option.dataset.numeroObra = pedido.numero_obra || '';
+            
+            const requerente = pedido.requerente || 'Sem requerente';
+            const empresa = pedido.empresa || '';
+            const servicoCurto = (pedido.servico || '').substring(0, 40) + ((pedido.servico || '').length > 40 ? '...' : '');
+            const localObra = pedido.local_obra || 'Sem local';
+            const tipoTrabalho = pedido.tipo_trabalho || 'Sem tipo';
+            
+            option.textContent = `${requerente} (${empresa}) - ${servicoCurto} (${localObra}) - ${tipoTrabalho}`;
+            selectPedido.appendChild(option);
+          });
+        }
+      } catch (err) {
+        console.error("Erro ao carregar pedidos:", err);
+      }
+    }
 
     // ===== 2. Detetar mudança de seleção e preencher campos =====
     const selectPedido = document.getElementById('selectPedido');
@@ -235,40 +371,16 @@ async function carregarPedidosPendentes() {
     selectPedido.addEventListener('change', () => {
       if (selectPedido.value) {
         checkboxConcluido.disabled = false;
-        
-        // Obter a opção selecionada e os seus dados guardados
         const selectedOption = selectPedido.options[selectPedido.selectedIndex];
-        const localObra = selectedOption.dataset.localObra;
-        const numeroObra = selectedOption.dataset.numeroObra;
-        
-        const inputLocal = document.getElementById('inputLocalObra');
-        const inputObra = document.getElementById('inputNumeroObra');
-
-        // Preencher os campos automaticamente
-        if (localObra) inputLocal.value = localObra;
-        if (numeroObra) inputObra.value = numeroObra;
-
+        if (selectedOption.dataset.localObra) document.getElementById('inputLocalObra').value = selectedOption.dataset.localObra;
+        if (selectedOption.dataset.numeroObra) document.getElementById('inputNumeroObra').value = selectedOption.dataset.numeroObra;
       } else {
-        // Se voltar para "-- Nenhum pedido associado --"
         checkboxConcluido.disabled = true;
         checkboxConcluido.checked = false;
       }
     });
 
-    window.onload = async () => {
-      const { data: { user }, error } = await supabaseClient.auth.getUser();
-      if (error || !user) {
-        window.location.href = 'index.html';
-      } else {
-        document.getElementById('user-display').innerText = user.email;
-        definirDataAtual();
-        carregarHistoricoLocais();
-        await carregarPedidosPendentes();
-        preSelecionarPedidoPorUrl();
-      }
-    };
-
-    // ===== 3. Simplificação do carregamento por URL =====
+    // ===== 3. Carregamento por URL =====
     async function preSelecionarPedidoPorUrl() {
       const params = new URLSearchParams(window.location.search);
       const pedidoId = params.get('pedido');
@@ -277,14 +389,11 @@ async function carregarPedidosPendentes() {
       const select = document.getElementById('selectPedido');
       if (select.querySelector('option[value="' + pedidoId + '"]')) {
         select.value = pedidoId;
-        
-        // Dispara o evento 'change' criado acima para preencher os campos automaticamente
         select.dispatchEvent(new Event('change'));
-      } else {
-        console.warn('Pedido ' + pedidoId + ' não encontrado nos pedidos pendentes (pode já estar concluído).');
       }
     }
 
+    // ===== 4. Histórico de Locais =====
     let mapaLocalParaObra = {};
     let mapaObraParaLocal = {};
 
@@ -302,7 +411,6 @@ async function carregarPedidosPendentes() {
         combos.forEach(item => {
           const local = (item.local_obra || '').trim();
           const obra = (item.numero_obra || '').trim();
-
           if (local) {
             locaisSet.add(local);
             if (obra && !(local in mapaLocalParaObra)) mapaLocalParaObra[local] = obra;
@@ -327,11 +435,10 @@ async function carregarPedidosPendentes() {
           datalistObra.appendChild(opt);
         });
       } catch (err) {
-        console.error("Erro ao carregar histórico de Local/Obra e Nº Obra:", err);
+        console.error("Erro ao carregar histórico:", err);
       }
     }
 
-    // Preenchimento automático pelo histórico caso o utilizador digite o local/obra manualmente
     document.getElementById('inputLocalObra').addEventListener('input', (e) => {
       const valor = e.target.value.trim();
       if (mapaLocalParaObra[valor]) document.getElementById('inputNumeroObra').value = mapaLocalParaObra[valor];
@@ -348,58 +455,45 @@ async function carregarPedidosPendentes() {
       document.getElementById("dataHoraInicio").value = now.toISOString().slice(0, 16);
     }
 
+    // ===== 5. Submissão do Formulário =====
     const form = document.getElementById("formularioAtividade");
     const btnEnviar = document.getElementById("btnEnviar");
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       
-      // ===== VALIDAÇÃO: Tipo de Trabalho =====
-      const tiposSelecionados = Array.from(document.querySelectorAll('.tipoTrabalhoCheck:checked'))
-        .map(cb => cb.value);
-
+      const tiposSelecionados = Array.from(document.querySelectorAll('.tipoTrabalhoCheck:checked')).map(cb => cb.value);
       if (tiposSelecionados.length === 0) {
         alert("Por favor, selecione pelo menos um Tipo de Trabalho.");
-        btnEnviar.disabled = false; 
-        btnEnviar.innerText = "Gravar Atividade";
         return;
       }
 
       btnEnviar.disabled = true;
-      btnEnviar.innerText = "A carregar foto e a gravar...";
+      btnEnviar.innerText = "A processar...";
 
+      // 1. Upload da foto da atividade (se existir)
       let imageUrl = null;
       const fileInput = document.getElementById("fotoAnexo");
-
       if (fileInput.files.length > 0) {
         const file = fileInput.files[0];
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-        const filePath = `${fileName}`;
-
-        const { error: uploadError } = await supabaseClient.storage
-          .from('anexos')
-          .upload(filePath, file);
-
+        
+        const { error: uploadError } = await supabaseClient.storage.from('anexos').upload(fileName, file);
         if (uploadError) {
-          alert("Erro ao carregar a imagem: " + uploadError.message);
+          alert("Erro ao carregar a imagem da atividade: " + uploadError.message);
           btnEnviar.disabled = false;
           btnEnviar.innerText = "Gravar Atividade";
           return;
         }
-
-        const { data: publicUrlData } = supabaseClient.storage
-          .from('anexos')
-          .getPublicUrl(filePath);
+        const { data: publicUrlData } = supabaseClient.storage.from('anexos').getPublicUrl(fileName);
         imageUrl = publicUrlData.publicUrl;
       }
 
-      const tecnicosSelecionados = Array.from(document.querySelectorAll('.tecnicoCheck:checked'))
-        .map(cb => cb.value);
-      let nomeTecnico = tecnicosSelecionados.length > 0 ? tecnicosSelecionados.join(', ') : '';
-
+      const tecnicosSelecionados = Array.from(document.querySelectorAll('.tecnicoCheck:checked')).map(cb => cb.value);
+      
       const dadosParaEnviar = {
-        tecnico: nomeTecnico,
+        tecnico: tecnicosSelecionados.join(', '),
         data_hora_inicio: form.Atividade_Inicio.value,
         data_hora_fim: form.Atividade_Fim.value,
         local_obra: form.Atividade_Local_Obra.value,
@@ -410,71 +504,72 @@ async function carregarPedidosPendentes() {
       };
 
       const pedidoId = selectPedido.value;
-      if (pedidoId) {
-        dadosParaEnviar.pedido_id = parseInt(pedidoId);
-      }
+      if (pedidoId) dadosParaEnviar.pedido_id = parseInt(pedidoId);
 
-      console.log("Dados a enviar para o Supabase:", dadosParaEnviar);
-
-      const { data: dataInserida, error } = await supabaseClient
-        .from('atividades')
-        .insert([dadosParaEnviar])
-        .select();
-
+      // 2. Inserir Atividade
+      const { data: dataInserida, error } = await supabaseClient.from('atividades').insert([dadosParaEnviar]).select();
       if (error) {
-        console.error("Erro detalhado do Supabase:", error);
-        alert("Erro ao gravar no Supabase: " + error.message);
+        alert("Erro ao gravar atividade: " + error.message);
         btnEnviar.disabled = false;
         btnEnviar.innerText = "Gravar Atividade";
         return;
       }
 
-      console.log("Inserido com sucesso:", dataInserida);
       const novaAtividadeId = dataInserida && dataInserida[0] ? dataInserida[0].id : null;
 
+      // 3. Atualizar Pedido (se marcado)
       if (pedidoId && checkboxConcluido.checked) {
-        const dataConclusao = new Date().toISOString();
-
-        const { error: updateError } = await supabaseClient
-          .from('pedidos')
-          .update({
-            data_conclusao: dataConclusao,
-            estado: 'Concluido'
-          })
-          .eq('id', pedidoId);
-
-        if (updateError) {
-          console.error("Erro ao marcar pedido como concluído:", updateError);
-          alert("⚠️ Atividade gravada, mas não foi possível marcar o pedido como concluído: " + updateError.message);
-        } else {
-          console.log("Pedido marcado como concluído com sucesso!");
-        }
+        await supabaseClient.from('pedidos').update({ data_conclusao: new Date().toISOString(), estado: 'Concluido' }).eq('id', pedidoId);
       }
 
+      // 4. Tratar Ocorrência (Texto e/ou Fotos)
       const textoOcorrencia = document.getElementById('ocorrenciaTexto').value.trim();
-
-      if (textoOcorrencia && novaAtividadeId) {
-        const { error: errOcorrencia } = await supabaseClient
+      if ((textoOcorrencia || ficheirosOcorrencia.length > 0) && novaAtividadeId) {
+        btnEnviar.innerText = "A gravar ocorrência...";
+        
+        const { data: dataOcorrencia, error: errOcorrenciaInsert } = await supabaseClient
           .from('ocorrencias')
           .insert([{
             data: form.Atividade_Inicio.value,
             ocorrencia: textoOcorrencia,
+            local_obra: form.Atividade_Local_Obra.value,
+            numero_obra: form.numero_obra.value,
             atividade_id: novaAtividadeId
-          }]);
+          }])
+          .select();
 
-        if (errOcorrencia) {
-          console.error("Erro ao gravar ocorrência:", errOcorrencia);
-          alert("⚠️ Atividade gravada, mas não foi possível gravar a ocorrência: " + errOcorrencia.message);
+        if (errOcorrenciaInsert) {
+          console.error("Erro ao criar ocorrência:", errOcorrenciaInsert);
         } else {
-          console.log("Ocorrência gravada e associada à atividade #" + novaAtividadeId);
+          const novaOcorrenciaId = dataOcorrencia[0].id;
+
+          // Upload das fotos da ocorrência
+          if (ficheirosOcorrencia.length > 0) {
+            btnEnviar.innerText = "A carregar fotos da ocorrência...";
+            try {
+              const urlsFotos = await carregarFotosOcorrenciaParaStorage(novaOcorrenciaId);
+              if (urlsFotos.length > 0) {
+                await supabaseClient.from('ocorrencias').update({ fotos: urlsFotos }).eq('id', novaOcorrenciaId);
+              }
+            } catch (err) {
+              console.error("Erro no upload das fotos da ocorrência:", err);
+            }
+          }
         }
       }
 
+      // 5. Sucesso e Limpeza
       document.getElementById("successMessage").style.display = "block";
       form.reset();
       selectPedido.value = "";
       checkboxConcluido.checked = false;
       checkboxConcluido.disabled = true;
+      
+      // Limpar fotos da ocorrência
+      ficheirosOcorrencia = [];
+      renderizarPreviewsOcorrencia();
+      fotoOcorrenciaStatus.textContent = '';
+      
       definirDataAtual();
       carregarPedidosPendentes();
 
@@ -485,7 +580,20 @@ async function carregarPedidosPendentes() {
       btnEnviar.disabled = false;
       btnEnviar.innerText = "Gravar Atividade";
     });
-  </script>
 
+    // ===== Inicialização =====
+    window.onload = async () => {
+      const { data: { user }, error } = await supabaseClient.auth.getUser();
+      if (error || !user) {
+        window.location.href = 'index.html';
+      } else {
+        document.getElementById('user-display').innerText = user.email;
+        definirDataAtual();
+        carregarHistoricoLocais();
+        await carregarPedidosPendentes();
+        preSelecionarPedidoPorUrl();
+      }
+    };
+  </script>
 </body>
 </html>
