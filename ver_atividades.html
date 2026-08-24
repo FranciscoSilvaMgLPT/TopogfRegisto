@@ -51,7 +51,6 @@
         .modal-evento-conteudo p { margin: 6px 0; }
         .modal-evento-conteudo strong { color: #60a5fa; }
 
-        /* Estilo do formulário dentro das modals */
         .modal-evento-conteudo label { display: block; margin: 12px 0 6px; font-size: 13px; color: #cbd5e1; }
         .modal-evento-conteudo input,
         .modal-evento-conteudo textarea { width: 100%; padding: 10px; border: none; border-radius: 8px; background: #334155; color: white; font-size: 15px; }
@@ -97,15 +96,13 @@
 
     <input type="file" id="input-anexo" accept="image/*" capture="environment" style="display:none">
 
-    <!-- Modal para ver anexo da atividade -->
     <div id="modal-anexo" class="modal-anexo-overlay" onclick="fecharModalAnexoSeBackdrop(event)">
         <div class="modal-anexo-conteudo">
-            <button type="button" class="modal-anexo-fechar" onclick="fecharModalAnexo()" aria-label="Fechar"></button>
+            <button type="button" class="modal-anexo-fechar" onclick="fecharModalAnexo()" aria-label="Fechar">✕</button>
             <img id="modal-anexo-img" src="" alt="Anexo da atividade">
         </div>
     </div>
 
-    <!-- Modal de detalhes do evento (calendário) -->
     <div id="modal-evento" class="modal-anexo-overlay" onclick="fecharModalEventoSeBackdrop(event)">
         <div class="modal-evento-conteudo" onclick="event.stopPropagation()">
             <button type="button" class="modal-anexo-fechar" onclick="fecharModalEvento()" aria-label="Fechar">✕</button>
@@ -114,7 +111,6 @@
         </div>
     </div>
 
-    <!-- Modal de detalhes do pedido -->
     <div id="modal-pedido" class="modal-anexo-overlay" onclick="fecharModalPedidoSeBackdrop(event)">
         <div class="modal-evento-conteudo" onclick="event.stopPropagation()">
             <button type="button" class="modal-anexo-fechar" onclick="fecharModalPedido()" aria-label="Fechar">✕</button>
@@ -123,7 +119,6 @@
         </div>
     </div>
 
-    <!-- Modal para criar ocorrência associada à atividade -->
     <div id="modal-ocorrencia" class="modal-anexo-overlay" onclick="fecharModalOcorrenciaSeBackdrop(event)">
         <div class="modal-evento-conteudo" onclick="event.stopPropagation()">
             <button type="button" class="modal-anexo-fechar" onclick="fecharModalOcorrencia()" aria-label="Fechar">✕</button>
@@ -138,7 +133,6 @@
         </div>
     </div>
 
-    <!-- Modal com a lista de ocorrências da atividade -->
     <div id="modal-ocorrencias" class="modal-anexo-overlay" onclick="fecharModalOcorrenciasSeBackdrop(event)">
         <div class="modal-evento-conteudo" onclick="event.stopPropagation()">
             <button type="button" class="modal-anexo-fechar" onclick="fecharModalOcorrencias()" aria-label="Fechar">✕</button>
@@ -147,17 +141,12 @@
         </div>
     </div>
 
-    <!-- NOVO: Modal para visualizar fotos da ocorrência -->
     <div id="modal-fotos-ocorrencia" class="modal-anexo-overlay" onclick="fecharModalFotosOcorrenciaSeBackdrop(event)">
         <div class="modal-anexo-conteudo" style="position: relative; max-width: 95vw; max-height: 95vh; flex-direction: column; align-items: center; justify-content: center;">
-            <button type="button" class="modal-anexo-fechar" onclick="fecharModalFotosOcorrencia()" aria-label="Fechar"></button>
-            
+            <button type="button" class="modal-anexo-fechar" onclick="fecharModalFotosOcorrencia()" aria-label="Fechar">✕</button>
             <button type="button" onclick="fotoOcorrenciaAnterior()" style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center;">‹</button>
-            
             <img id="modal-fotos-ocorrencia-img" src="" alt="Fotografia da ocorrência" style="max-width: 95vw; max-height: 85vh; object-fit: contain; border-radius: 8px;">
-            
             <button type="button" onclick="fotoOcorrenciaSeguinte()" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center;">›</button>
-            
             <div id="modal-fotos-ocorrencia-contador" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; z-index: 10;"></div>
         </div>
     </div>
@@ -176,11 +165,9 @@
         let ocorrenciaAtividadeAtual = null;
         let idsEditados = new Set();
         
-        // Variáveis para o modal de fotos da ocorrência
         let fotosOcorrenciaAtual = [];
         let fotoOcorrenciaIndexAtual = 0;
 
-        // ===== VERIFICAÇÃO DE BIBLIOTECAS =====
         (function verificarBibliotecas() {
             const emFalta = [];
             if (typeof supabase === 'undefined') emFalta.push('Supabase');
@@ -192,8 +179,7 @@
 
             if (emFalta.length > 0) {
                 console.error('⚠️ Bibliotecas não carregadas:', emFalta.join(', '));
-                document.getElementById('utilizador-info').innerText =
-                    '️ Erro: faltam bibliotecas (' + emFalta.join(', ') + '). Verifica a internet e faz Ctrl+Shift+R.';
+                document.getElementById('utilizador-info').innerText = '⚠️ Erro: faltam bibliotecas (' + emFalta.join(', ') + '). Verifica a internet e faz Ctrl+Shift+R.';
                 return;
             }
             sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -211,9 +197,7 @@
             let periodo = '';
             if (hora) {
                 const horas = parseInt(hora.substring(0, 2), 10);
-                periodo = ehFim
-                    ? (horas <= 13 ? 'Manhã' : 'Tarde')
-                    : (horas < 13 ? 'Manhã' : 'Tarde');
+                periodo = ehFim ? (horas <= 13 ? 'Manhã' : 'Tarde') : (horas < 13 ? 'Manhã' : 'Tarde');
             }
             return `${dia}/${mes}/${ano}${periodo ? '  ' + periodo : ''}`;
         }
@@ -222,9 +206,7 @@
             const binaryString = atob(base64);
             const len = binaryString.length;
             const bytes = new Uint8Array(len);
-            for (let i = 0; i < len; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
+            for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
             return bytes.buffer;
         }
 
@@ -237,23 +219,11 @@
             if (!resposta.ok) throw new Error("Não foi possível obter a imagem.");
             const arrayBuffer = await resposta.arrayBuffer();
             const bitmap = await createImageBitmap(new Blob([arrayBuffer]));
-            const escala = Math.min(
-                ANEXO_CAIXA_LARGURA / bitmap.width,
-                ANEXO_CAIXA_ALTURA / bitmap.height,
-                1
-            );
-            return {
-                arrayBuffer,
-                size: [
-                    Math.round(bitmap.width * escala),
-                    Math.round(bitmap.height * escala)
-                ]
-            };
+            const escala = Math.min(ANEXO_CAIXA_LARGURA / bitmap.width, ANEXO_CAIXA_ALTURA / bitmap.height, 1);
+            return { arrayBuffer, size: [Math.round(bitmap.width * escala), Math.round(bitmap.height * escala)] };
         }
 
-        function pxParaEmu(px) {
-            return Math.round(px * 9525);
-        }
+        function pxParaEmu(px) { return Math.round(px * 9525); }
 
         function substituirRunComMarcador(xml, marcador, novoRunXml) {
             const idxMarcador = xml.indexOf(marcador);
@@ -270,36 +240,16 @@
         function inserirImagemAnexo(zip, imagemArrayBuffer, sizePx) {
             const caminhoMedia = "word/media/anexo_foto.png";
             zip.file(caminhoMedia, imagemArrayBuffer);
-
             const caminhoRels = "word/_rels/document.xml.rels";
             let relsXml = zip.file(caminhoRels).asText();
-            const idsExistentes = Array.from(relsXml.matchAll(/Id="rId(\d+)"/g)).map(function (m) {
-                return parseInt(m[1], 10);
-            });
+            const idsExistentes = Array.from(relsXml.matchAll(/Id="rId(\d+)"/g)).map(m => parseInt(m[1], 10));
             const maiorId = idsExistentes.length ? Math.max.apply(null, idsExistentes) : 0;
             const novoId = "rId" + (maiorId + 1);
-            const novaRelacao = '<Relationship Id="' + novoId + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/anexo_foto.png"/>';
-            relsXml = relsXml.replace("</Relationships>", novaRelacao + "</Relationships>");
+            relsXml = relsXml.replace("</Relationships>", '<Relationship Id="' + novoId + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/anexo_foto.png"/>' + "</Relationships>");
             zip.file(caminhoRels, relsXml);
 
-            const cx = pxParaEmu(sizePx[0]);
-            const cy = pxParaEmu(sizePx[1]);
-            const drawingXml =
-                '<w:r><w:rPr><w:noProof/></w:rPr><w:drawing>' +
-                '<wp:inline distT="0" distB="0" distL="0" distR="0">' +
-                '<wp:extent cx="' + cx + '" cy="' + cy + '"/>' +
-                '<wp:effectExtent l="0" t="0" r="0" b="0"/>' +
-                '<wp:docPr id="909001" name="AnexoFoto"/>' +
-                '<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/officeDocument/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr>' +
-                '<a:graphic xmlns:a="http://schemas.openxmlformats.org/officeDocument/2006/main">' +
-                '<a:graphicData uri="http://schemas.openxmlformats.org/officeDocument/2006/picture">' +
-                '<pic:pic xmlns:pic="http://schemas.openxmlformats.org/officeDocument/2006/picture">' +
-                '<pic:nvPicPr><pic:cNvPr id="909001" name="AnexoFoto"/><pic:cNvPicPr/></pic:nvPicPr>' +
-                '<pic:blipFill><a:blip r:embed="' + novoId + '"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>' +
-                '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + cx + '" cy="' + cy + '"/></a:xfrm>' +
-                '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>' +
-                '</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>';
-
+            const cx = pxParaEmu(sizePx[0]), cy = pxParaEmu(sizePx[1]);
+            const drawingXml = '<w:r><w:rPr><w:noProof/></w:rPr><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="' + cx + '" cy="' + cy + '"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="909001" name="AnexoFoto"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/officeDocument/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/officeDocument/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/officeDocument/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/officeDocument/2006/picture"><pic:nvPicPr><pic:cNvPr id="909001" name="AnexoFoto"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="' + novoId + '"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + cx + '" cy="' + cy + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>';
             const caminhoDoc = "word/document.xml";
             let docXml = zip.file(caminhoDoc).asText();
             docXml = substituirRunComMarcador(docXml, ANEXO_MARCADOR, drawingXml);
@@ -310,43 +260,22 @@
             try {
                 const templateBase64 = window.TEMPLATE_DOCX_BASE64;
                 if (!templateBase64 || templateBase64.indexOf('COLA_AQUI') !== -1) {
-                    alert("O template Word não foi carregado.\nVerifica se o ficheiro 'template_docx.js' existe na mesma pasta e tem a string base64.");
+                    alert("O template Word não foi carregado. Verifica o ficheiro 'template_docx.js'.");
                     return;
                 }
-
                 let anexoPreparado = null;
-                if (rowData.anexo) {
-                    anexoPreparado = await carregarAnexoImagem(rowData.anexo);
-                }
+                if (rowData.anexo) anexoPreparado = await carregarAnexoImagem(rowData.anexo);
 
                 const zip = new PizZip(base64ToArrayBuffer(templateBase64));
-                const doc = new window.docxtemplater(zip, {
-                    paragraphLoop: true,
-                    linebreaks: true,
-                    delimiters: { start: "{{", end: "}}" }
-                });
+                const doc = new window.docxtemplater(zip, { paragraphLoop: true, linebreaks: true, delimiters: { start: "{{", end: "}}" } });
+                const NUMERO_POR_TECNICO = { "Francisco S": 800, "Daniel P": 715 };
+                const nomesTecnicos = (rowData.tecnico || "").split(",").map(t => t.trim()).filter(Boolean);
 
-                const NUMERO_POR_TECNICO = {
-                    "Francisco S": 800,
-                    "Daniel P": 715
-                };
-
-                const nomesTecnicos = (rowData.tecnico || "")
-                    .split(",")
-                    .map(t => t.trim())
-                    .filter(Boolean);
-
-                const ocorrenciasDaAtividade =
-                    (dadosAtividadesPorId[rowData.id] && dadosAtividadesPorId[rowData.id].ocorrencias_info) ||
-                    rowData.ocorrencias_info ||
-                    [];
-
+                const ocorrenciasDaAtividade = (dadosAtividadesPorId[rowData.id] && dadosAtividadesPorId[rowData.id].ocorrencias_info) || rowData.ocorrencias_info || [];
                 let servicoComOcorrencias = rowData.servico || "";
                 if (ocorrenciasDaAtividade.length > 0) {
                     servicoComOcorrencias += "\nOcorrências:";
-                    ocorrenciasDaAtividade.forEach(function (o) {
-                        servicoComOcorrencias += " " + (o.ocorrencia || "");
-                    });
+                    ocorrenciasDaAtividade.forEach(o => { servicoComOcorrencias += " " + (o.ocorrencia || ""); });
                 }
 
                 const dadosTemplate = {
@@ -358,96 +287,50 @@
                     dataHoraInicio: formatarDataParaWord(rowData.data_hora_inicio, false) || "",
                     dataHoraFim: formatarDataParaWord(rowData.data_hora_fim, true) || "",
                     Atividade_Local_Obra: rowData.local_obra || "",
-                    Atividade_Servico: servicoComOcorrencias
+                    Atividade_Servico: servicoComOcorrencias,
+                    "%Atividade_Anexo": anexoPreparado ? ANEXO_MARCADOR : ""
                 };
-                dadosTemplate["%Atividade_Anexo"] = anexoPreparado ? ANEXO_MARCADOR : "";
+                
                 doc.render(dadosTemplate);
                 const zipFinal = doc.getZip();
-                if (anexoPreparado) {
-                    inserirImagemAnexo(zipFinal, anexoPreparado.arrayBuffer, anexoPreparado.size);
-                }
+                if (anexoPreparado) inserirImagemAnexo(zipFinal, anexoPreparado.arrayBuffer, anexoPreparado.size);
 
-                const blob = zipFinal.generate({
-                    type: "blob",
-                    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                });
-
+                const blob = zipFinal.generate({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
                 const nomeBase = (rowData.tecnico || "atividade").trim().replace(/[^a-zA-Z0-9]+/g, "_");
-                const nomeFicheiro = "Atividade_" + nomeBase + "_" + rowData.id + ".docx";
-
                 const link = document.createElement("a");
                 link.href = URL.createObjectURL(blob);
-                link.download = nomeFicheiro;
+                link.download = "Atividade_" + nomeBase + "_" + rowData.id + ".docx";
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
                 URL.revokeObjectURL(link.href);
             } catch (error) {
                 console.error("Erro ao gerar o documento Word:", error);
-                if (error.properties && error.properties.errors) {
-                    console.error(JSON.stringify(error.properties.errors, null, 2));
-                }
                 alert("Erro ao gerar o documento Word. Verifica a consola (F12).");
             }
         }
 
         async function enviarAnexo(file, id) {
-            if (anexoBotaoAtual) {
-                anexoBotaoAtual.disabled = true;
-                anexoBotaoAtual.innerText = "⏳ A enviar...";
-            }
-
+            if (anexoBotaoAtual) { anexoBotaoAtual.disabled = true; anexoBotaoAtual.innerText = "⏳ A enviar..."; }
             try {
                 const extensao = (file.name.split('.').pop() || 'jpg').toLowerCase();
                 const caminho = "atividade_" + id + "_" + Date.now() + "." + extensao;
+                const { error: erroUpload } = await sbClient.storage.from(ANEXO_BUCKET).upload(caminho, file, { upsert: true });
+                if (erroUpload) throw erroUpload;
 
-                const { error: erroUpload } = await sbClient
-                    .storage
-                    .from(ANEXO_BUCKET)
-                    .upload(caminho, file, { upsert: true });
-
-                if (erroUpload) {
-                    console.error("Erro ao enviar o anexo:", erroUpload);
-                    alert("Erro ao enviar o anexo. Verifica a consola (F12).");
-                    return;
-                }
-
-                const { data: urlData } = sbClient
-                    .storage
-                    .from(ANEXO_BUCKET)
-                    .getPublicUrl(caminho);
-
-                const urlPublico = urlData.publicUrl;
-
-                const { error: erroUpdate } = await sbClient
-                    .from('atividades')
-                    .update({ anexo: urlPublico })
-                    .eq('id', id);
-
-                if (erroUpdate) {
-                    console.error("Erro ao guardar o anexo na base de dados:", erroUpdate);
-                    alert("O anexo foi enviado, mas houve um erro ao guardar na base de dados. Verifica a consola (F12).");
-                    return;
-                }
+                const { data: urlData } = sbClient.storage.from(ANEXO_BUCKET).getPublicUrl(caminho);
+                const { error: erroUpdate } = await sbClient.from('atividades').update({ anexo: urlData.publicUrl }).eq('id', id);
+                if (erroUpdate) throw erroUpdate;
 
                 const linha = table.getRow(id);
-                if (linha) {
-                    await linha.update({ anexo: urlPublico });
-                }
-
+                if (linha) await linha.update({ anexo: urlData.publicUrl });
                 alert("Anexo enviado e guardado com sucesso!");
-
             } catch (error) {
-                console.error("Erro inesperado ao enviar o anexo:", error);
-                alert("Erro inesperado ao enviar o anexo. Verifica a consola (F12).");
+                console.error("Erro ao enviar o anexo:", error);
+                alert("Erro ao enviar o anexo: " + error.message);
             } finally {
-                if (anexoBotaoAtual) {
-                    anexoBotaoAtual.disabled = false;
-                    anexoBotaoAtual.innerText = "📎 Anexo";
-                    anexoBotaoAtual.classList.add('tem-anexo');
-                }
-                anexoBotaoAtual = null;
-                anexoRowIdAtual = null;
+                if (anexoBotaoAtual) { anexoBotaoAtual.disabled = false; anexoBotaoAtual.innerText = "📎 Anexo"; anexoBotaoAtual.classList.add('tem-anexo'); }
+                anexoBotaoAtual = null; anexoRowIdAtual = null;
                 const inputAnexo = document.getElementById('input-anexo');
                 if (inputAnexo) inputAnexo.value = "";
             }
@@ -461,10 +344,7 @@
         });
 
         function atualizarContador() {
-            if (table) {
-                const contagem = table.getRows("active").length;
-                document.getElementById("contador-atividades").innerText = "(" + contagem + ")";
-            }
+            if (table) document.getElementById("contador-atividades").innerText = "(" + table.getRows("active").length + ")";
         }
 
         function abrirModalAnexo(url) {
@@ -472,149 +352,103 @@
             document.getElementById('modal-anexo').classList.add('aberta');
             document.body.style.overflow = 'hidden';
         }
-
         function fecharModalAnexo() {
             document.getElementById('modal-anexo').classList.remove('aberta');
             document.getElementById('modal-anexo-img').src = '';
             document.body.style.overflow = '';
         }
-
-        function fecharModalAnexoSeBackdrop(e) {
-            if (e.target.id === 'modal-anexo') fecharModalAnexo();
-        }
+        function fecharModalAnexoSeBackdrop(e) { if (e.target.id === 'modal-anexo') fecharModalAnexo(); }
 
         function abrirModalPedido(p) {
             if (!p) return;
-            document.getElementById('modal-pedido-titulo').innerText = ' Pedido #' + p.id;
+            document.getElementById('modal-pedido-titulo').innerText = '📋 Pedido #' + p.id;
             document.getElementById('modal-pedido-corpo').innerHTML =
                 '<p><strong>Estado:</strong> ' + (p.data_conclusao ? '✅ Concluído' : (p.estado || '⏳ Pendente')) + '</p>' +
-                '<p><strong>Data do Pedido:</strong> ' + (formatarDataHoraTexto(p.data_hora_pedido) || '—') + '</p>' +
+                '<p><strong>Data:</strong> ' + (formatarDataHoraTexto(p.data_hora_pedido) || '—') + '</p>' +
                 '<p><strong>Requerente:</strong> ' + (p.requerente || '—') + '</p>' +
                 '<p><strong>Empresa:</strong> ' + (p.empresa || '—') + '</p>' +
                 '<p><strong>Urgência:</strong> ' + (p.urgencia || '—') + '</p>' +
                 '<p><strong>Local/Obra:</strong> ' + (p.local_obra || '—') + '</p>' +
                 '<p><strong>Nº Obra:</strong> ' + (p.numero_obra || '—') + '</p>' +
                 '<p><strong>Serviço:</strong> ' + (p.servico || '—') + '</p>' +
-                (p.data_conclusao ? '<p><strong>Data de Conclusão:</strong> ' + formatarDataHoraTexto(p.data_conclusao) + '</p>' : '');
+                (p.data_conclusao ? '<p><strong>Conclusão:</strong> ' + formatarDataHoraTexto(p.data_conclusao) + '</p>' : '');
             document.getElementById('modal-pedido').classList.add('aberta');
             document.body.style.overflow = 'hidden';
         }
+        function fecharModalPedido() { document.getElementById('modal-pedido').classList.remove('aberta'); document.body.style.overflow = ''; }
+        function fecharModalPedidoSeBackdrop(e) { if (e.target.id === 'modal-pedido') fecharModalPedido(); }
 
-        function fecharModalPedido() {
-            document.getElementById('modal-pedido').classList.remove('aberta');
-            document.body.style.overflow = '';
-        }
-
-        function fecharModalPedidoSeBackdrop(e) {
-            if (e.target.id === 'modal-pedido') fecharModalPedido();
-        }
-
-        // ===== Modal de criação de ocorrência =====
         function abrirModalOcorrencia(rowData) {
             ocorrenciaAtividadeAtual = rowData;
             document.getElementById('modal-ocorrencia-titulo').innerText = '🚨 Nova Ocorrência — Atividade #' + rowData.id;
-
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             document.getElementById('ocorrenciaData').value = now.toISOString().slice(0, 16);
             document.getElementById('ocorrenciaTexto').value = '';
-
             document.getElementById('modal-ocorrencia').classList.add('aberta');
             document.body.style.overflow = 'hidden';
         }
+        function fecharModalOcorrencia() { document.getElementById('modal-ocorrencia').classList.remove('aberta'); document.body.style.overflow = ''; ocorrenciaAtividadeAtual = null; }
+        function fecharModalOcorrenciaSeBackdrop(e) { if (e.target.id === 'modal-ocorrencia') fecharModalOcorrencia(); }
 
-        function fecharModalOcorrencia() {
-            document.getElementById('modal-ocorrencia').classList.remove('aberta');
-            document.body.style.overflow = '';
-            ocorrenciaAtividadeAtual = null;
-        }
-
-        function fecharModalOcorrenciaSeBackdrop(e) {
-            if (e.target.id === 'modal-ocorrencia') fecharModalOcorrencia();
-        }
-
-        // ===== Modal com a lista de ocorrências =====
         function abrirModalOcorrencias(rowData) {
             const ocorrencias = rowData.ocorrencias_info || [];
             document.getElementById('modal-ocorrencias-titulo').innerText = '🚨 Ocorrências — Atividade #' + rowData.id;
             
             if (ocorrencias.length === 0) {
-                document.getElementById('modal-ocorrencias-corpo').innerHTML = 
-                    '<p style="color: #94a3b8; text-align: center; padding: 20px;">Sem ocorrências registadas.</p>';
+                document.getElementById('modal-ocorrencias-corpo').innerHTML = '<p style="color: #94a3b8; text-align: center; padding: 20px;">Sem ocorrências registadas.</p>';
             } else {
                 document.getElementById('modal-ocorrencias-corpo').innerHTML = ocorrencias.map(function (o) {
                     const temFotos = o.fotos && Array.isArray(o.fotos) && o.fotos.length > 0;
                     let html = '<div style="margin-bottom: 16px; padding: 12px; background: #334155; border-radius: 8px;">';
                     html += '<p style="margin: 0 0 8px 0;"><strong>' + (formatarDataHoraTexto(o.data) || 'Sem data') + ':</strong> ' + (o.ocorrencia || '') + '</p>';
-                    
                     if (temFotos) {
                         html += '<div style="margin-top: 10px;">';
                         const fotosJson = JSON.stringify(o.fotos).replace(/'/g, "&#39;");
                         html += '<button class="btn-ver-fotos" data-fotos=\'' + fotosJson + '\' style="background: #a855f7; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">';
                         html += '📷 Ver ' + o.fotos.length + ' fotografia' + (o.fotos.length > 1 ? 's' : '');
-                        html += '</button>';
-                        html += '</div>';
+                        html += '</button></div>';
                     }
                     html += '</div>';
                     return html;
                 }).join('');
                 
-                // Adicionar event listeners aos botões de ver fotos
                 setTimeout(() => {
                     document.querySelectorAll('.btn-ver-fotos').forEach(btn => {
                         btn.addEventListener('click', function() {
-                            const fotos = JSON.parse(this.getAttribute('data-fotos'));
-                            abrirModalFotosOcorrencia(fotos);
+                            abrirModalFotosOcorrencia(JSON.parse(this.getAttribute('data-fotos')));
                         });
                     });
                 }, 0);
             }
-            
             document.getElementById('modal-ocorrencias').classList.add('aberta');
             document.body.style.overflow = 'hidden';
         }
+        function fecharModalOcorrencias() { document.getElementById('modal-ocorrencias').classList.remove('aberta'); document.body.style.overflow = ''; }
+        function fecharModalOcorrenciasSeBackdrop(e) { if (e.target.id === 'modal-ocorrencias') fecharModalOcorrencias(); }
 
-        function fecharModalOcorrencias() {
-            document.getElementById('modal-ocorrencias').classList.remove('aberta');
-            document.body.style.overflow = '';
-        }
-
-        function fecharModalOcorrenciasSeBackdrop(e) {
-            if (e.target.id === 'modal-ocorrencias') fecharModalOcorrencias();
-        }
-
-        // ===== NOVO: Funções para o Modal de Fotos da Ocorrência =====
         function abrirModalFotosOcorrencia(fotos) {
-            fotosOcorrenciaAtual = fotos;
-            fotoOcorrenciaIndexAtual = 0;
+            fotosOcorrenciaAtual = fotos; fotoOcorrenciaIndexAtual = 0;
             atualizarFotoOcorrencia();
             document.getElementById('modal-fotos-ocorrencia').classList.add('aberta');
             document.body.style.overflow = 'hidden';
         }
-
         function fecharModalFotosOcorrencia() {
             document.getElementById('modal-fotos-ocorrencia').classList.remove('aberta');
             document.getElementById('modal-fotos-ocorrencia-img').src = '';
             document.body.style.overflow = '';
             fotosOcorrenciaAtual = [];
         }
-
-        function fecharModalFotosOcorrenciaSeBackdrop(e) {
-            if (e.target.id === 'modal-fotos-ocorrencia') fecharModalFotosOcorrencia();
-        }
-
+        function fecharModalFotosOcorrenciaSeBackdrop(e) { if (e.target.id === 'modal-fotos-ocorrencia') fecharModalFotosOcorrencia(); }
         function fotoOcorrenciaAnterior() {
             if (fotosOcorrenciaAtual.length === 0) return;
             fotoOcorrenciaIndexAtual = (fotoOcorrenciaIndexAtual - 1 + fotosOcorrenciaAtual.length) % fotosOcorrenciaAtual.length;
             atualizarFotoOcorrencia();
         }
-
         function fotoOcorrenciaSeguinte() {
             if (fotosOcorrenciaAtual.length === 0) return;
             fotoOcorrenciaIndexAtual = (fotoOcorrenciaIndexAtual + 1) % fotosOcorrenciaAtual.length;
             atualizarFotoOcorrencia();
         }
-
         function atualizarFotoOcorrencia() {
             const img = document.getElementById('modal-fotos-ocorrencia-img');
             const contador = document.getElementById('modal-fotos-ocorrencia-contador');
@@ -626,47 +460,23 @@
 
         document.getElementById('formOcorrencia').addEventListener('submit', async function (e) {
             e.preventDefault();
-            if (!sbClient) { avisarSemCliente(); return; }
-            if (!ocorrenciaAtividadeAtual) return;
-
-            const dados = {
-                data: document.getElementById('ocorrenciaData').value,
-                ocorrencia: document.getElementById('ocorrenciaTexto').value,
-                atividade_id: ocorrenciaAtividadeAtual.id
-            };
-
+            if (!sbClient || !ocorrenciaAtividadeAtual) return;
+            const dados = { data: document.getElementById('ocorrenciaData').value, ocorrencia: document.getElementById('ocorrenciaTexto').value, atividade_id: ocorrenciaAtividadeAtual.id };
             const { error } = await sbClient.from('ocorrencias').insert([dados]);
-
-            if (error) {
-                console.error("Erro ao gravar ocorrência:", error);
-                alert("Erro ao gravar ocorrência: " + error.message);
-                return;
-            }
+            if (error) { alert("Erro ao gravar ocorrência: " + error.message); return; }
 
             const atividadeLocal = dadosAtividadesPorId[dados.atividade_id];
             if (atividadeLocal) {
                 atividadeLocal.ocorrencias_info = atividadeLocal.ocorrencias_info || [];
                 atividadeLocal.ocorrencias_info.push(dados);
             }
-
-            if (table) {
-                const linhaTabela = table.getRow(dados.atividade_id);
-                if (linhaTabela) linhaTabela.update({});
-            }
-
+            if (table) { const linhaTabela = table.getRow(dados.atividade_id); if (linhaTabela) linhaTabela.update({}); }
             fecharModalOcorrencia();
             alert("✅ Ocorrência gravada e associada à atividade #" + dados.atividade_id + "!");
         });
 
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') { 
-                fecharModalAnexo(); 
-                fecharModalEvento(); 
-                fecharModalPedido(); 
-                fecharModalOcorrencia(); 
-                fecharModalOcorrencias(); 
-                fecharModalFotosOcorrencia(); 
-            }
+            if (e.key === 'Escape') { fecharModalAnexo(); fecharModalEvento(); fecharModalPedido(); fecharModalOcorrencia(); fecharModalOcorrencias(); fecharModalFotosOcorrencia(); }
             if (document.getElementById('modal-fotos-ocorrencia').classList.contains('aberta')) {
                 if (e.key === 'ArrowLeft') fotoOcorrenciaAnterior();
                 if (e.key === 'ArrowRight') fotoOcorrenciaSeguinte();
@@ -681,25 +491,15 @@
             const horaLimpa = hora ? hora.substring(0, 5) : '';
             return horaLimpa ? `${dia}/${mes}/${ano} ${horaLimpa}` : `${dia}/${mes}/${ano}`;
         }
-
-        function formatarDataHora(cell) {
-            const valor = cell.getValue();
-            if (!valor) return '—';
-            return formatarDataHoraTexto(valor);
-        }
+        function formatarDataHora(cell) { const valor = cell.getValue(); return valor ? formatarDataHoraTexto(valor) : '—'; }
 
         async function carregarAtividades() {
             if (!sbClient) { avisarSemCliente(); return; }
-
             const { data: { session } } = await sbClient.auth.getSession();
             if (!session) { window.location.href = 'index.html'; return; }
             document.getElementById('utilizador-info').innerText = session.user.email;
 
-            const { data, error } = await sbClient
-                .from('atividades')
-                .select('*')
-                .order('id', { ascending: false });
-
+            const { data, error } = await sbClient.from('atividades').select('*').order('id', { ascending: false });
             if (error) { console.error("Erro ao carregar:", error); return; }
 
             dadosAtividadesPorId = {};
@@ -708,29 +508,14 @@
             const pedidosIds = [...new Set(data.filter(a => a.pedido_id).map(a => a.pedido_id))];
             const mapaPedidos = {};
             if (pedidosIds.length > 0) {
-                const { data: pedidosData, error: errPedidos } = await sbClient
-                    .from('pedidos')
-                    .select('id, requerente, empresa, servico, local_obra, numero_obra, data_hora_pedido, estado, urgencia, data_conclusao')
-                    .in('id', pedidosIds);
-
-                if (errPedidos) {
-                    console.error("Erro ao carregar pedidos associados:", errPedidos);
-                } else {
-                    (pedidosData || []).forEach(p => { mapaPedidos[p.id] = p; });
-                }
+                const { data: pedidosData, error: errPedidos } = await sbClient.from('pedidos').select('id, requerente, empresa, servico, local_obra, numero_obra, data_hora_pedido, estado, urgencia, data_conclusao').in('id', pedidosIds);
+                if (!errPedidos) (pedidosData || []).forEach(p => { mapaPedidos[p.id] = p; });
             }
             data.forEach(a => { a.pedido_info = mapaPedidos[a.pedido_id] || null; });
 
-            // Carregar ocorrências associadas às atividades (AGORA INCLUI A COLUNA 'fotos')
-            const { data: ocorrenciasData, error: errOcorrencias } = await sbClient
-                .from('ocorrencias')
-                .select('id, data, ocorrencia, atividade_id, fotos')
-                .not('atividade_id', 'is', null);
-
+            const { data: ocorrenciasData, error: errOcorrencias } = await sbClient.from('ocorrencias').select('id, data, ocorrencia, atividade_id, fotos').not('atividade_id', 'is', null);
             const mapaOcorrencias = {};
-            if (errOcorrencias) {
-                console.error("Erro ao carregar ocorrências:", errOcorrencias);
-            } else {
+            if (!errOcorrencias) {
                 (ocorrenciasData || []).forEach(function (o) {
                     if (!mapaOcorrencias[o.atividade_id]) mapaOcorrencias[o.atividade_id] = [];
                     mapaOcorrencias[o.atividade_id].push(o);
@@ -743,9 +528,8 @@
                 layout: "fitData",
                 pagination: "local",
                 paginationSize: 15,
-                initialSort: [
-                    { column: "data_hora_inicio", dir: "desc" } 
-                ],
+                paginationSizeSelector: [15, 50, 100], // <--- AQUI ESTÁ A NOVA FUNCIONALIDADE
+                initialSort: [{ column: "data_hora_inicio", dir: "desc" }],
                 columns: [
                     { title: "Técnico", field: "tecnico", editor: "input" },
                     { title: "Início", field: "data_hora_inicio", formatter: formatarDataHora, editor: "input" },
@@ -754,33 +538,24 @@
                     { title: "Nº Obra", field: "numero_obra", editor: "input" },
                     { title: "Serviço", field: "servico", editor: "input" },
                     { title: "Pedido", field: "pedido_id", formatter: function (cell) {
-                        const rowData = cell.getRow().getData();
-                        const p = rowData.pedido_info;
-                        if (!rowData.pedido_id || !p) return "<span class='sem-anexo'>—</span>";
-                        const icone = p.data_conclusao ? "✅" : "⏳";
-                        return icone + " <a class='link-anexo' href='javascript:void(0)'>#" + rowData.pedido_id + "</a>";
+                        const p = cell.getRow().getData().pedido_info;
+                        if (!cell.getValue() || !p) return "<span class='sem-anexo'>—</span>";
+                        return (p.data_conclusao ? "✅" : "⏳") + " <a class='link-anexo' href='javascript:void(0)'>#" + cell.getValue() + "</a>";
                     }, width: 90, hozAlign: "center", cellClick: function (e, cell) {
-                        const rowData = cell.getRow().getData();
-                        if (rowData.pedido_info) abrirModalPedido(rowData.pedido_info);
+                        const p = cell.getRow().getData().pedido_info;
+                        if (p) abrirModalPedido(p);
                     }},
                     { title: "Ocorrências", field: "ocorrencias_info", formatter: function (cell) {
-                        const rowData = cell.getRow().getData();
-                        const ocorrencias = rowData.ocorrencias_info || [];
-                        if (ocorrencias.length === 0) return "<span class='sem-anexo'>—</span>";
-                        return "<a class='link-anexo' href='javascript:void(0)'>🚨 " + ocorrencias.length + "</a>";
+                        const ocorrencias = cell.getRow().getData().ocorrencias_info || [];
+                        return ocorrencias.length === 0 ? "<span class='sem-anexo'>—</span>" : "<a class='link-anexo' href='javascript:void(0)'>🚨 " + ocorrencias.length + "</a>";
                     }, width: 110, hozAlign: "center", cellClick: function (e, cell) {
-                        const rowData = cell.getRow().getData();
-                        if ((rowData.ocorrencias_info || []).length > 0) abrirModalOcorrencias(rowData);
+                        const ocorrencias = cell.getRow().getData().ocorrencias_info || [];
+                        if (ocorrencias.length > 0) abrirModalOcorrencias(cell.getRow().getData());
                     }},
                     { title: "Anexo", field: "anexo", formatter: function (cell) {
-                        const valor = cell.getValue();
-                        if (valor) {
-                            return "<a class='link-anexo' href='javascript:void(0)'>🖼️ Ver</a>";
-                        }
-                        return "<span class='sem-anexo'>—</span>";
+                        return cell.getValue() ? "<a class='link-anexo' href='javascript:void(0)'>🖼️ Ver</a>" : "<span class='sem-anexo'>—</span>";
                     }, width: 90, hozAlign: "center", cellClick: function (e, cell) {
-                        const valor = cell.getValue();
-                        if (valor) abrirModalAnexo(valor);
+                        if (cell.getValue()) abrirModalAnexo(cell.getValue());
                     }},
                     { title: "Ações", formatter: function (cell) {
                         const temAnexo = !!cell.getRow().getData().anexo;
@@ -790,31 +565,12 @@
                                "<button class='btn-apagar'>Apagar</button>";
                     }, minWidth: 320, hozAlign: "center", cellClick: function (e, cell) {
                         const rowData = cell.getRow().getData();
-
-                        if (e.target.classList.contains('btn-docx')) {
-                            gerarDocx(rowData);
-                            return;
-                        }
-
-                        if (e.target.classList.contains('btn-anexo')) {
-                            anexoRowIdAtual = rowData.id;
-                            anexoBotaoAtual = e.target;
-                            document.getElementById('input-anexo').click();
-                            return;
-                        }
-
-                        if (e.target.classList.contains('btn-ocorrencia')) {
-                            abrirModalOcorrencia(rowData);
-                            return;
-                        }
-
+                        if (e.target.classList.contains('btn-docx')) { gerarDocx(rowData); return; }
+                        if (e.target.classList.contains('btn-anexo')) { anexoRowIdAtual = rowData.id; anexoBotaoAtual = e.target; document.getElementById('input-anexo').click(); return; }
+                        if (e.target.classList.contains('btn-ocorrencia')) { abrirModalOcorrencia(rowData); return; }
                         if (e.target.classList.contains('btn-apagar')) {
                             if (confirm("Apagar esta atividade?")) {
-                                const id = rowData.id;
-                                sbClient.from('atividades').delete().eq('id', id).then(() => {
-                                    cell.getRow().delete();
-                                    atualizarContador();
-                                });
+                                sbClient.from('atividades').delete().eq('id', rowData.id).then(() => { cell.getRow().delete(); atualizarContador(); });
                             }
                         }
                     }}
@@ -823,20 +579,14 @@
 
             table.on("tableBuilt", atualizarContador);
             table.on("dataFiltered", atualizarContador);
-
             renderizarCalendario(data);
-            table.on("cellEdited", function (cell) {
-                idsEditados.add(cell.getRow().getData().id);
-                renderizarCalendario(table.getData());
-            });
+            table.on("cellEdited", function (cell) { idsEditados.add(cell.getRow().getData().id); renderizarCalendario(table.getData()); });
             table.on("rowDeleted", function () { renderizarCalendario(table.getData()); });
 
             document.getElementById("filtro-pesquisa").addEventListener("keyup", function () {
                 table.setFilter(function (data) {
                     const termo = document.getElementById("filtro-pesquisa").value.toLowerCase();
-                    return Object.values(data).some(val =>
-                        String(val).toLowerCase().includes(termo)
-                    );
+                    return Object.values(data).some(val => String(val).toLowerCase().includes(termo));
                 });
             });
         }
@@ -848,12 +598,7 @@
             for (let i = 0; i < nome.length; i++) hash = nome.charCodeAt(i) + ((hash << 5) - hash);
             return cores[Math.abs(hash) % cores.length];
         }
-
-        function truncarTexto(texto, tamanho) {
-            if (!texto) return '';
-            return texto.length > tamanho ? texto.substring(0, tamanho).trim() + '…' : texto;
-        }
-
+        function truncarTexto(texto, tamanho) { return texto && texto.length > tamanho ? texto.substring(0, tamanho).trim() + '…' : (texto || ''); }
         function montarTituloEvento(row) {
             let titulo = row.tecnico || 'Sem técnico';
             if (row.local_obra) titulo += ' — ' + row.local_obra;
@@ -863,62 +608,35 @@
         }
 
         function renderizarCalendario(dados) {
-            const eventos = dados
-                .filter(row => row.data_hora_inicio)
-                .map(row => ({
-                    id: row.id,
-                    title: montarTituloEvento(row),
-                    start: row.data_hora_inicio,
-                    end: row.data_hora_fim || row.data_hora_inicio,
-                    backgroundColor: corPorTecnico(row.tecnico),
-                    borderColor: corPorTecnico(row.tecnico),
-                    extendedProps: row
-                }));
+            const eventos = dados.filter(row => row.data_hora_inicio).map(row => ({
+                id: row.id, title: montarTituloEvento(row), start: row.data_hora_inicio, end: row.data_hora_fim || row.data_hora_inicio,
+                backgroundColor: corPorTecnico(row.tecnico), borderColor: corPorTecnico(row.tecnico), extendedProps: row
+            }));
 
-            if (calendario) {
-                calendario.removeAllEventSources();
-                calendario.addEventSource(eventos);
-                return;
-            }
+            if (calendario) { calendario.removeAllEventSources(); calendario.addEventSource(eventos); return; }
 
             calendario = new FullCalendar.Calendar(document.getElementById('calendario-atividades'), {
-                locale: 'pt-br',
-                initialView: 'dayGridMonth',
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,listMonth'
-                },
-                height: 'auto',
-                events: eventos,
-                datesSet: function (info) {
-                    if (info.view.type.startsWith('list')) {
-                        setTimeout(reverterOrdemDiasNaLista, 0);
-                    }
-                },
+                locale: 'pt-br', initialView: 'dayGridMonth',
+                headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,listMonth' },
+                height: 'auto', events: eventos,
+                datesSet: function (info) { if (info.view.type.startsWith('list')) setTimeout(reverterOrdemDiasNaLista, 0); },
                 eventClick: function (info) {
                     const row = info.event.extendedProps;
                     document.getElementById('modal-evento-titulo').innerText = row.tecnico || 'Atividade';
-                    
-                    let htmlCorpo = 
-                        '<p><strong>Início:</strong> ' + (formatarDataHoraTexto(row.data_hora_inicio) || '—') + '</p>' +
+                    let htmlCorpo = '<p><strong>Início:</strong> ' + (formatarDataHoraTexto(row.data_hora_inicio) || '—') + '</p>' +
                         '<p><strong>Fim:</strong> ' + (formatarDataHoraTexto(row.data_hora_fim) || '—') + '</p>' +
                         '<p><strong>Local/Obra:</strong> ' + (row.local_obra || '—') + '</p>' +
                         '<p><strong>Nº Obra:</strong> ' + (row.numero_obra || '—') + '</p>' +
                         '<p><strong>Serviço:</strong> ' + (row.servico || '—') + '</p>';
-                        
                     if (row.pedido_id && row.pedido_info) {
                         htmlCorpo += '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalPedido(dadosAtividadesPorId[' + row.id + '].pedido_info)">📋 Pedido associado #' + row.pedido_id + ' ' + (row.pedido_info.data_conclusao ? '(✅ Concluído)' : '(⏳ Pendente)') + '</a></p>';
                     }
-                    
-                    // ===== Ocorrências com botão para ver fotos =====
                     if (row.ocorrencias_info && row.ocorrencias_info.length > 0) {
                         htmlCorpo += '<p style="margin-top:12px;"><strong>🚨 Ocorrências associadas:</strong></p>';
                         row.ocorrencias_info.forEach(function (o) {
                             const temFotos = o.fotos && Array.isArray(o.fotos) && o.fotos.length > 0;
                             htmlCorpo += '<div style="margin-left:6px; border-left:3px solid #a855f7; padding-left:8px; margin-bottom:10px; font-size: 13px;">';
                             htmlCorpo += '<p style="margin: 0 0 6px 0;"><strong>' + (formatarDataHoraTexto(o.data) || 'Sem data') + ':</strong> ' + (o.ocorrencia || '') + '</p>';
-                            
                             if (temFotos) {
                                 const fotosJson = JSON.stringify(o.fotos).replace(/'/g, "&#39;");
                                 htmlCorpo += '<button class="btn-ver-fotos-evento" data-fotos=\'' + fotosJson + '\' style="background: #a855f7; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; margin-top: 6px;">';
@@ -928,22 +646,13 @@
                             htmlCorpo += '</div>';
                         });
                     }
-                    
-                    htmlCorpo += '<p style="margin-top:12px;"><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalOcorrencia(dadosAtividadesPorId[' + row.id + '])"> Adicionar ocorrência a esta atividade</a></p>';
-                    
-                    if (row.anexo) {
-                        htmlCorpo += '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalAnexo(\'' + row.anexo + '\')">🖼️ Ver anexo</a></p>';
-                    }
+                    htmlCorpo += '<p style="margin-top:12px;"><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalOcorrencia(dadosAtividadesPorId[' + row.id + '])">🚨 Adicionar ocorrência a esta atividade</a></p>';
+                    if (row.anexo) htmlCorpo += '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalAnexo(\'' + row.anexo + '\')">🖼️ Ver anexo</a></p>';
                     
                     document.getElementById('modal-evento-corpo').innerHTML = htmlCorpo;
-                    
-                    // Ativar botões de ver fotos nas ocorrências do modal
                     setTimeout(function() {
                         document.querySelectorAll('.btn-ver-fotos-evento').forEach(function(btn) {
-                            btn.addEventListener('click', function() {
-                                const fotos = JSON.parse(this.getAttribute('data-fotos'));
-                                abrirModalFotosOcorrencia(fotos);
-                            });
+                            btn.addEventListener('click', function() { abrirModalFotosOcorrencia(JSON.parse(this.getAttribute('data-fotos'))); });
                         });
                     }, 0);
                     
@@ -957,22 +666,13 @@
         function reverterOrdemDiasNaLista() {
             const tbody = document.querySelector('.fc-list-table tbody');
             if (!tbody) return;
-
             const linhas = Array.from(tbody.children);
-            const blocos = [];
-            let blocoAtual = null;
-
+            const blocos = []; let blocoAtual = null;
             linhas.forEach(linha => {
-                if (linha.classList.contains('fc-list-day')) {
-                    blocoAtual = [linha];
-                    blocos.push(blocoAtual);
-                } else if (blocoAtual) {
-                    blocoAtual.push(linha);
-                } else {
-                    blocos.push([linha]);
-                }
+                if (linha.classList.contains('fc-list-day')) { blocoAtual = [linha]; blocos.push(blocoAtual); }
+                else if (blocoAtual) { blocoAtual.push(linha); }
+                else { blocos.push([linha]); }
             });
-
             blocos.reverse().forEach(bloco => {
                 const [cabecalho, ...atividades] = bloco;
                 atividades.reverse();
@@ -981,26 +681,15 @@
             });
         }
 
-        function fecharModalEvento() {
-            document.getElementById('modal-evento').classList.remove('aberta');
-            document.body.style.overflow = '';
-        }
-
-        function fecharModalEventoSeBackdrop(e) {
-            if (e.target.id === 'modal-evento') fecharModalEvento();
-        }
+        function fecharModalEvento() { document.getElementById('modal-evento').classList.remove('aberta'); document.body.style.overflow = ''; }
+        function fecharModalEventoSeBackdrop(e) { if (e.target.id === 'modal-evento') fecharModalEvento(); }
 
         async function guardarAlteracoes() {
             if (!sbClient || !table) { avisarSemCliente(); return; }
-
-            if (idsEditados.size === 0) {
-                alert("Não há alterações por guardar.");
-                return;
-            }
-
+            if (idsEditados.size === 0) { alert("Não há alterações por guardar."); return; }
             const btn = document.querySelector('button[onclick="guardarAlteracoes()"]');
             const textoOriginalBtn = btn ? btn.innerText : null;
-            if (btn) { btn.disabled = true; btn.innerText = " A guardar..."; }
+            if (btn) { btn.disabled = true; btn.innerText = "⏳ A guardar..."; }
 
             const idsParaGravar = Array.from(idsEditados);
             const dadosPorId = {};
@@ -1009,72 +698,41 @@
             const resultados = await Promise.all(idsParaGravar.map(id => {
                 const item = dadosPorId[id];
                 if (!item) return Promise.resolve({ id, error: null });
-                return sbClient
-                    .from('atividades')
-                    .update({
-                        tecnico: item.tecnico,
-                        data_hora_inicio: item.data_hora_inicio,
-                        data_hora_fim: item.data_hora_fim,
-                        local_obra: item.local_obra,
-                        numero_obra: item.numero_obra,
-                        servico: item.servico
-                    })
-                    .eq('id', item.id)
-                    .then(({ error }) => ({ id, error }));
+                return sbClient.from('atividades').update({ tecnico: item.tecnico, data_hora_inicio: item.data_hora_inicio, data_hora_fim: item.data_hora_fim, local_obra: item.local_obra, numero_obra: item.numero_obra, servico: item.servico }).eq('id', item.id).then(({ error }) => ({ id, error }));
             }));
 
             const falhas = resultados.filter(r => r.error);
             falhas.forEach(r => console.error("Erro ao atualizar ID " + r.id, r.error));
-
             resultados.filter(r => !r.error).forEach(r => idsEditados.delete(r.id));
 
             if (btn) { btn.disabled = false; btn.innerText = textoOriginalBtn; }
-
-            if (falhas.length === 0) {
-                alert("Alterações guardadas com sucesso! (" + idsParaGravar.length + " registo(s))");
-            } else {
-                alert(falhas.length + " registo(s) falharam ao guardar. Verifica a consola (F12).");
-            }
+            if (falhas.length === 0) alert("Alterações guardadas com sucesso! (" + idsParaGravar.length + " registo(s))");
+            else alert(falhas.length + " registo(s) falharam ao guardar. Verifica a consola (F12).");
         }
 
         function calcularHoras(inicio, fim) {
             if (!inicio || !fim) return 0;
             const ms = new Date(fim) - new Date(inicio);
-            if (isNaN(ms) || ms <= 0) return 0;
-            return Math.round((ms / 3600000) * 100) / 100;
+            return (isNaN(ms) || ms <= 0) ? 0 : Math.round((ms / 3600000) * 100) / 100;
         }
-
-        function aplicarBordaFina(cell) {
-            const lado = { style: 'thin' };
-            cell.border = { top: lado, bottom: lado, left: lado, right: lado };
-        }
-
+        function aplicarBordaFina(cell) { const lado = { style: 'thin' }; cell.border = { top: lado, bottom: lado, left: lado, right: lado }; }
         const FORMATO_HORAS_MINUTOS = '[h]"H"mm';
-
-        function horasParaFracaoDeDia(horasDecimais) {
-            return (horasDecimais || 0) / 24;
-        }
+        function horasParaFracaoDeDia(horasDecimais) { return (horasDecimais || 0) / 24; }
 
         async function exportarParaExcel() {
             if (!sbClient || !table) { avisarSemCliente(); return; }
             try {
                 const workbook = new ExcelJS.Workbook();
                 const response = await fetch('atividades.xlsx');
-                if (!response.ok) {
-                    throw new Error("Não encontrei o ficheiro 'atividades.xlsx' na mesma pasta (HTTP " + response.status + ").");
-                }
+                if (!response.ok) throw new Error("Não encontrei o ficheiro 'atividades.xlsx' (HTTP " + response.status + ").");
                 await workbook.xlsx.load(await response.arrayBuffer());
                 const worksheet = workbook.getWorksheet(1);
-                if (!worksheet) {
-                    throw new Error("O ficheiro atividades.xlsx não tem nenhuma folha de cálculo legível.");
-                }
+                if (!worksheet) throw new Error("O ficheiro atividades.xlsx não tem folhas legíveis.");
 
                 const dados = table.getData();
-
                 let linha = 5;
                 dados.forEach(row => {
                     const horas = calcularHoras(row.data_hora_inicio, row.data_hora_fim);
-
                     const celTecnico = worksheet.getCell(linha, 2);
                     const celInicio = worksheet.getCell(linha, 3);
                     const celFim = worksheet.getCell(linha, 4);
@@ -1092,16 +750,9 @@
                     celObra.value = row.local_obra || '';
                     celNumObra.value = row.numero_obra || '';
                     celServico.value = row.servico || '';
-
-                    if (row.anexo) {
-                        celAnexo.value = { text: 'Ver anexo', hyperlink: row.anexo };
-                        celAnexo.font = { color: { argb: 'FF2563EB' }, underline: true };
-                    } else {
-                        celAnexo.value = '';
-                    }
-
+                    if (row.anexo) { celAnexo.value = { text: 'Ver anexo', hyperlink: row.anexo }; celAnexo.font = { color: { argb: 'FF2563EB' }, underline: true }; }
+                    else { celAnexo.value = ''; }
                     [celTecnico, celInicio, celFim, celHoras, celObra, celNumObra, celServico, celAnexo].forEach(aplicarBordaFina);
-
                     linha++;
                 });
 
@@ -1109,71 +760,43 @@
                 dados.forEach(row => {
                     const horas = calcularHoras(row.data_hora_inicio, row.data_hora_fim);
                     if (horas <= 0) return;
-
-                    const tecnicos = (row.tecnico || '')
-                        .split(',')
-                        .map(t => t.trim())
-                        .filter(Boolean);
-
-                    tecnicos.forEach(tec => {
+                    (row.tecnico || '').split(',').map(t => t.trim()).filter(Boolean).forEach(tec => {
                         const chave = tec + '||' + (row.local_obra || '') + '||' + (row.numero_obra || '');
-                        if (!totais[chave]) {
-                            totais[chave] = { tecnico: tec, local_obra: row.local_obra || '', numero_obra: row.numero_obra || '', horas: 0 };
-                        }
+                        if (!totais[chave]) totais[chave] = { tecnico: tec, local_obra: row.local_obra || '', numero_obra: row.numero_obra || '', horas: 0 };
                         totais[chave].horas += horas;
                     });
                 });
 
-                const linhasTotais = Object.values(totais).sort((a, b) => {
-                    return a.tecnico.localeCompare(b.tecnico, 'pt') || a.local_obra.localeCompare(b.local_obra, 'pt');
-                });
-
+                const linhasTotais = Object.values(totais).sort((a, b) => a.tecnico.localeCompare(b.tecnico, 'pt') || a.local_obra.localeCompare(b.local_obra, 'pt'));
                 let linha2 = 5;
                 linhasTotais.forEach(item => {
                     const celTecnico = worksheet.getCell(linha2, 12);
                     const celObra = worksheet.getCell(linha2, 13);
                     const celNumObra = worksheet.getCell(linha2, 14);
                     const celTotal = worksheet.getCell(linha2, 15);
-
-                    celTecnico.value = item.tecnico;
-                    celObra.value = item.local_obra;
-                    celNumObra.value = item.numero_obra;
+                    celTecnico.value = item.tecnico; celObra.value = item.local_obra; celNumObra.value = item.numero_obra;
                     celTotal.value = horasParaFracaoDeDia(Math.round(item.horas * 100) / 100);
                     celTotal.numFmt = FORMATO_HORAS_MINUTOS;
-
                     [celTecnico, celObra, celNumObra, celTotal].forEach(aplicarBordaFina);
-
                     linha2++;
                 });
 
                 const totalPorTecnico = {};
-                linhasTotais.forEach(item => {
-                    totalPorTecnico[item.tecnico] = (totalPorTecnico[item.tecnico] || 0) + item.horas;
-                });
-
+                linhasTotais.forEach(item => { totalPorTecnico[item.tecnico] = (totalPorTecnico[item.tecnico] || 0) + item.horas; });
                 let linha3 = 5;
                 while (linha3 < 200) {
                     const celTecnico3 = worksheet.getCell(linha3, 17);
                     const nomeTecnico = celTecnico3.value;
                     if (!nomeTecnico) break;
-
                     const celTotal3 = worksheet.getCell(linha3, 18);
                     const totalHoras = Math.round((totalPorTecnico[nomeTecnico] || 0) * 100) / 100;
-                    const totalFracaoDia = horasParaFracaoDeDia(totalHoras);
-
-                    if (celTotal3.formula) {
-                        celTotal3.value = { formula: celTotal3.formula, result: totalFracaoDia };
-                    } else {
-                        celTotal3.value = totalFracaoDia;
-                    }
+                    if (celTotal3.formula) celTotal3.value = { formula: celTotal3.formula, result: horasParaFracaoDeDia(totalHoras) };
+                    else celTotal3.value = horasParaFracaoDeDia(totalHoras);
                     celTotal3.numFmt = FORMATO_HORAS_MINUTOS;
-
                     linha3++;
                 }
-
                 workbook.calcProperties = workbook.calcProperties || {};
                 workbook.calcProperties.fullCalcOnLoad = true;
-
                 const buffer = await workbook.xlsx.writeBuffer();
                 const link = document.createElement("a");
                 link.href = URL.createObjectURL(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
@@ -1181,13 +804,11 @@
                 link.click();
             } catch (erro) {
                 console.error("Erro ao exportar para Excel:", erro);
-                alert("Não foi possível exportar o Excel: " + erro.message + "\n\nVerifica a consola (F12) para mais detalhes.");
+                alert("Não foi possível exportar o Excel: " + erro.message);
             }
         }
 
-        if (sbClient) {
-            carregarAtividades();
-        }
+        if (sbClient) carregarAtividades();
     </script>
 </body>
 </html>
