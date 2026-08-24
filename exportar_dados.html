@@ -6,7 +6,7 @@
   <title>📥 Exportar Dados</title>
   <link rel="icon" type="image/jpeg" href="favicon.png">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -101,7 +101,7 @@
       </div>
     </div>
 
-    <button id="btnTudo" class="btn-all">⬇ Download Completo (Dados + Folha "Dashboard" Visual)</button>
+    <button id="btnTudo" class="btn-all">⬇ Download Tudo (1 ficheiro Excel com 6 folhas: Pedidos, Atividades, Ocorrências, Stock, Movimentos de Stock e Resumo)</button>
 
     <div class="success" id="statusMsg"></div>
   </div>
@@ -146,6 +146,7 @@
           .select('*')
           .order('id', { ascending: true })
           .range(offset, offset + passo - 1);
+
         if (error) throw error;
         tudo = tudo.concat(data);
         if (data.length < passo) break;
@@ -154,14 +155,55 @@
       return tudo;
     }
 
-    // ===== FUNÇÕES DE PROCESSAMENTO DE DADOS =====
-    function calcularDuracaoHoras(a) {
-      if (!a.data_hora_inicio || !a.data_hora_fim) return 0;
-      const diffMs = new Date(a.data_hora_fim) - new Date(a.data_hora_inicio);
-      return (isNaN(diffMs) || diffMs <= 0) ? 0 : diffMs / (1000 * 60 * 60);
+    function obterColunas(rows) {
+      const cols = [];
+      rows.forEach(r => Object.keys(r).forEach(k => {
+        if (!cols.includes(k)) cols.push(k);
+      }));
+      return cols;
     }
 
-    function agruparPorMesObj(rows, campoData) {
+    function ajustarLarguras(ws, rows, cols) {
+      ws['!cols'] = cols.map(c => {
+        let max = c.length;
+        rows.slice(0, 200).forEach(r => {
+          const v = r[c];
+          if (v !== null && v !== undefined) max = Math.max(max, String(v).length);
+        });
+        return { wch: Math.min(max + 2, 60) };
+      });
+    }
+
+    function criarFolha(rows) {
+      if (!rows || rows.length === 0) {
+        return XLSX.utils.aoa_to_sheet([['Sem registos']]);
+      }
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ajustarLarguras(ws, rows, obterColunas(rows));
+      return ws;
+    }
+
+    function contarSeparados(rows, campo, separador) {
+      const cont = {};
+      rows.forEach(r => {
+        (r[campo] || '').split(separador).map(v => v.trim()).filter(Boolean).forEach(v => {
+          cont[v] = (cont[v] || 0) + 1;
+        });
+      });
+      return Object.entries(cont).sort((a, b) => b[1] - a[1]);
+    }
+
+    function agruparPorCampo(rows, campo) {
+      const cont = {};
+      rows.forEach(r => {
+        const v = (r[campo] || '(vazio)').toString().trim() || '(vazio)';
+        cont[v] = (cont[v] || 0) + 1;
+      });
+      return Object.entries(cont).sort((a, b) => b[1] - a[1]);
+    }
+
+    // ===== Agrupar por mês (AAAA-MM) =====
+    function agruparPorMes(rows, campoData) {
       const cont = {};
       rows.forEach(r => {
         const d = r[campoData];
@@ -169,153 +211,328 @@
         const mes = String(d).substring(0, 7);
         if (mes.length === 7) cont[mes] = (cont[mes] || 0) + 1;
       });
-      return cont;
+      return Object.entries(cont).sort((a, b) => a[0].localeCompare(b[0]));
     }
 
+    // ===== Duração em horas de uma atividade (data_hora_fim - data_hora_inicio) =====
+    // NOTA: assume que a tabela "atividades" tem os campos "data_hora_inicio" e "data_hora_fim".
+    // Se o nome do campo de fim for diferente, ajustar aqui.
+    function calcularDuracaoHoras(a) {
+      if (!a.data_hora_inicio || !a.data_hora_fim) return 0;
+      const inicio = new Date(a.data_hora_inicio);
+      const fim = new Date(a.data_hora_fim);
+      const diffMs = fim - inicio;
+      if (isNaN(diffMs) || diffMs <= 0) return 0;
+      return diffMs / (1000 * 60 * 60);
+    }
+
+    // ===== Agrupar total de horas, nº atividades e média por local/obra =====
     function agruparHorasPorLocal(atividades) {
       const horas = {};
+      const contagem = {};
       atividades.forEach(a => {
         const local = (a.local_obra || '(sem local)').toString().trim() || '(sem local)';
-        horas[local] = (horas[local] || 0) + calcularDuracaoHoras(a);
+        const h = calcularDuracaoHoras(a);
+        horas[local] = (horas[local] || 0) + h;
+        contagem[local] = (contagem[local] || 0) + 1;
       });
       return Object.entries(horas)
-        .map(([local, h]) => ({ local, horas: h }))
-        .sort((a, b) => b.horas - a.horas)
-        .slice(0, 20);
+        .map(([local, h]) => [local, h, contagem[local], contagem[local] ? h / contagem[local] : 0])
+        .sort((a, b) => b[1] - a[1]);
     }
 
-    // ===== FUNÇÃO PRINCIPAL: CRIAR EXCEL COM DASHBOARD VISUAL =====
-    async function gerarExcelCompleto() {
-      const [pedidos, atividades, ocorrencias, stock, movimentos] = await Promise.all([
-        buscarTudo('pedidos'),
-        buscarTudo('atividades'),
-        buscarTudo('ocorrencias'),
-        buscarTudo('stock'),
-        buscarTudo('movimentos_stock')
-      ]);
-
-      const workbook = new ExcelJS.Workbook();
-      workbook.creator = 'Sistema Topogf';
-      workbook.created = new Date();
-
-      // Função auxiliar para adicionar folhas de dados
-      const addSheet = (name, data) => {
-        const ws = workbook.addWorksheet(name);
-        if (data.length === 0) {
-          ws.addRow(['Sem registos']);
-          return;
-        }
-        const headers = Object.keys(data[0]);
-        const headerRow = ws.addRow(headers);
-        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
-        
-        data.forEach(row => ws.addRow(headers.map(h => row[h])));
-        
-        // Ajustar larguras
-        headers.forEach((h, i) => {
-          ws.getColumn(i + 1).width = Math.max(h.length + 2, 15);
+    // ===== Agrupar horas por local/obra e por técnico =====
+    // NOTA: quando uma atividade tem vários técnicos (separados por vírgula),
+    // as horas dessa atividade são contabilizadas na totalidade para CADA técnico
+    // (não são divididas entre eles), à semelhança do que já é feito em "Atividades por técnico".
+    function agruparHorasPorLocalETecnico(atividades) {
+      const porLocal = {};
+      atividades.forEach(a => {
+        const local = (a.local_obra || '(sem local)').toString().trim() || '(sem local)';
+        const h = calcularDuracaoHoras(a);
+        const tecnicos = (a.tecnico || '').split(',').map(t => t.trim()).filter(Boolean);
+        if (!porLocal[local]) porLocal[local] = { total: 0, tecnicos: {} };
+        porLocal[local].total += h;
+        const lista = tecnicos.length ? tecnicos : ['(sem técnico)'];
+        lista.forEach(t => {
+          if (!porLocal[local].tecnicos[t]) porLocal[local].tecnicos[t] = { horas: 0, n: 0 };
+          porLocal[local].tecnicos[t].horas += h;
+          porLocal[local].tecnicos[t].n += 1;
         });
-      };
-
-      addSheet('Pedidos', pedidos);
-      addSheet('Atividades', atividades);
-      addSheet('Ocorrencias', ocorrencias);
-      addSheet('Stock', stock);
-      addSheet('Movimentos', movimentos);
-
-      // ===== CRIAR FOLHA "DASHBOARD" VISUAL =====
-      const wsDash = workbook.addWorksheet('📊 Dashboard');
-      wsDash.properties.defaultRowHeight = 20;
-
-      // Título
-      const titleRow = wsDash.getRow(1);
-      titleRow.getCell(1).value = 'RELATÓRIO VISUAL DE ATIVIDADES E PEDIDOS';
-      titleRow.getCell(1).font = { bold: true, size: 16, color: { argb: 'FF2563EB' } };
-      wsDash.mergeCells('A1:D1');
-
-      // --- SECÇÃO 1: EVOLUÇÃO MENSAL ---
-      wsDash.getRow(3).getCell(1).value = '📈 EVOLUÇÃO MENSAL: PEDIDOS VS ATIVIDADES';
-      wsDash.getRow(3).getCell(1).font = { bold: true, size: 12, color: { argb: 'FF0F172A' } };
-
-      wsDash.getRow(4).values = ['Mês', 'Pedidos', 'Atividades', 'Diferença'];
-      const headerRow1 = wsDash.getRow(4);
-      headerRow1.font = { bold: true };
-      headerRow1.eachCell(cell => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
-        cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
       });
-
-      const pedidosPorMes = agruparPorMesObj(pedidos, 'data_hora_pedido');
-      const atividadesPorMes = agruparPorMesObj(atividades, 'data_hora_inicio');
-      const todosOsMeses = [...new Set([...Object.keys(pedidosPorMes), ...Object.keys(atividadesPorMes)])].sort();
-
-      let rowDash = 5;
-      todosOsMeses.forEach(mes => {
-        const [ano, mesNum] = mes.split('-');
-        const p = pedidosPorMes[mes] || 0;
-        const a = atividadesPorMes[mes] || 0;
-        const diff = a - p;
-        
-        const row = wsDash.getRow(rowDash);
-        row.values = [`${mesNum}/${ano}`, p, a, diff];
-        
-        // Formatação condicional visual simples
-        row.getCell(4).font = { color: { argb: diff >= 0 ? 'FF10B981' : 'FFEF4444' }, bold: true };
-        rowDash++;
-      });
-      
-      // Ajustar colunas da secção 1
-      wsDash.getColumn(1).width = 15;
-      wsDash.getColumn(2).width = 12;
-      wsDash.getColumn(3).width = 12;
-      wsDash.getColumn(4).width = 15;
-
-      // --- SECÇÃO 2: HORAS POR LOCAL (TOP 20) ---
-      const startRow2 = rowDash + 3;
-      wsDash.getRow(startRow2).getCell(1).value = '⏱️ HORAS TRABALHADAS POR LOCAL/OBRA (TOP 20)';
-      wsDash.getRow(startRow2).getCell(1).font = { bold: true, size: 12, color: { argb: 'FF0F172A' } };
-
-      wsDash.getRow(startRow2 + 2).values = ['Local / Obra', 'Total Horas', 'Representação Visual'];
-      const headerRow2 = wsDash.getRow(startRow2 + 2);
-      headerRow2.font = { bold: true };
-      headerRow2.eachCell(cell => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
-        cell.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
-      });
-
-      const horasPorLocal = agruparHorasPorLocal(atividades);
-      const maxHoras = horasPorLocal.length > 0 ? horasPorLocal[0].horas : 1;
-      
-      let rowDash2 = startRow2 + 3;
-      horasPorLocal.forEach(item => {
-        const row = wsDash.getRow(rowDash2);
-        row.values = [item.local, Math.round(item.horas * 100) / 100, '█'.repeat(Math.round((item.horas / maxHoras) * 20))];
-        
-        // Cor de fundo na barra visual
-        row.getCell(3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFA855F7' } };
-        row.getCell(3).font = { color: { argb: 'FFFFFFFF' }, bold: true };
-        rowDash2++;
-      });
-
-      wsDash.getColumn(1).width = 35;
-      wsDash.getColumn(2).width = 15;
-      wsDash.getColumn(3).width = 25;
-
-      // 3. Gerar e fazer download do ficheiro
-      const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Topogf_Relatorio_Completo_${new Date().toISOString().slice(0, 10)}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      return porLocal;
     }
 
-    // ===== FUNÇÕES DE EXPORTAÇÃO INDIVIDUAL =====
+    function percent(num, den) {
+      if (!den) return '0%';
+      return (num / den * 100).toFixed(1) + '%';
+    }
+
+    // ===== Verifica se um pedido está concluído com base no campo "estado" =====
+    function estaConcluido(p) {
+      return (p.estado || '').trim().toLowerCase() === 'concluido';
+    }
+
+    function construirFolhaResumo(pedidos, atividades, ocorrencias, stock, movimentos) {
+      stock = stock || [];
+      movimentos = movimentos || [];
+      const linhas = [];
+      const agora = new Date();
+      const dataGeracao = agora.toLocaleDateString('pt-PT') + ' ' + agora.toLocaleTimeString('pt-PT').slice(0, 5);
+
+      const concluidos = pedidos.filter(estaConcluido).length;
+      const pendentes = pedidos.length - concluidos;
+
+      linhas.push(['RELATÓRIO RESUMO — gerado em ' + dataGeracao]);
+      linhas.push([]);
+
+      // ============== TOTAIS GERAIS ==============
+      linhas.push(['TOTAIS GERAIS']);
+      linhas.push(['Pedidos totais', pedidos.length]);
+      linhas.push(['Pedidos concluídos', concluidos, percent(concluidos, pedidos.length)]);
+      linhas.push(['Pedidos pendentes', pendentes, percent(pendentes, pedidos.length)]);
+      linhas.push(['Atividades totais', atividades.length]);
+      linhas.push(['Ocorrências totais', ocorrencias.length]);
+      linhas.push(['Materiais em stock (referências)', stock.length]);
+      linhas.push(['Unidades totais em stock', stock.reduce((s, i) => s + (i.stockatual || 0), 0)]);
+      linhas.push(['Materiais com stock crítico/esgotado', stock.filter(i => (i.stockatual || 0) <= (i.stockminimo || 0)).length]);
+      linhas.push([]);
+
+      // ============== PEDIDOS POR EMPRESA ==============
+      linhas.push(['PEDIDOS POR EMPRESA']);
+      linhas.push(['Empresa', 'Total', 'Concluídos', 'Pendentes', 'Taxa conclusão']);
+      const porEmpresa = {};
+      pedidos.forEach(p => {
+        const emp = (p.empresa || '(sem empresa)').trim();
+        if (!porEmpresa[emp]) porEmpresa[emp] = { total: 0, conc: 0 };
+        porEmpresa[emp].total++;
+        if (estaConcluido(p)) porEmpresa[emp].conc++;
+      });
+      Object.entries(porEmpresa)
+        .sort((a, b) => b[1].total - a[1].total)
+        .forEach(([emp, v]) => linhas.push([emp, v.total, v.conc, v.total - v.conc, percent(v.conc, v.total)]));
+      linhas.push([]);
+
+      // ============== PEDIDOS POR REQUERENTE (TOP 15) ==============
+      linhas.push(['PEDIDOS POR REQUERENTE (TOP 15)']);
+      linhas.push(['Requerente', 'Pedidos']);
+      agruparPorCampo(pedidos, 'requerente')
+        .slice(0, 15)
+        .forEach(([req, n]) => linhas.push([req, n]));
+      linhas.push([]);
+
+      // ============== PEDIDOS POR VIA DE COMUNICAÇÃO ==============
+      linhas.push(['PEDIDOS POR VIA DE COMUNICAÇÃO']);
+      linhas.push(['Via', 'Pedidos', '%']);
+      const porVia = agruparPorCampo(pedidos, 'via');
+      porVia.forEach(([via, n]) => linhas.push([via, n, percent(n, pedidos.length)]));
+      linhas.push([]);
+
+      // ============== PEDIDOS POR URGÊNCIA ==============
+      linhas.push(['PEDIDOS POR URGÊNCIA']);
+      linhas.push(['Urgência', 'Pedidos', '%']);
+      agruparPorCampo(pedidos, 'urgencia').forEach(([u, n]) => linhas.push([u, n, percent(n, pedidos.length)]));
+      linhas.push([]);
+
+      // ============== PEDIDOS POR FREQUÊNCIA ==============
+      linhas.push(['PEDIDOS POR FREQUÊNCIA']);
+      linhas.push(['Frequência', 'Pedidos', '%']);
+      agruparPorCampo(pedidos, 'frequencia').forEach(([f, n]) => linhas.push([f, n, percent(n, pedidos.length)]));
+      linhas.push([]);
+
+      // ============== ATIVIDADES POR TÉCNICO ==============
+      linhas.push(['ATIVIDADES POR TÉCNICO']);
+      linhas.push(['Técnico', 'Atividades']);
+      contarSeparados(atividades, 'tecnico', ',').forEach(([t, n]) => linhas.push([t, n]));
+      linhas.push([]);
+
+      // ============== TIPOS DE TRABALHO (PEDIDOS) ==============
+      linhas.push(['TIPOS DE TRABALHO (PEDIDOS)']);
+      linhas.push(['Tipo', 'Quantidade', '%']);
+      const tiposP = contarSeparados(pedidos, 'tipo_trabalho', ';');
+      const totalTiposP = tiposP.reduce((s, [, n]) => s + n, 0);
+      tiposP.forEach(([t, n]) => linhas.push([t, n, percent(n, totalTiposP)]));
+      linhas.push([]);
+
+      // ============== TIPOS DE TRABALHO (ATIVIDADES) ==============
+      linhas.push(['TIPOS DE TRABALHO (ATIVIDADES)']);
+      linhas.push(['Tipo', 'Quantidade', '%']);
+      const tiposA = contarSeparados(atividades, 'tipo_trabalho', ';');
+      const totalTiposA = tiposA.reduce((s, [, n]) => s + n, 0);
+      tiposA.forEach(([t, n]) => linhas.push([t, n, percent(n, totalTiposA)]));
+      linhas.push([]);
+
+      // ============== LOCAIS / OBRAS MAIS FREQUENTES (TOP 15) ==============
+      linhas.push(['LOCAIS / OBRAS MAIS FREQUENTES — ATIVIDADES (TOP 15)']);
+      linhas.push(['Local / Obra', 'Atividades']);
+      const porLocalA = {};
+      atividades.forEach(a => {
+        const local = (a.local_obra || '').trim();
+        if (local) porLocalA[local] = (porLocalA[local] || 0) + 1;
+      });
+      Object.entries(porLocalA)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 15)
+        .forEach(([local, n]) => linhas.push([local, n]));
+      linhas.push([]);
+
+      // ============== HORAS POR LOCAL / OBRA (TOP 20) ==============
+      linhas.push(['HORAS TRABALHADAS POR LOCAL / OBRA (TOP 20)']);
+      linhas.push(['Local / Obra', 'Total Horas', 'Nº Atividades', 'Média Horas/Atividade']);
+      const horasPorLocal = agruparHorasPorLocal(atividades);
+      if (horasPorLocal.length === 0) {
+        linhas.push(['(sem registos com data de início e fim)']);
+      } else {
+        horasPorLocal
+          .slice(0, 20)
+          .forEach(([local, h, n, media]) => linhas.push([local, h.toFixed(2), n, media.toFixed(2)]));
+      }
+      linhas.push([]);
+
+      // ============== HORAS POR LOCAL/OBRA E TÉCNICO (TOP 15 OBRAS) ==============
+      linhas.push(['HORAS POR LOCAL/OBRA E TÉCNICO (TOP 15 OBRAS)']);
+      linhas.push(['Local / Obra', 'Técnico', 'Total Horas', 'Nº Atividades']);
+      const dadosLocalTecnico = agruparHorasPorLocalETecnico(atividades);
+      const locaisOrdenadosLT = Object.entries(dadosLocalTecnico)
+        .sort((a, b) => b[1].total - a[1].total)
+        .slice(0, 15);
+      if (locaisOrdenadosLT.length === 0) {
+        linhas.push(['(sem registos)']);
+      } else {
+        locaisOrdenadosLT.forEach(([local, info]) => {
+          const tecnicosOrdenados = Object.entries(info.tecnicos).sort((a, b) => b[1].horas - a[1].horas);
+          tecnicosOrdenados.forEach(([tec, v], idx) => {
+            linhas.push([idx === 0 ? local : '', tec, v.horas.toFixed(2), v.n]);
+          });
+        });
+      }
+      linhas.push([]);
+
+      // ============== OCORRÊNCIAS POR LOCAL (TOP 15) ==============
+      linhas.push(['OCORRÊNCIAS POR LOCAL (TOP 15)']);
+      linhas.push(['Local / Obra', 'Ocorrências']);
+      const porLocalO = {};
+      ocorrencias.forEach(o => {
+        const local = (o.local_obra || '').trim();
+        if (local) porLocalO[local] = (porLocalO[local] || 0) + 1;
+      });
+      const locaisOc = Object.entries(porLocalO).sort((a, b) => b[1] - a[1]);
+      if (locaisOc.length === 0) {
+        linhas.push(['(sem registos)']);
+      } else {
+        locaisOc.slice(0, 15).forEach(([local, n]) => linhas.push([local, n]));
+      }
+      linhas.push([]);
+
+      // ============== EVOLUÇÃO MENSAL - PEDIDOS ==============
+      linhas.push(['EVOLUÇÃO MENSAL — PEDIDOS']);
+      linhas.push(['Mês', 'Pedidos']);
+      const pedidosMes = agruparPorMes(pedidos, 'data_hora_pedido');
+      if (pedidosMes.length === 0) {
+        linhas.push(['(sem registos)']);
+      } else {
+        pedidosMes.forEach(([mes, n]) => linhas.push([mes, n]));
+      }
+      linhas.push([]);
+
+      // ============== EVOLUÇÃO MENSAL - ATIVIDADES ==============
+      linhas.push(['EVOLUÇÃO MENSAL — ATIVIDADES']);
+      linhas.push(['Mês', 'Atividades']);
+      const ativMes = agruparPorMes(atividades, 'data_hora_inicio');
+      if (ativMes.length === 0) {
+        linhas.push(['(sem registos)']);
+      } else {
+        ativMes.forEach(([mes, n]) => linhas.push([mes, n]));
+      }
+      linhas.push([]);
+
+      // ============== STOCK POR CATEGORIA ==============
+      linhas.push(['STOCK POR CATEGORIA']);
+      linhas.push(['Categoria', 'Nº Materiais', 'Unidades em Stock']);
+      const stockPorCategoria = {};
+      stock.forEach(i => {
+        const cat = (i.categoria || '(sem categoria)').trim() || '(sem categoria)';
+        if (!stockPorCategoria[cat]) stockPorCategoria[cat] = { n: 0, unidades: 0 };
+        stockPorCategoria[cat].n++;
+        stockPorCategoria[cat].unidades += (i.stockatual || 0);
+      });
+      if (stock.length === 0) {
+        linhas.push(['(sem registos)']);
+      } else {
+        Object.entries(stockPorCategoria)
+          .sort((a, b) => b[1].unidades - a[1].unidades)
+          .forEach(([cat, v]) => linhas.push([cat, v.n, v.unidades]));
+      }
+      linhas.push([]);
+
+      // ============== MATERIAIS COM STOCK CRÍTICO / ESGOTADO ==============
+      linhas.push(['MATERIAIS COM STOCK CRÍTICO / ESGOTADO']);
+      linhas.push(['Material', 'Categoria', 'Stock Atual', 'Qt. Alerta', 'Estado']);
+      const criticos = stock.filter(i => (i.stockatual || 0) <= (i.stockminimo || 0));
+      if (criticos.length === 0) {
+        linhas.push(['(nenhum material em estado crítico)']);
+      } else {
+        criticos
+          .sort((a, b) => (a.stockatual || 0) - (b.stockatual || 0))
+          .forEach(i => linhas.push([
+            i.material, i.categoria, i.stockatual || 0, i.stockminimo || 0,
+            (i.stockatual || 0) === 0 ? 'Esgotado' : 'Crítico'
+          ]));
+      }
+      linhas.push([]);
+
+      // ============== MATERIAIS MAIS GASTOS (TOP 15) ==============
+      linhas.push(['MATERIAIS MAIS GASTOS (TOP 15)']);
+      linhas.push(['Material', 'Total Gastas', 'Total Compradas', 'Stock Atual']);
+      const maisGastos = [...stock]
+        .filter(i => (i.totalgastas || 0) > 0)
+        .sort((a, b) => (b.totalgastas || 0) - (a.totalgastas || 0));
+      if (maisGastos.length === 0) {
+        linhas.push(['(sem registos)']);
+      } else {
+        maisGastos.slice(0, 15).forEach(i => linhas.push([
+          i.material, i.totalgastas || 0, i.totalcompradas || 0, i.stockatual || 0
+        ]));
+      }
+      linhas.push([]);
+
+      // ============== MOVIMENTOS DE STOCK POR MÊS ==============
+      linhas.push(['MOVIMENTOS DE STOCK POR MÊS']);
+      linhas.push(['Mês', 'Entradas (compras)', 'Saídas (gastos)']);
+      const movPorMes = {};
+      movimentos.forEach(m => {
+        const d = m.created_at;
+        if (!d) return;
+        const mes = String(d).substring(0, 7);
+        if (mes.length !== 7) return;
+        if (!movPorMes[mes]) movPorMes[mes] = { entradas: 0, saidas: 0 };
+        if (m.tipo === 'entrada') movPorMes[mes].entradas += (m.quantidade || 0);
+        else movPorMes[mes].saidas += (m.quantidade || 0);
+      });
+      const mesesMov = Object.keys(movPorMes).sort();
+      if (mesesMov.length === 0) {
+        linhas.push(['(sem registos)']);
+      } else {
+        mesesMov.forEach(mes => linhas.push([mes, movPorMes[mes].entradas, movPorMes[mes].saidas]));
+      }
+
+      const ws = XLSX.utils.aoa_to_sheet(linhas);
+      ws['!cols'] = [{ wch: 48 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 16 }];
+      return ws;
+    }
+
+    function gerarExcel(folhas, nomeFicheiro) {
+      const wb = XLSX.utils.book_new();
+      folhas.forEach(f => {
+        XLSX.utils.book_append_sheet(wb, criarFolha(f.rows), f.nome);
+      });
+      XLSX.writeFile(wb, nomeFicheiro);
+    }
+
+    function hoje() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
     function mostrarStatus(msg) {
       const el = document.getElementById('statusMsg');
       el.textContent = msg;
@@ -323,7 +540,7 @@
       setTimeout(() => { el.style.display = 'none'; }, 5000);
     }
 
-    async function exportarTabelaSimples(tabela, btn) {
+    async function exportarTabela(tabela, btn) {
       btn.disabled = true;
       btn.innerText = 'A preparar...';
       try {
@@ -332,28 +549,8 @@
           alert('Não existem dados na tabela ' + tabela + '.');
           return;
         }
-        
-        const wb = new ExcelJS.Workbook();
-        const ws = wb.addWorksheet(tabela.charAt(0).toUpperCase() + tabela.slice(1));
-        const headers = Object.keys(rows[0]);
-        const headerRow = ws.addRow(headers);
-        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
-        
-        rows.forEach(row => ws.addRow(headers.map(h => row[h])));
-        headers.forEach((h, i) => { ws.getColumn(i + 1).width = Math.max(h.length + 2, 15); });
-
-        const buffer = await wb.xlsx.writeBuffer();
-        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${tabela}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
+        const nomeFolha = tabela.charAt(0).toUpperCase() + tabela.slice(1);
+        gerarExcel([{ nome: nomeFolha, rows }], `${tabela}_${hoje()}.xlsx`);
         mostrarStatus(`✅ ${rows.length} registos de "${tabela}" exportados!`);
       } catch (err) {
         console.error('Erro ao exportar ' + tabela + ':', err);
@@ -364,57 +561,79 @@
       }
     }
 
-    // ===== EVENT LISTENERS =====
-    document.getElementById('btnPedidos').addEventListener('click', (e) => exportarTabelaSimples('pedidos', e.target));
-    document.getElementById('btnAtividades').addEventListener('click', (e) => exportarTabelaSimples('atividades', e.target));
-    document.getElementById('btnOcorrencias').addEventListener('click', (e) => exportarTabelaSimples('ocorrencias', e.target));
-    
-    document.getElementById('btnStock').addEventListener('click', async (e) => {
-      e.target.disabled = true; e.target.innerText = 'A preparar...';
+    async function exportarStock(btn) {
+      btn.disabled = true;
+      btn.innerText = 'A preparar...';
       try {
-        const [stock, movimentos] = await Promise.all([buscarTudo('stock'), buscarTudo('movimentos_stock')]);
-        const wb = new ExcelJS.Workbook();
-        
-        const ws1 = wb.addWorksheet('Stock');
-        if(stock.length) { 
-          const h = Object.keys(stock[0]); 
-          const hr = ws1.addRow(h); hr.font={bold:true}; hr.fill={type:'pattern', pattern:'solid', fgColor:{argb:'FF2563EB'}}; hr.font={color:{argb:'FFFFFFFF'}};
-          stock.forEach(r=>ws1.addRow(h.map(k=>r[k]))); 
+        const [stock, movimentos] = await Promise.all([
+          buscarTudo('stock'),
+          buscarTudo('movimentos_stock')
+        ]);
+        if (!stock.length) {
+          alert('Não existem dados na tabela stock.');
+          return;
         }
-        
-        const ws2 = wb.addWorksheet('Movimentos');
-        if(movimentos.length) { 
-          const h = Object.keys(movimentos[0]); 
-          const hr = ws2.addRow(h); hr.font={bold:true}; hr.fill={type:'pattern', pattern:'solid', fgColor:{argb:'FF2563EB'}}; hr.font={color:{argb:'FFFFFFFF'}};
-          movimentos.forEach(r=>ws2.addRow(h.map(k=>r[k]))); 
-        }
+        gerarExcel([
+          { nome: 'Stock', rows: stock },
+          { nome: 'Movimentos', rows: movimentos }
+        ], `stock_${hoje()}.xlsx`);
+        mostrarStatus(`✅ ${stock.length} materiais e ${movimentos.length} movimentos de stock exportados!`);
+      } catch (err) {
+        console.error('Erro ao exportar stock:', err);
+        alert('Erro ao exportar stock: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '⬇ Download Stock';
+      }
+    }
 
-        const buffer = await wb.xlsx.writeBuffer();
-        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = `stock_${new Date().toISOString().slice(0, 10)}.xlsx`;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        mostrarStatus(`✅ Stock e movimentos exportados!`);
-      } catch(err) { alert('Erro: ' + err.message); }
-      finally { e.target.disabled = false; e.target.innerText = '⬇ Download Stock'; }
-    });
-
-    document.getElementById('btnTudo').addEventListener('click', async (e) => {
-      e.target.disabled = true;
-      e.target.innerText = '⏳ A gerar ficheiro completo...';
+    async function exportarTudo(btn) {
+      btn.disabled = true;
+      btn.innerText = 'A preparar ficheiro completo...';
       try {
-        await gerarExcelCompleto();
-        mostrarStatus('✅ Ficheiro completo com Dashboard exportado!');
+        const [pedidos, atividades, ocorrencias, stock, movimentos] = await Promise.all([
+          buscarTudo('pedidos'),
+          buscarTudo('atividades'),
+          buscarTudo('ocorrencias'),
+          buscarTudo('stock'),
+          buscarTudo('movimentos_stock')
+        ]);
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, criarFolha(pedidos), 'Pedidos');
+        XLSX.utils.book_append_sheet(wb, criarFolha(atividades), 'Atividades');
+        XLSX.utils.book_append_sheet(wb, criarFolha(ocorrencias), 'Ocorrencias');
+        XLSX.utils.book_append_sheet(wb, criarFolha(stock), 'Stock');
+        XLSX.utils.book_append_sheet(wb, criarFolha(movimentos), 'Movimentos');
+        XLSX.utils.book_append_sheet(wb, construirFolhaResumo(pedidos, atividades, ocorrencias, stock, movimentos), 'Resumo');
+        XLSX.writeFile(wb, `topogf_dados_completos_${hoje()}.xlsx`);
+
+        mostrarStatus('✅ Ficheiro completo exportado!');
       } catch (err) {
         console.error('Erro ao exportar tudo:', err);
         alert('Erro ao exportar: ' + err.message);
       } finally {
-        e.target.disabled = false;
-        e.target.innerText = '⬇ Download Completo (Dados + Folha "Dashboard" Visual)';
+        btn.disabled = false;
+        btn.innerText = '⬇ Download Tudo (1 ficheiro Excel com 6 folhas: Pedidos, Atividades, Ocorrências, Stock, Movimentos de Stock e Resumo)';
       }
+    }
+
+    document.getElementById('btnPedidos').addEventListener('click', (e) => {
+      exportarTabela('pedidos', e.target);
+    });
+    document.getElementById('btnAtividades').addEventListener('click', (e) => {
+      exportarTabela('atividades', e.target);
+    });
+    document.getElementById('btnOcorrencias').addEventListener('click', (e) => {
+      exportarTabela('ocorrencias', e.target);
+    });
+    document.getElementById('btnStock').addEventListener('click', (e) => {
+      exportarStock(e.target);
+    });
+    document.getElementById('btnTudo').addEventListener('click', (e) => {
+      exportarTudo(e.target);
     });
   </script>
+
 </body>
 </html>
