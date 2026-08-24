@@ -100,7 +100,7 @@
     <!-- Modal para ver anexo da atividade -->
     <div id="modal-anexo" class="modal-anexo-overlay" onclick="fecharModalAnexoSeBackdrop(event)">
         <div class="modal-anexo-conteudo">
-            <button type="button" class="modal-anexo-fechar" onclick="fecharModalAnexo()" aria-label="Fechar">✕</button>
+            <button type="button" class="modal-anexo-fechar" onclick="fecharModalAnexo()" aria-label="Fechar"></button>
             <img id="modal-anexo-img" src="" alt="Anexo da atividade">
         </div>
     </div>
@@ -150,7 +150,7 @@
     <!-- NOVO: Modal para visualizar fotos da ocorrência -->
     <div id="modal-fotos-ocorrencia" class="modal-anexo-overlay" onclick="fecharModalFotosOcorrenciaSeBackdrop(event)">
         <div class="modal-anexo-conteudo" style="position: relative; max-width: 95vw; max-height: 95vh; flex-direction: column; align-items: center; justify-content: center;">
-            <button type="button" class="modal-anexo-fechar" onclick="fecharModalFotosOcorrencia()" aria-label="Fechar">✕</button>
+            <button type="button" class="modal-anexo-fechar" onclick="fecharModalFotosOcorrencia()" aria-label="Fechar"></button>
             
             <button type="button" onclick="fotoOcorrenciaAnterior()" style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center;">‹</button>
             
@@ -193,7 +193,7 @@
             if (emFalta.length > 0) {
                 console.error('⚠️ Bibliotecas não carregadas:', emFalta.join(', '));
                 document.getElementById('utilizador-info').innerText =
-                    '⚠️ Erro: faltam bibliotecas (' + emFalta.join(', ') + '). Verifica a internet e faz Ctrl+Shift+R.';
+                    '️ Erro: faltam bibliotecas (' + emFalta.join(', ') + '). Verifica a internet e faz Ctrl+Shift+R.';
                 return;
             }
             sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -485,7 +485,7 @@
 
         function abrirModalPedido(p) {
             if (!p) return;
-            document.getElementById('modal-pedido-titulo').innerText = '📋 Pedido #' + p.id;
+            document.getElementById('modal-pedido-titulo').innerText = ' Pedido #' + p.id;
             document.getElementById('modal-pedido-corpo').innerHTML =
                 '<p><strong>Estado:</strong> ' + (p.data_conclusao ? '✅ Concluído' : (p.estado || '⏳ Pendente')) + '</p>' +
                 '<p><strong>Data do Pedido:</strong> ' + (formatarDataHoraTexto(p.data_hora_pedido) || '—') + '</p>' +
@@ -911,22 +911,42 @@
                         htmlCorpo += '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalPedido(dadosAtividadesPorId[' + row.id + '].pedido_info)">📋 Pedido associado #' + row.pedido_id + ' ' + (row.pedido_info.data_conclusao ? '(✅ Concluído)' : '(⏳ Pendente)') + '</a></p>';
                     }
                     
+                    // ===== Ocorrências com botão para ver fotos =====
                     if (row.ocorrencias_info && row.ocorrencias_info.length > 0) {
                         htmlCorpo += '<p style="margin-top:12px;"><strong>🚨 Ocorrências associadas:</strong></p>';
                         row.ocorrencias_info.forEach(function (o) {
-                            htmlCorpo += '<p style="margin-left:6px; border-left:3px solid #a855f7; padding-left:8px; margin-bottom:6px; font-size: 13px;">' +
-                                         '<strong>' + (formatarDataHoraTexto(o.data) || 'Sem data') + ':</strong> ' + (o.ocorrencia || '') +
-                                         '</p>';
+                            const temFotos = o.fotos && Array.isArray(o.fotos) && o.fotos.length > 0;
+                            htmlCorpo += '<div style="margin-left:6px; border-left:3px solid #a855f7; padding-left:8px; margin-bottom:10px; font-size: 13px;">';
+                            htmlCorpo += '<p style="margin: 0 0 6px 0;"><strong>' + (formatarDataHoraTexto(o.data) || 'Sem data') + ':</strong> ' + (o.ocorrencia || '') + '</p>';
+                            
+                            if (temFotos) {
+                                const fotosJson = JSON.stringify(o.fotos).replace(/'/g, "&#39;");
+                                htmlCorpo += '<button class="btn-ver-fotos-evento" data-fotos=\'' + fotosJson + '\' style="background: #a855f7; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; margin-top: 6px;">';
+                                htmlCorpo += '📷 Ver ' + o.fotos.length + ' fotografia' + (o.fotos.length > 1 ? 's' : '');
+                                htmlCorpo += '</button>';
+                            }
+                            htmlCorpo += '</div>';
                         });
                     }
                     
-                    htmlCorpo += '<p style="margin-top:12px;"><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalOcorrencia(dadosAtividadesPorId[' + row.id + '])">🚨 Adicionar ocorrência a esta atividade</a></p>';
+                    htmlCorpo += '<p style="margin-top:12px;"><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalOcorrencia(dadosAtividadesPorId[' + row.id + '])"> Adicionar ocorrência a esta atividade</a></p>';
                     
                     if (row.anexo) {
                         htmlCorpo += '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalAnexo(\'' + row.anexo + '\')">🖼️ Ver anexo</a></p>';
                     }
                     
                     document.getElementById('modal-evento-corpo').innerHTML = htmlCorpo;
+                    
+                    // Ativar botões de ver fotos nas ocorrências do modal
+                    setTimeout(function() {
+                        document.querySelectorAll('.btn-ver-fotos-evento').forEach(function(btn) {
+                            btn.addEventListener('click', function() {
+                                const fotos = JSON.parse(this.getAttribute('data-fotos'));
+                                abrirModalFotosOcorrencia(fotos);
+                            });
+                        });
+                    }, 0);
+                    
                     document.getElementById('modal-evento').classList.add('aberta');
                     document.body.style.overflow = 'hidden';
                 }
@@ -980,7 +1000,7 @@
 
             const btn = document.querySelector('button[onclick="guardarAlteracoes()"]');
             const textoOriginalBtn = btn ? btn.innerText : null;
-            if (btn) { btn.disabled = true; btn.innerText = "⏳ A guardar..."; }
+            if (btn) { btn.disabled = true; btn.innerText = " A guardar..."; }
 
             const idsParaGravar = Array.from(idsEditados);
             const dadosPorId = {};
