@@ -2,9 +2,16 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>📝Registo de Pedidos</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Flatpickr CSS (Base + Tema Escuro) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+  <!-- Flatpickr JS e Localização em Português -->
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
   
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -18,6 +25,7 @@
     .full { grid-column: 1 / -1; }
     label { display: block; margin-bottom: 8px; font-size: 14px; color: #cbd5e1; }
     input, textarea, select { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #334155; color: white; font-size: 16px; }
+    input::placeholder { color: #94a3b8; }
     .tecnico-picker { background:#334155; padding:14px; border-radius:10px; min-height: 50px; display: flex; align-items: center; justify-content: space-around; flex-wrap: wrap; gap: 10px; }
     .tecnico-picker label { display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 0; font-size: 15px; color: white; }
     .tecnico-picker input[type="checkbox"] { width: auto; }
@@ -25,12 +33,37 @@
     button:disabled { background: #475569; cursor: not-allowed; }
     .success { display: none; margin-top: 20px; background: #065f46; padding: 15px; border-radius: 10px; text-align: center; }
 
+    /* Ajustes para o calendário Flatpickr em dispositivos móveis */
+    .flatpickr-calendar {
+      font-size: 15px;
+      border: 1px solid #475569;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .flatpickr-day {
+      height: 42px;
+      line-height: 42px;
+      max-width: 100%;
+      border-radius: 8px;
+    }
+    .flatpickr-weekday {
+      color: #60a5fa;
+      font-weight: bold;
+    }
+    .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange {
+      background: #2563eb !important;
+      border-color: #2563eb !important;
+    }
+    .flatpickr-day.today {
+      border-color: #60a5fa;
+    }
+
     /* Ajuste para dispositivos móveis */
     @media (max-width: 640px) {
         body { padding: 15px; }
         .container { padding: 20px; border-radius: 14px; }
         h1 { font-size: 24px; }
         .grid { grid-template-columns: 1fr; gap: 12px; }
+        .flatpickr-day { height: 46px; line-height: 46px; } /* Dias maiores para toque no telemóvel */
     }
   </style>
 </head>
@@ -61,7 +94,8 @@
             </label>
           </div>
         </div>
-        <div><label>Data + Hora do Pedido *</label><input type="datetime-local" id="dataHoraPedido" name="data_hora_pedido" required></div>
+        <!-- Alterado para type="text" para o Flatpickr assumir o controlo -->
+        <div><label>Data + Hora do Pedido *</label><input type="text" id="dataHoraPedido" name="data_hora_pedido" placeholder="AAAA-MM-DD HH:MM" required></div>
         <div><label>Requerente *</label><input type="text" name="requerente" required></div>
         <div><label>Empresa *</label>
           <select name="empresa" required>
@@ -130,7 +164,8 @@
             <option value="Trimestral">Trimestral</option>
           </select>
         </div>
-        <div><label>Data Limite</label><input type="datetime-local" name="data_hora_limite"></div>
+        <!-- Alterado para type="text" para o Flatpickr assumir o controlo -->
+        <div><label>Data Limite</label><input type="text" name="data_hora_limite" placeholder="AAAA-MM-DD HH:MM"></div>
       </div>
       <button type="submit" id="btnEnviar">Enviar Pedido</button>
     </form>
@@ -148,11 +183,22 @@
     const campoOutroDiv = document.getElementById("campoOutroDiv");
     const inputOutro = document.getElementById("inputOutro");
 
-    // Preencher data e hora atual no campo "Data + Hora do Pedido"
+    // Configuração do Flatpickr (Calendário visual com dias da semana)
+    const configDataHora = {
+      enableTime: true,
+      dateFormat: "Y-m-d\\TH:i", // Mantém o formato YYYY-MM-DDTHH:MM compatível com o backend
+      locale: "pt", // Idioma português (Seg, Ter, Qua, Jan, Fev, etc.)
+      theme: "dark", // Tema escuro para combinar com o design
+      allowInput: true
+    };
+
+    // Inicializa os calendários e guarda as instâncias
+    const fpPedido = flatpickr("#dataHoraPedido", { ...configDataHora, defaultDate: new Date() });
+    const fpLimite = flatpickr("input[name='data_hora_limite']", configDataHora);
+
+    // Função atualizada para redefinir a data atual usando a instância do Flatpickr
     function definirDataPedidoAtual() {
-      const now = new Date();
-      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-      document.getElementById("dataHoraPedido").value = now.toISOString().slice(0, 16);
+      fpPedido.setDate(new Date());
     }
 
     // Mapas para preenchimento automático cruzado entre Local/Obra e Nº Obra
@@ -306,7 +352,7 @@
       document.getElementById("successMessage").style.display = "block";
       form.reset();
       campoOutroDiv.style.display = "none";
-      definirDataPedidoAtual();
+      definirDataPedidoAtual(); // Repõe a data atual no calendário
       
       setTimeout(() => { 
         document.getElementById("successMessage").style.display = "none"; 
