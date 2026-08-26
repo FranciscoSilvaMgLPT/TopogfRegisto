@@ -2,16 +2,9 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>📝Registo de Pedidos</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
-  <!-- Flatpickr CSS (Base + Tema Escuro) -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
-  <!-- Flatpickr JS e Localização em Português -->
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
   
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -25,7 +18,7 @@
     .full { grid-column: 1 / -1; }
     label { display: block; margin-bottom: 8px; font-size: 14px; color: #cbd5e1; }
     input, textarea, select { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #334155; color: white; font-size: 16px; }
-    input::placeholder { color: #94a3b8; }
+    input[readonly] { cursor: pointer; }
     .tecnico-picker { background:#334155; padding:14px; border-radius:10px; min-height: 50px; display: flex; align-items: center; justify-content: space-around; flex-wrap: wrap; gap: 10px; }
     .tecnico-picker label { display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 0; font-size: 15px; color: white; }
     .tecnico-picker input[type="checkbox"] { width: auto; }
@@ -33,38 +26,109 @@
     button:disabled { background: #475569; cursor: not-allowed; }
     .success { display: none; margin-top: 20px; background: #065f46; padding: 15px; border-radius: 10px; text-align: center; }
 
-    /* Ajustes para o calendário Flatpickr em dispositivos móveis */
-    .flatpickr-calendar {
-      font-size: 15px;
-      border: 1px solid #475569;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-    }
-    .flatpickr-day {
-      height: 42px;
-      line-height: 42px;
-      max-width: 100%;
-      border-radius: 8px;
-    }
-    .flatpickr-weekday {
-      color: #60a5fa;
-      font-weight: bold;
-    }
-    .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange {
-      background: #2563eb !important;
-      border-color: #2563eb !important;
-    }
-    .flatpickr-day.today {
-      border-color: #60a5fa;
-    }
-
     /* Ajuste para dispositivos móveis */
     @media (max-width: 640px) {
         body { padding: 15px; }
         .container { padding: 20px; border-radius: 14px; }
         h1 { font-size: 24px; }
         .grid { grid-template-columns: 1fr; gap: 12px; }
-        .flatpickr-day { height: 46px; line-height: 46px; } /* Dias maiores para toque no telemóvel */
     }
+
+    /* ===== Custom Date/Time Picker ===== */
+    .dt-picker-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .dt-picker-overlay.open { display: flex; }
+    .dt-picker {
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 18px;
+      width: 100%;
+      max-width: 340px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    }
+    .dt-picker-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .dt-picker-header span {
+      font-weight: bold;
+      font-size: 17px;
+      text-transform: capitalize;
+    }
+    .dt-nav {
+      width: 38px;
+      margin-top: 0;
+      padding: 8px 0;
+      background: #334155;
+      border-radius: 8px;
+      font-size: 18px;
+      line-height: 1;
+    }
+    .dt-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      font-size: 12px;
+      color: #93c5fd;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+    .dt-days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+    .dt-day {
+      aspect-ratio: 1 / 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      background: transparent;
+      color: white;
+    }
+    .dt-day:hover { background: #334155; }
+    .dt-day.dt-empty { cursor: default; }
+    .dt-day.dt-empty:hover { background: transparent; }
+    .dt-day.dt-today { border: 1px solid #60a5fa; }
+    .dt-day.dt-selected { background: #2563eb; font-weight: bold; }
+    .dt-time {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .dt-time label { margin-bottom: 0; white-space: nowrap; }
+    .dt-time input {
+      width: 60px;
+      padding: 10px;
+      text-align: center;
+      font-size: 15px;
+    }
+    .dt-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .dt-actions button {
+      margin-top: 0;
+      flex: 1;
+      padding: 12px;
+      font-size: 14px;
+    }
+    #dtCancel { background: #334155; }
   </style>
 </head>
 <body>
@@ -94,8 +158,11 @@
             </label>
           </div>
         </div>
-        <!-- Alterado para type="text" para o Flatpickr assumir o controlo -->
-        <div><label>Data + Hora do Pedido *</label><input type="text" id="dataHoraPedido" name="data_hora_pedido" placeholder="AAAA-MM-DD HH:MM" required></div>
+        <div>
+          <label>Data + Hora do Pedido *</label>
+          <input type="text" id="dataHoraPedidoDisplay" placeholder="Selecionar data e hora" readonly required autocomplete="off">
+          <input type="hidden" id="dataHoraPedido" name="data_hora_pedido">
+        </div>
         <div><label>Requerente *</label><input type="text" name="requerente" required></div>
         <div><label>Empresa *</label>
           <select name="empresa" required>
@@ -164,12 +231,40 @@
             <option value="Trimestral">Trimestral</option>
           </select>
         </div>
-        <!-- Alterado para type="text" para o Flatpickr assumir o controlo -->
-        <div><label>Data Limite</label><input type="text" name="data_hora_limite" placeholder="AAAA-MM-DD HH:MM"></div>
+        <div>
+          <label>Data Limite</label>
+          <input type="text" id="dataHoraLimiteDisplay" placeholder="Selecionar data e hora" readonly autocomplete="off">
+          <input type="hidden" id="dataHoraLimite" name="data_hora_limite">
+        </div>
       </div>
       <button type="submit" id="btnEnviar">Enviar Pedido</button>
     </form>
     <div class="success" id="successMessage">✅ Pedido guardado com sucesso!</div>
+  </div>
+
+  <!-- Popup do calendário personalizado -->
+  <div class="dt-picker-overlay" id="dtPickerOverlay">
+    <div class="dt-picker">
+      <div class="dt-picker-header">
+        <button type="button" class="dt-nav" id="dtPrevMonth">‹</button>
+        <span id="dtMonthLabel"></span>
+        <button type="button" class="dt-nav" id="dtNextMonth">›</button>
+      </div>
+      <div class="dt-weekdays">
+        <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+      </div>
+      <div class="dt-days" id="dtDays"></div>
+      <div class="dt-time">
+        <label>Hora:</label>
+        <input type="number" id="dtHour" min="0" max="23" value="00">
+        <span>:</span>
+        <input type="number" id="dtMinute" min="0" max="59" value="00">
+      </div>
+      <div class="dt-actions">
+        <button type="button" id="dtCancel">Cancelar</button>
+        <button type="button" id="dtConfirm">Confirmar</button>
+      </div>
+    </div>
   </div>
 
 <script>
@@ -183,23 +278,161 @@
     const campoOutroDiv = document.getElementById("campoOutroDiv");
     const inputOutro = document.getElementById("inputOutro");
 
-    // Configuração do Flatpickr (Calendário visual com dias da semana)
-    const configDataHora = {
-      enableTime: true,
-      dateFormat: "Y-m-d\\TH:i", // Mantém o formato YYYY-MM-DDTHH:MM compatível com o backend
-      locale: "pt", // Idioma português (Seg, Ter, Qua, Jan, Fev, etc.)
-      theme: "dark", // Tema escuro para combinar com o design
-      allowInput: true
-    };
+    // ===== Utilitários de data =====
+    function pad2(n) { return String(n).padStart(2, '0'); }
 
-    // Inicializa os calendários e guarda as instâncias
-    const fpPedido = flatpickr("#dataHoraPedido", { ...configDataHora, defaultDate: new Date() });
-    const fpLimite = flatpickr("input[name='data_hora_limite']", configDataHora);
-
-    // Função atualizada para redefinir a data atual usando a instância do Flatpickr
-    function definirDataPedidoAtual() {
-      fpPedido.setDate(new Date());
+    function toIsoLocal(date) {
+      return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}T${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
     }
+
+    const nomesDiaSemana = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+    function toDisplayFormat(date) {
+      const diaSemana = nomesDiaSemana[date.getDay()];
+      return `${diaSemana}, ${pad2(date.getDate())}/${pad2(date.getMonth() + 1)}/${date.getFullYear()} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+    }
+
+    // Preencher data e hora atual no campo "Data + Hora do Pedido"
+    function definirDataPedidoAtual() {
+      const now = new Date();
+      document.getElementById("dataHoraPedido").value = toIsoLocal(now);
+      document.getElementById("dataHoraPedidoDisplay").value = toDisplayFormat(now);
+    }
+
+    // ===== Calendário personalizado (com dias da semana visíveis) =====
+    const overlay = document.getElementById('dtPickerOverlay');
+    const monthLabel = document.getElementById('dtMonthLabel');
+    const daysGrid = document.getElementById('dtDays');
+    const hourInput = document.getElementById('dtHour');
+    const minuteInput = document.getElementById('dtMinute');
+    const btnPrevMonth = document.getElementById('dtPrevMonth');
+    const btnNextMonth = document.getElementById('dtNextMonth');
+    const btnCancel = document.getElementById('dtCancel');
+    const btnConfirm = document.getElementById('dtConfirm');
+
+    const nomesMes = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+
+    let activeHiddenInput = null;
+    let activeDisplayInput = null;
+    let viewYear, viewMonth;
+    let selectedDate = null;
+
+    function parseCurrentValue(hiddenInput) {
+      const val = hiddenInput.value;
+      if (!val) return null;
+      const [datePart, timePart] = val.split('T');
+      const [y, m, d] = datePart.split('-').map(Number);
+      const [hh, mm] = (timePart || '00:00').split(':').map(Number);
+      return new Date(y, m - 1, d, hh, mm);
+    }
+
+    function renderCalendar() {
+      monthLabel.textContent = `${nomesMes[viewMonth]} de ${viewYear}`;
+      daysGrid.innerHTML = '';
+
+      const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+      const totalDays = new Date(viewYear, viewMonth + 1, 0).getDate();
+      const today = new Date();
+
+      for (let i = 0; i < firstDay; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'dt-day dt-empty';
+        daysGrid.appendChild(empty);
+      }
+
+      for (let d = 1; d <= totalDays; d++) {
+        const cell = document.createElement('div');
+        cell.className = 'dt-day';
+        cell.textContent = d;
+
+        const isToday = today.getFullYear() === viewYear && today.getMonth() === viewMonth && today.getDate() === d;
+        if (isToday) cell.classList.add('dt-today');
+
+        if (selectedDate && selectedDate.getFullYear() === viewYear && selectedDate.getMonth() === viewMonth && selectedDate.getDate() === d) {
+          cell.classList.add('dt-selected');
+        }
+
+        cell.addEventListener('click', () => {
+          selectedDate = new Date(viewYear, viewMonth, d, Number(hourInput.value) || 0, Number(minuteInput.value) || 0);
+          renderCalendar();
+        });
+
+        daysGrid.appendChild(cell);
+      }
+    }
+
+    function openPicker(hiddenInput, displayInput) {
+      activeHiddenInput = hiddenInput;
+      activeDisplayInput = displayInput;
+
+      const current = parseCurrentValue(hiddenInput) || new Date();
+      selectedDate = parseCurrentValue(hiddenInput);
+      viewYear = current.getFullYear();
+      viewMonth = current.getMonth();
+      hourInput.value = pad2(current.getHours());
+      minuteInput.value = pad2(current.getMinutes());
+
+      renderCalendar();
+      overlay.classList.add('open');
+    }
+
+    function closePicker() {
+      overlay.classList.remove('open');
+      activeHiddenInput = null;
+      activeDisplayInput = null;
+    }
+
+    btnPrevMonth.addEventListener('click', () => {
+      viewMonth--;
+      if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+      renderCalendar();
+    });
+
+    btnNextMonth.addEventListener('click', () => {
+      viewMonth++;
+      if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+      renderCalendar();
+    });
+
+    [hourInput, minuteInput].forEach(inp => {
+      inp.addEventListener('change', () => {
+        let val = Number(inp.value);
+        const max = inp === hourInput ? 23 : 59;
+        if (isNaN(val) || val < 0) val = 0;
+        if (val > max) val = max;
+        inp.value = pad2(val);
+      });
+    });
+
+    btnCancel.addEventListener('click', closePicker);
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closePicker();
+    });
+
+    btnConfirm.addEventListener('click', () => {
+      if (!activeHiddenInput) { closePicker(); return; }
+
+      const baseDate = selectedDate || new Date(viewYear, viewMonth, 1);
+      const finalDate = new Date(
+        baseDate.getFullYear(),
+        baseDate.getMonth(),
+        baseDate.getDate(),
+        Number(hourInput.value) || 0,
+        Number(minuteInput.value) || 0
+      );
+
+      activeHiddenInput.value = toIsoLocal(finalDate);
+      activeDisplayInput.value = toDisplayFormat(finalDate);
+      closePicker();
+    });
+
+    const dataHoraPedidoDisplay = document.getElementById('dataHoraPedidoDisplay');
+    const dataHoraPedido = document.getElementById('dataHoraPedido');
+    const dataHoraLimiteDisplay = document.getElementById('dataHoraLimiteDisplay');
+    const dataHoraLimite = document.getElementById('dataHoraLimite');
+
+    dataHoraPedidoDisplay.addEventListener('click', () => openPicker(dataHoraPedido, dataHoraPedidoDisplay));
+    dataHoraLimiteDisplay.addEventListener('click', () => openPicker(dataHoraLimite, dataHoraLimiteDisplay));
 
     // Mapas para preenchimento automático cruzado entre Local/Obra e Nº Obra
     let mapaLocalParaObra = {};
@@ -352,7 +585,9 @@
       document.getElementById("successMessage").style.display = "block";
       form.reset();
       campoOutroDiv.style.display = "none";
-      definirDataPedidoAtual(); // Repõe a data atual no calendário
+      definirDataPedidoAtual();
+      dataHoraLimiteDisplay.value = "";
+      dataHoraLimite.value = "";
       
       setTimeout(() => { 
         document.getElementById("successMessage").style.display = "none"; 
