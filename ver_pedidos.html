@@ -159,11 +159,11 @@
     // comparando o estado atual da tabela com dadosOriginais (snapshot).
     let idsAlterados = new Set();
     let dadosOriginais = {};
-const CAMPOS_GUARDAVEIS = [
-    "tecnico", "data_hora_pedido", "requerente", "empresa", "urgencia",
-    "via", "local_obra", "numero_obra", "concelho", "servico", "observacao",
-    "tipo_trabalho", "frequencia", "data_hora_limite", "estado", "data_conclusao"
-];
+    const CAMPOS_GUARDAVEIS = [
+        "tecnico", "data_hora_pedido", "requerente", "empresa", "urgencia",
+        "via", "local_obra", "numero_obra", "concelho", "servico", "observacao",
+        "tipo_trabalho", "frequencia", "data_hora_limite", "estado", "data_conclusao"
+    ];
 
     function guardarSnapshot(dados) {
         dadosOriginais = {};
@@ -565,13 +565,13 @@ table.on("tableBuilt", () => {
 
         try {
             const resultados = await Promise.all(linhasParaGuardar.map(item =>
-await sbClient.from('pedidos').update({
-    tecnico: item.tecnico, data_hora_pedido: item.data_hora_pedido, requerente: item.requerente,
-    empresa: item.empresa, urgencia: item.urgencia, via: item.via, local_obra: item.local_obra,
-    numero_obra: item.numero_obra, concelho: item.concelho, servico: item.servico, observacao: item.observacao,
-    tipo_trabalho: item.tipo_trabalho, frequencia: item.frequencia, data_hora_limite: item.data_hora_limite,
-    estado: item.estado, data_conclusao: item.data_conclusao
-}).eq('id', item.id)
+                sbClient.from('pedidos').update({
+                    tecnico: item.tecnico, data_hora_pedido: item.data_hora_pedido, requerente: item.requerente,
+                    empresa: item.empresa, urgencia: item.urgencia, via: item.via, local_obra: item.local_obra,
+                    numero_obra: item.numero_obra, concelho: item.concelho, servico: item.servico, observacao: item.observacao,
+                    tipo_trabalho: item.tipo_trabalho, frequencia: item.frequencia, data_hora_limite: item.data_hora_limite,
+                    estado: item.estado, data_conclusao: item.data_conclusao
+                }).eq('id', item.id)
             ));
 
             const algumErro = resultados.find(r => r.error);
