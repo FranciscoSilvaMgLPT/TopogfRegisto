@@ -9,7 +9,6 @@
     <script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.2.1/dist/js/tabulator.min.js"></script>
     <script src="https://unpkg.com/pizzip@3.2.0/dist/pizzip.js"></script>
     <script src="https://unpkg.com/docxtemplater@3.69.0/build/docxtemplater.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/locales/pt-br.global.min.js"></script>
 
@@ -78,7 +77,6 @@
         <div class="toolbar-actions">
             <a href="https://franciscosilvamglpt.github.io/TopogfRegisto/registo_atividade.html" style="background: #0ea5e9; color: white; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: bold; display: inline-block;">➕ Adicionar Atividade</a>
             <button onclick="guardarAlteracoes()" style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">💾 Guardar Alterações</button>
-            <button onclick="exportarParaExcel()" style="background: #8b5cf6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">🕑 Exportar Horas</button>
             <a href="index.html" class="btn-voltar">⬅ Voltar</a>
         </div>
     </div>
@@ -173,7 +171,6 @@
             if (typeof supabase === 'undefined') emFalta.push('Supabase');
             if (typeof Tabulator === 'undefined') emFalta.push('Tabulator');
             if (typeof FullCalendar === 'undefined') emFalta.push('FullCalendar');
-            if (typeof ExcelJS === 'undefined') emFalta.push('ExcelJS');
             if (typeof PizZip === 'undefined') emFalta.push('PizZip');
             if (typeof window.docxtemplater === 'undefined') emFalta.push('docxtemplater');
 
@@ -528,7 +525,7 @@
                 layout: "fitData",
                 pagination: "local",
                 paginationSize: 15,
-                paginationSizeSelector: [15, 50, 100], // <--- AQUI ESTÁ A NOVA FUNCIONALIDADE
+                paginationSizeSelector: [15, 50, 100],
                 initialSort: [{ column: "data_hora_inicio", dir: "desc" }],
                 columns: [
                     { title: "Técnico", field: "tecnico", editor: "input" },
@@ -708,104 +705,6 @@
             if (btn) { btn.disabled = false; btn.innerText = textoOriginalBtn; }
             if (falhas.length === 0) alert("Alterações guardadas com sucesso! (" + idsParaGravar.length + " registo(s))");
             else alert(falhas.length + " registo(s) falharam ao guardar. Verifica a consola (F12).");
-        }
-
-        function calcularHoras(inicio, fim) {
-            if (!inicio || !fim) return 0;
-            const ms = new Date(fim) - new Date(inicio);
-            return (isNaN(ms) || ms <= 0) ? 0 : Math.round((ms / 3600000) * 100) / 100;
-        }
-        function aplicarBordaFina(cell) { const lado = { style: 'thin' }; cell.border = { top: lado, bottom: lado, left: lado, right: lado }; }
-        const FORMATO_HORAS_MINUTOS = '[h]"H"mm';
-        function horasParaFracaoDeDia(horasDecimais) { return (horasDecimais || 0) / 24; }
-
-        async function exportarParaExcel() {
-            if (!sbClient || !table) { avisarSemCliente(); return; }
-            try {
-                const workbook = new ExcelJS.Workbook();
-                const response = await fetch('atividades.xlsx');
-                if (!response.ok) throw new Error("Não encontrei o ficheiro 'atividades.xlsx' (HTTP " + response.status + ").");
-                await workbook.xlsx.load(await response.arrayBuffer());
-                const worksheet = workbook.getWorksheet(1);
-                if (!worksheet) throw new Error("O ficheiro atividades.xlsx não tem folhas legíveis.");
-
-                const dados = table.getData();
-                let linha = 5;
-                dados.forEach(row => {
-                    const horas = calcularHoras(row.data_hora_inicio, row.data_hora_fim);
-                    const celTecnico = worksheet.getCell(linha, 2);
-                    const celInicio = worksheet.getCell(linha, 3);
-                    const celFim = worksheet.getCell(linha, 4);
-                    const celHoras = worksheet.getCell(linha, 5);
-                    const celObra = worksheet.getCell(linha, 6);
-                    const celNumObra = worksheet.getCell(linha, 7);
-                    const celServico = worksheet.getCell(linha, 8);
-                    const celAnexo = worksheet.getCell(linha, 9);
-
-                    celTecnico.value = row.tecnico || '';
-                    celInicio.value = formatarDataHoraTexto(row.data_hora_inicio);
-                    celFim.value = formatarDataHoraTexto(row.data_hora_fim);
-                    celHoras.value = horasParaFracaoDeDia(horas);
-                    celHoras.numFmt = FORMATO_HORAS_MINUTOS;
-                    celObra.value = row.local_obra || '';
-                    celNumObra.value = row.numero_obra || '';
-                    celServico.value = row.servico || '';
-                    if (row.anexo) { celAnexo.value = { text: 'Ver anexo', hyperlink: row.anexo }; celAnexo.font = { color: { argb: 'FF2563EB' }, underline: true }; }
-                    else { celAnexo.value = ''; }
-                    [celTecnico, celInicio, celFim, celHoras, celObra, celNumObra, celServico, celAnexo].forEach(aplicarBordaFina);
-                    linha++;
-                });
-
-                const totais = {};
-                dados.forEach(row => {
-                    const horas = calcularHoras(row.data_hora_inicio, row.data_hora_fim);
-                    if (horas <= 0) return;
-                    (row.tecnico || '').split(',').map(t => t.trim()).filter(Boolean).forEach(tec => {
-                        const chave = tec + '||' + (row.local_obra || '') + '||' + (row.numero_obra || '');
-                        if (!totais[chave]) totais[chave] = { tecnico: tec, local_obra: row.local_obra || '', numero_obra: row.numero_obra || '', horas: 0 };
-                        totais[chave].horas += horas;
-                    });
-                });
-
-                const linhasTotais = Object.values(totais).sort((a, b) => a.tecnico.localeCompare(b.tecnico, 'pt') || a.local_obra.localeCompare(b.local_obra, 'pt'));
-                let linha2 = 5;
-                linhasTotais.forEach(item => {
-                    const celTecnico = worksheet.getCell(linha2, 12);
-                    const celObra = worksheet.getCell(linha2, 13);
-                    const celNumObra = worksheet.getCell(linha2, 14);
-                    const celTotal = worksheet.getCell(linha2, 15);
-                    celTecnico.value = item.tecnico; celObra.value = item.local_obra; celNumObra.value = item.numero_obra;
-                    celTotal.value = horasParaFracaoDeDia(Math.round(item.horas * 100) / 100);
-                    celTotal.numFmt = FORMATO_HORAS_MINUTOS;
-                    [celTecnico, celObra, celNumObra, celTotal].forEach(aplicarBordaFina);
-                    linha2++;
-                });
-
-                const totalPorTecnico = {};
-                linhasTotais.forEach(item => { totalPorTecnico[item.tecnico] = (totalPorTecnico[item.tecnico] || 0) + item.horas; });
-                let linha3 = 5;
-                while (linha3 < 200) {
-                    const celTecnico3 = worksheet.getCell(linha3, 17);
-                    const nomeTecnico = celTecnico3.value;
-                    if (!nomeTecnico) break;
-                    const celTotal3 = worksheet.getCell(linha3, 18);
-                    const totalHoras = Math.round((totalPorTecnico[nomeTecnico] || 0) * 100) / 100;
-                    if (celTotal3.formula) celTotal3.value = { formula: celTotal3.formula, result: horasParaFracaoDeDia(totalHoras) };
-                    else celTotal3.value = horasParaFracaoDeDia(totalHoras);
-                    celTotal3.numFmt = FORMATO_HORAS_MINUTOS;
-                    linha3++;
-                }
-                workbook.calcProperties = workbook.calcProperties || {};
-                workbook.calcProperties.fullCalcOnLoad = true;
-                const buffer = await workbook.xlsx.writeBuffer();
-                const link = document.createElement("a");
-                link.href = URL.createObjectURL(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
-                link.download = "Atividades_Exportadas.xlsx";
-                link.click();
-            } catch (erro) {
-                console.error("Erro ao exportar para Excel:", erro);
-                alert("Não foi possível exportar o Excel: " + erro.message);
-            }
         }
 
         if (sbClient) carregarAtividades();
