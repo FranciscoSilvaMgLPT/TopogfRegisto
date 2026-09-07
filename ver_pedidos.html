@@ -5,14 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Histórico de Pedidos</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
     <link href="https://unpkg.com/tabulator-tables@6.2.1/dist/css/tabulator_midnight.min.css" rel="stylesheet">
     <script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.2.1/dist/js/tabulator.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/locales/pt-br.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/locales/pt-br.global.min.js"></script>
 
     <style>
         * { box-sizing: border-box; }
@@ -24,67 +23,67 @@
         #tabela-pedidos { font-size: 12px; }
         #filtro-pesquisa { width: 100%; max-width: 300px; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #475569; background: #1e293b; color: white; font-size: 16px; }
         .linha-concluida, .linha-concluida * { color: #f8fafc !important; text-decoration: line-through !important; opacity: 0.8; }
-#calendario-pedidos {
-    background: #1e293b;
-    border-radius: 10px;
-    padding: 15px;
-    margin-top: 10px;
-}
-.fc {
-    --fc-border-color: #334155;
-    --fc-page-bg-color: #1e293b;
-    --fc-neutral-bg-color: #0f172a;
-    --fc-list-event-hover-bg-color: #334155;
-    --fc-today-bg-color: rgba(14,165,233,0.15);
-}
-.fc .fc-toolbar-title { color: white; font-size: 1.1em; }
-.fc .fc-button { background: #334155; border: none; color: white; box-shadow: none; text-transform: capitalize; }
-.fc .fc-button:hover { background: #475569; }
-.fc .fc-button-primary:not(:disabled).fc-button-active,
-.fc .fc-button-primary:not(:disabled):active { background: #0ea5e9; }
-.fc .fc-col-header-cell-cushion, .fc .fc-daygrid-day-number { color: #cbd5e1; text-decoration: none; }
-.fc-event { cursor: pointer; border: none; font-size: 12px; }
-.fc-event.evento-concluido { opacity: 0.5; text-decoration: line-through; }
+        #calendario-pedidos {
+            background: #1e293b;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+        .fc {
+            --fc-border-color: #334155;
+            --fc-page-bg-color: #1e293b;
+            --fc-neutral-bg-color: #0f172a;
+            --fc-list-event-hover-bg-color: #334155;
+            --fc-today-bg-color: rgba(14,165,233,0.15);
+        }
+        .fc .fc-toolbar-title { color: white; font-size: 1.1em; }
+        .fc .fc-button { background: #334155; border: none; color: white; box-shadow: none; text-transform: capitalize; }
+        .fc .fc-button:hover { background: #475569; }
+        .fc .fc-button-primary:not(:disabled).fc-button-active,
+        .fc .fc-button-primary:not(:disabled):active { background: #0ea5e9; }
+        .fc .fc-col-header-cell-cushion, .fc .fc-daygrid-day-number { color: #cbd5e1; text-decoration: none; }
+        .fc-event { cursor: pointer; border: none; font-size: 12px; }
+        .fc-event.evento-concluido { opacity: 0.5; text-decoration: line-through; }
 
-.modal-evento-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.8);
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-}
-.modal-evento-overlay.aberta { display: flex; }
-.modal-evento-conteudo {
-    position: relative;
-    background: #1e293b;
-    border-radius: 10px;
-    padding: 24px;
-    max-width: 480px;
-    width: 90vw;
-    color: white;
-    max-height: 85vh;
-    overflow-y: auto;
-}
-.modal-evento-conteudo p { margin: 6px 0; }
-.modal-evento-conteudo strong { color: #60a5fa; }
-.modal-evento-fechar {
-    position: absolute;
-    top: -14px;
-    right: -14px;
-    background: #ef4444;
-    color: white;
-    border: none;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    font-size: 16px;
-    cursor: pointer;
-}
-.link-anexo { color: #60a5fa; text-decoration: none; }
-.sem-registo { color: #64748b; }
+        .modal-evento-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-evento-overlay.aberta { display: flex; }
+        .modal-evento-conteudo {
+            position: relative;
+            background: #1e293b;
+            border-radius: 10px;
+            padding: 24px;
+            max-width: 480px;
+            width: 90vw;
+            color: white;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .modal-evento-conteudo p { margin: 6px 0; }
+        .modal-evento-conteudo strong { color: #60a5fa; }
+        .modal-evento-fechar {
+            position: absolute;
+            top: -14px;
+            right: -14px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .link-anexo { color: #60a5fa; text-decoration: none; }
+        .sem-registo { color: #64748b; }
 
         /* Ajuste para dispositivos móveis */
         @media (max-width: 640px) {
@@ -103,7 +102,6 @@
         <button onclick="window.location.href='https://franciscosilvamglpt.github.io/TopogfRegisto/registo_pedidos.html'" style="background: #3b82f6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">➕ Adicionar Pedido</button>
         <button id="btn-filtro-concluidos" onclick="toggleConcluidos()" style="background: #64748b; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">👁️ Mostrar Concluídos</button>
         <button id="btn-guardar" onclick="guardarAlteracoes()" style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">💾 Guardar Alterações</button>
-        <button onclick="exportarParaExcel()" style="background: #8b5cf6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">⬇ Exportar Excel</button>
         <a href="index.html" class="btn-voltar">⬅ Voltar</a>
     </div>
 </div>
@@ -206,7 +204,7 @@
         return input;
     };
 
-let calendario = null;
+    let calendario = null;
 
     function corPorUrgencia(row) {
         if (row.estado === "Concluido") return "#64748b";
@@ -282,50 +280,41 @@ let calendario = null;
             return;
         }
 
- calendario = new FullCalendar.Calendar(document.getElementById('calendario-pedidos'), {
-    locale: 'pt-br',
-    initialView: 'dayGridMonth',
+        calendario = new FullCalendar.Calendar(document.getElementById('calendario-pedidos'), {
+            locale: 'pt-br',
+            initialView: 'dayGridMonth',
+            displayEventTime: true,
+            eventTimeFormat: {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: false,
+            },
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,listMonth'
+            },
+            datesSet: function(info) {
+                if (info.view.type.startsWith('list')) {
+                    setTimeout(() => {
+                        const tbody = document.querySelector('.fc-list-table tbody');
+                        if (!tbody) return;
+                        Array.from(tbody.children).reverse().forEach(el => tbody.appendChild(el));
+                    }, 0);
+                }
+            },
+            eventDidMount: function(info) {
+                const hora = info.el.querySelector(".fc-event-time");
+                if (!hora) return;
 
-    displayEventTime: true,
-    eventTimeFormat: {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: false,
-    },
-
-    headerToolbar: {
-        left: 'prev,next today',
-        center: 'title',
-        right: 'dayGridMonth,timeGridWeek,listMonth'
-    },
-
-datesSet: function(info) {
-    if (info.view.type.startsWith('list')) {
-        setTimeout(() => {
-            const tbody = document.querySelector('.fc-list-table tbody');
-            if (!tbody) return;
-
-            Array.from(tbody.children)
-                .reverse()
-                .forEach(el => tbody.appendChild(el));
-        }, 0);
-    }
-},
-
-eventDidMount: function(info) {
-    const hora = info.el.querySelector(".fc-event-time");
-    if (!hora) return;
-
-    let texto = hora.textContent.trim();
-
-    if (texto.endsWith(":00")) {
-        texto = texto.slice(0, -3) + "h";
-    } else {
-        texto = texto.replace(":", "h");
-    }
-
-    hora.textContent = texto;
-},
+                let texto = hora.textContent.trim();
+                if (texto.endsWith(":00")) {
+                    texto = texto.slice(0, -3) + "h";
+                } else {
+                    texto = texto.replace(":", "h");
+                }
+                hora.textContent = texto;
+            },
             height: 'auto',
             events: eventos,
             eventClick: function(info) {
@@ -438,7 +427,7 @@ eventDidMount: function(info) {
             pagination: "local",
             paginationSize: 50,
             paginationSizeSelector: [15, 50, 100],
-       cellEdited: function(cell) {
+            cellEdited: function(cell) {
                 // Marca a linha como alterada para a otimização do guardar
                 idsAlterados.add(cell.getRow().getData().id);
                 aplicarFiltros();
@@ -512,7 +501,7 @@ eventDidMount: function(info) {
             ]
         });
         
-table.on("tableBuilt", () => {
+        table.on("tableBuilt", () => {
             aplicarFiltros();
             renderizarCalendario(table.getData());
         });
@@ -544,9 +533,6 @@ table.on("tableBuilt", () => {
     async function guardarAlteracoes() {
         // Força o fecho de qualquer editor de célula ainda aberto (ex: flatpickr),
         // para garantir que a última alteração feita fica mesmo registada.
-        if (table.getEditedCells) {
-            // método pode não existir em todas as versões; ignorar se falhar
-        }
         document.activeElement && document.activeElement.blur();
 
         const dados = table.getData();
@@ -596,49 +582,6 @@ table.on("tableBuilt", () => {
             btn.disabled = false;
             btn.innerText = textoOriginal;
         }
-    }
-
-    async function exportarParaExcel() {
-        const workbook = new ExcelJS.Workbook();
-        const response = await fetch('template.xlsx');
-        await workbook.xlsx.load(await response.arrayBuffer());
-        const worksheet = workbook.getWorksheet(1);
-        const dados = table.getData();
-
-        dados.forEach((row, index) => {
-            const rowNumber = 5 + index;
-            worksheet.getCell(rowNumber, 3).value = row.tecnico;
-            worksheet.getCell(rowNumber, 6).value = row.requerente;
-            worksheet.getCell(rowNumber, 7).value = row.empresa;
-            worksheet.getCell(rowNumber, 8).value = row.urgencia;
-            worksheet.getCell(rowNumber, 9).value = row.via;
-            worksheet.getCell(rowNumber, 10).value = row.local_obra;
-            worksheet.getCell(rowNumber, 11).value = row.concelho;
-            worksheet.getCell(rowNumber, 12).value = row.servico;
-            worksheet.getCell(rowNumber, 13).value = row.observacao;
-            worksheet.getCell(rowNumber, 14).value = row.tipo_trabalho;
-            worksheet.getCell(rowNumber, 15).value = row.frequencia;
-            worksheet.getCell(rowNumber, 18).value = row.estado;
-
-            const preencherDataHora = (valor, colData, colHora) => {
-                if (valor) {
-                    const d = new Date(valor);
-                    const cellData = worksheet.getCell(rowNumber, colData);
-                    cellData.value = d;
-                    cellData.numFmt = 'dd/mm/yyyy'; 
-                    worksheet.getCell(rowNumber, colHora).value = d.toLocaleTimeString("pt-PT", {hour: '2-digit', minute:'2-digit'});
-                }
-            };
-            preencherDataHora(row.data_hora_pedido, 4, 5);
-            preencherDataHora(row.data_hora_limite, 16, 17);
-            preencherDataHora(row.data_conclusao, 19, 20);
-        });
-
-        const buffer = await workbook.xlsx.writeBuffer();
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(new Blob([buffer], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
-        link.download = "Pedidos_Exportados.xlsx";
-        link.click();
     }
 
     carregarDados();
