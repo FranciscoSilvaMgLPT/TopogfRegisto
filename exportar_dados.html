@@ -328,10 +328,10 @@
       porVia.forEach(([via, n]) => linhas.push([via, n, percent(n, pedidos.length)]));
       linhas.push([]);
 
-      // ============== PEDIDOS POR URGÊNCIA ==============
-      linhas.push(['PEDIDOS POR URGÊNCIA']);
-      linhas.push(['Urgência', 'Pedidos', '%']);
-      agruparPorCampo(pedidos, 'urgencia').forEach(([u, n]) => linhas.push([u, n, percent(n, pedidos.length)]));
+      // ============== PEDIDOS POR IMPORTÂNCIA ==============
+      linhas.push(['PEDIDOS POR IMPORTÂNCIA']);
+      linhas.push(['Importância', 'Pedidos', '%']);
+      agruparPorCampo(pedidos, 'importancia').forEach(([u, n]) => linhas.push([u, n, percent(n, pedidos.length)]));
       linhas.push([]);
 
       // ============== PEDIDOS POR FREQUÊNCIA ==============
