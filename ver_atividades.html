@@ -10,7 +10,7 @@
     <script src="https://unpkg.com/pizzip@3.2.0/dist/pizzip.js"></script>
     <script src="https://unpkg.com/docxtemplater@3.69.0/build/docxtemplater.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/locales/pt-br.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales-all.global.min.js"></script>
 
     <!-- Template Word em ficheiro separado -->
     <script src="template_docx.js"></script>
@@ -364,7 +364,7 @@
                 '<p><strong>Data:</strong> ' + (formatarDataHoraTexto(p.data_hora_pedido) || '—') + '</p>' +
                 '<p><strong>Requerente:</strong> ' + (p.requerente || '—') + '</p>' +
                 '<p><strong>Empresa:</strong> ' + (p.empresa || '—') + '</p>' +
-                '<p><strong>Urgência:</strong> ' + (p.urgencia || '—') + '</p>' +
+                '<p><strong>Urgência:</strong> ' + (p.importancia || '—') + '</p>' +
                 '<p><strong>Local/Obra:</strong> ' + (p.local_obra || '—') + '</p>' +
                 '<p><strong>Nº Obra:</strong> ' + (p.numero_obra || '—') + '</p>' +
                 '<p><strong>Serviço:</strong> ' + (p.servico || '—') + '</p>' +
@@ -505,10 +505,22 @@
             const pedidosIds = [...new Set(data.filter(a => a.pedido_id).map(a => a.pedido_id))];
             const mapaPedidos = {};
             if (pedidosIds.length > 0) {
-                const { data: pedidosData, error: errPedidos } = await sbClient.from('pedidos').select('id, requerente, empresa, servico, local_obra, numero_obra, data_hora_pedido, estado, urgencia, data_conclusao').in('id', pedidosIds);
-                if (!errPedidos) (pedidosData || []).forEach(p => { mapaPedidos[p.id] = p; });
+                const { data: pedidosData, error: errPedidos } = await sbClient
+                    .from('pedidos')
+                    .select('id, requerente, empresa, servico, local_obra, numero_obra, data_hora_pedido, estado, importancia, data_conclusao')
+                    .in('id', pedidosIds);
+                if (errPedidos) {
+                    console.error("Erro ao carregar pedidos associados:", errPedidos);
+                } else {
+                    (pedidosData || []).forEach(p => { mapaPedidos[p.id] = p; });
+                }
             }
-            data.forEach(a => { a.pedido_info = mapaPedidos[a.pedido_id] || null; });
+            data.forEach(a => {
+                a.pedido_info = mapaPedidos[a.pedido_id]
+                    ?? mapaPedidos[String(a.pedido_id)]
+                    ?? mapaPedidos[Number(a.pedido_id)]
+                    ?? null;
+            });
 
             const { data: ocorrenciasData, error: errOcorrencias } = await sbClient.from('ocorrencias').select('id, data, ocorrencia, atividade_id, fotos').not('atividade_id', 'is', null);
             const mapaOcorrencias = {};
