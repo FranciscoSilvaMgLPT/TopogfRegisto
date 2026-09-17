@@ -117,6 +117,15 @@
         </div>
     </div>
 
+    <div id="modal-associar-pedido" class="modal-anexo-overlay" onclick="fecharModalAssociarPedidoSeBackdrop(event)">
+        <div class="modal-evento-conteudo" onclick="event.stopPropagation()" style="max-width:560px;">
+            <button type="button" class="modal-anexo-fechar" onclick="fecharModalAssociarPedido()" aria-label="Fechar">✕</button>
+            <h3 id="modal-associar-pedido-titulo" style="margin-top:0;"></h3>
+            <input type="text" id="filtro-associar-pedido" placeholder="🔍 Pesquisar pedido (requerente, empresa, nº obra...)" style="width:100%; padding:10px; border:none; border-radius:8px; background:#334155; color:white; font-size:14px; margin-bottom:12px;">
+            <div id="lista-associar-pedido" style="max-height:50vh; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+    </div>
+
     <div id="modal-ocorrencia" class="modal-anexo-overlay" onclick="fecharModalOcorrenciaSeBackdrop(event)">
         <div class="modal-evento-conteudo" onclick="event.stopPropagation()">
             <button type="button" class="modal-anexo-fechar" onclick="fecharModalOcorrencia()" aria-label="Fechar">✕</button>
@@ -162,6 +171,9 @@
         let dadosAtividadesPorId = {};
         let ocorrenciaAtividadeAtual = null;
         let idsEditados = new Set();
+        let todosPedidos = [];
+        let mapaPedidosGlobal = {};
+        let atividadeParaAssociarPedido = null;
         
         let fotosOcorrenciaAtual = [];
         let fotoOcorrenciaIndexAtual = 0;
@@ -356,10 +368,10 @@
         }
         function fecharModalAnexoSeBackdrop(e) { if (e.target.id === 'modal-anexo') fecharModalAnexo(); }
 
-        function abrirModalPedido(p) {
+        function abrirModalPedido(p, atividadeId) {
             if (!p) return;
             document.getElementById('modal-pedido-titulo').innerText = '📋 Pedido #' + p.id;
-            document.getElementById('modal-pedido-corpo').innerHTML =
+            let html =
                 '<p><strong>Estado:</strong> ' + (p.data_conclusao ? '✅ Concluído' : (p.estado || '⏳ Pendente')) + '</p>' +
                 '<p><strong>Data:</strong> ' + (formatarDataHoraTexto(p.data_hora_pedido) || '—') + '</p>' +
                 '<p><strong>Requerente:</strong> ' + (p.requerente || '—') + '</p>' +
@@ -369,11 +381,104 @@
                 '<p><strong>Nº Obra:</strong> ' + (p.numero_obra || '—') + '</p>' +
                 '<p><strong>Serviço:</strong> ' + (p.servico || '—') + '</p>' +
                 (p.data_conclusao ? '<p><strong>Conclusão:</strong> ' + formatarDataHoraTexto(p.data_conclusao) + '</p>' : '');
+            if (atividadeId) {
+                html += '<p style="margin-top:16px; display:flex; gap:16px;">' +
+                    '<a class="link-anexo" href="javascript:void(0)" id="link-alterar-pedido">🔗 Alterar</a>' +
+                    '<a class="link-anexo" href="javascript:void(0)" id="link-remover-pedido" style="color:#f87171;">❌ Remover associação</a>' +
+                    '</p>';
+            }
+            document.getElementById('modal-pedido-corpo').innerHTML = html;
+            if (atividadeId) {
+                document.getElementById('link-alterar-pedido').addEventListener('click', function () {
+                    fecharModalPedido();
+                    abrirModalAssociarPedido(dadosAtividadesPorId[atividadeId]);
+                });
+                document.getElementById('link-remover-pedido').addEventListener('click', function () {
+                    removerAssociacaoPedido(atividadeId);
+                });
+            }
             document.getElementById('modal-pedido').classList.add('aberta');
             document.body.style.overflow = 'hidden';
         }
         function fecharModalPedido() { document.getElementById('modal-pedido').classList.remove('aberta'); document.body.style.overflow = ''; }
         function fecharModalPedidoSeBackdrop(e) { if (e.target.id === 'modal-pedido') fecharModalPedido(); }
+
+        function abrirModalAssociarPedido(rowData) {
+            if (!rowData) return;
+            atividadeParaAssociarPedido = rowData;
+            document.getElementById('modal-associar-pedido-titulo').innerText = '🔗 Associar Pedido — Atividade #' + rowData.id;
+            document.getElementById('filtro-associar-pedido').value = '';
+            renderizarListaAssociarPedido('');
+            document.getElementById('modal-associar-pedido').classList.add('aberta');
+            document.body.style.overflow = 'hidden';
+        }
+        function fecharModalAssociarPedido() {
+            document.getElementById('modal-associar-pedido').classList.remove('aberta');
+            document.body.style.overflow = '';
+            atividadeParaAssociarPedido = null;
+        }
+        function fecharModalAssociarPedidoSeBackdrop(e) { if (e.target.id === 'modal-associar-pedido') fecharModalAssociarPedido(); }
+
+        function renderizarListaAssociarPedido(termo) {
+            const lista = document.getElementById('lista-associar-pedido');
+            const termoBusca = (termo || '').toLowerCase();
+            const filtrados = todosPedidos.filter(function (p) {
+                if (!termoBusca) return true;
+                return [p.id, p.requerente, p.empresa, p.numero_obra, p.local_obra, p.servico].some(function (v) {
+                    return String(v || '').toLowerCase().includes(termoBusca);
+                });
+            }).slice(0, 100);
+
+            if (filtrados.length === 0) {
+                lista.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:20px;">Nenhum pedido encontrado.</p>';
+                return;
+            }
+            lista.innerHTML = filtrados.map(function (p) {
+                const estadoIcon = p.data_conclusao ? '✅' : '⏳';
+                return '<div class="item-associar-pedido" data-id="' + p.id + '" style="background:#334155; border-radius:8px; padding:10px 12px; cursor:pointer;">' +
+                    '<div style="font-weight:bold;">' + estadoIcon + ' #' + p.id + ' — ' + (p.requerente || 'Sem requerente') + '</div>' +
+                    '<div style="font-size:12px; color:#94a3b8; margin-top:2px;">' + (p.empresa || '—') + (p.numero_obra ? ' · Nº Obra ' + p.numero_obra : '') + (p.local_obra ? ' · ' + p.local_obra : '') + '</div>' +
+                    '</div>';
+            }).join('');
+
+            lista.querySelectorAll('.item-associar-pedido').forEach(function (el) {
+                el.addEventListener('click', function () {
+                    associarPedido(parseInt(this.getAttribute('data-id'), 10));
+                });
+            });
+        }
+
+        document.getElementById('filtro-associar-pedido').addEventListener('keyup', function () {
+            renderizarListaAssociarPedido(this.value);
+        });
+
+        async function associarPedido(pedidoId) {
+            if (!atividadeParaAssociarPedido) return;
+            const atividadeId = atividadeParaAssociarPedido.id;
+            const { error } = await sbClient.from('atividades').update({ pedido_id: pedidoId }).eq('id', atividadeId);
+            if (error) { alert("Erro ao associar pedido: " + error.message); return; }
+
+            const pedidoInfo = mapaPedidosGlobal[pedidoId] || null;
+            const atividadeLocal = dadosAtividadesPorId[atividadeId];
+            if (atividadeLocal) { atividadeLocal.pedido_id = pedidoId; atividadeLocal.pedido_info = pedidoInfo; }
+            if (table) { const linha = table.getRow(atividadeId); if (linha) linha.update({ pedido_id: pedidoId, pedido_info: pedidoInfo }); }
+            renderizarCalendario(table.getData());
+            fecharModalAssociarPedido();
+            alert("✅ Pedido #" + pedidoId + " associado à atividade #" + atividadeId + "!");
+        }
+
+        async function removerAssociacaoPedido(atividadeId) {
+            if (!confirm("Remover a associação do pedido a esta atividade?")) return;
+            const { error } = await sbClient.from('atividades').update({ pedido_id: null }).eq('id', atividadeId);
+            if (error) { alert("Erro ao remover associação: " + error.message); return; }
+
+            const atividadeLocal = dadosAtividadesPorId[atividadeId];
+            if (atividadeLocal) { atividadeLocal.pedido_id = null; atividadeLocal.pedido_info = null; }
+            if (table) { const linha = table.getRow(atividadeId); if (linha) linha.update({ pedido_id: null, pedido_info: null }); }
+            renderizarCalendario(table.getData());
+            fecharModalPedido();
+            alert("Associação removida.");
+        }
 
         function abrirModalOcorrencia(rowData) {
             ocorrenciaAtividadeAtual = rowData;
@@ -473,7 +578,7 @@
         });
 
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') { fecharModalAnexo(); fecharModalEvento(); fecharModalPedido(); fecharModalOcorrencia(); fecharModalOcorrencias(); fecharModalFotosOcorrencia(); }
+            if (e.key === 'Escape') { fecharModalAnexo(); fecharModalEvento(); fecharModalPedido(); fecharModalAssociarPedido(); fecharModalOcorrencia(); fecharModalOcorrencias(); fecharModalFotosOcorrencia(); }
             if (document.getElementById('modal-fotos-ocorrencia').classList.contains('aberta')) {
                 if (e.key === 'ArrowLeft') fotoOcorrenciaAnterior();
                 if (e.key === 'ArrowRight') fotoOcorrenciaSeguinte();
@@ -502,23 +607,22 @@
             dadosAtividadesPorId = {};
             data.forEach(a => { dadosAtividadesPorId[a.id] = a; });
 
-            const pedidosIds = [...new Set(data.filter(a => a.pedido_id).map(a => a.pedido_id))];
-            const mapaPedidos = {};
-            if (pedidosIds.length > 0) {
-                const { data: pedidosData, error: errPedidos } = await sbClient
-                    .from('pedidos')
-                    .select('id, requerente, empresa, servico, local_obra, numero_obra, data_hora_pedido, estado, importancia, data_conclusao')
-                    .in('id', pedidosIds);
-                if (errPedidos) {
-                    console.error("Erro ao carregar pedidos associados:", errPedidos);
-                } else {
-                    (pedidosData || []).forEach(p => { mapaPedidos[p.id] = p; });
-                }
+            const { data: pedidosData, error: errPedidos } = await sbClient
+                .from('pedidos')
+                .select('id, requerente, empresa, servico, local_obra, numero_obra, data_hora_pedido, estado, importancia, data_conclusao')
+                .order('id', { ascending: false });
+            mapaPedidosGlobal = {};
+            if (errPedidos) {
+                console.error("Erro ao carregar pedidos:", errPedidos);
+                todosPedidos = [];
+            } else {
+                todosPedidos = pedidosData || [];
+                todosPedidos.forEach(p => { mapaPedidosGlobal[p.id] = p; });
             }
             data.forEach(a => {
-                a.pedido_info = mapaPedidos[a.pedido_id]
-                    ?? mapaPedidos[String(a.pedido_id)]
-                    ?? mapaPedidos[Number(a.pedido_id)]
+                a.pedido_info = mapaPedidosGlobal[a.pedido_id]
+                    ?? mapaPedidosGlobal[String(a.pedido_id)]
+                    ?? mapaPedidosGlobal[Number(a.pedido_id)]
                     ?? null;
             });
 
@@ -548,11 +652,13 @@
                     { title: "Serviço", field: "servico", editor: "input" },
                     { title: "Pedido", field: "pedido_id", formatter: function (cell) {
                         const p = cell.getRow().getData().pedido_info;
-                        if (!cell.getValue() || !p) return "<span class='sem-anexo'>—</span>";
+                        if (!cell.getValue() || !p) return "<a class='link-anexo' href='javascript:void(0)'>🔗 Associar</a>";
                         return (p.data_conclusao ? "✅" : "⏳") + " <a class='link-anexo' href='javascript:void(0)'>#" + cell.getValue() + "</a>";
-                    }, width: 90, hozAlign: "center", cellClick: function (e, cell) {
-                        const p = cell.getRow().getData().pedido_info;
-                        if (p) abrirModalPedido(p);
+                    }, width: 100, hozAlign: "center", cellClick: function (e, cell) {
+                        const rowData = cell.getRow().getData();
+                        const p = rowData.pedido_info;
+                        if (p) abrirModalPedido(p, rowData.id);
+                        else abrirModalAssociarPedido(rowData);
                     }},
                     { title: "Ocorrências", field: "ocorrencias_info", formatter: function (cell) {
                         const ocorrencias = cell.getRow().getData().ocorrencias_info || [];
@@ -638,7 +744,9 @@
                         '<p><strong>Nº Obra:</strong> ' + (row.numero_obra || '—') + '</p>' +
                         '<p><strong>Serviço:</strong> ' + (row.servico || '—') + '</p>';
                     if (row.pedido_id && row.pedido_info) {
-                        htmlCorpo += '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalPedido(dadosAtividadesPorId[' + row.id + '].pedido_info)">📋 Pedido associado #' + row.pedido_id + ' ' + (row.pedido_info.data_conclusao ? '(✅ Concluído)' : '(⏳ Pendente)') + '</a></p>';
+                        htmlCorpo += '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalPedido(dadosAtividadesPorId[' + row.id + '].pedido_info, ' + row.id + ')">📋 Pedido associado #' + row.pedido_id + ' ' + (row.pedido_info.data_conclusao ? '(✅ Concluído)' : '(⏳ Pendente)') + '</a></p>';
+                    } else {
+                        htmlCorpo += '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalAssociarPedido(dadosAtividadesPorId[' + row.id + '])">🔗 Associar pedido a esta atividade</a></p>';
                     }
                     if (row.ocorrencias_info && row.ocorrencias_info.length > 0) {
                         htmlCorpo += '<p style="margin-top:12px;"><strong>🚨 Ocorrências associadas:</strong></p>';
