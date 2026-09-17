@@ -427,6 +427,11 @@
                 return [p.id, p.requerente, p.empresa, p.numero_obra, p.local_obra, p.servico].some(function (v) {
                     return String(v || '').toLowerCase().includes(termoBusca);
                 });
+            }).sort(function (a, b) {
+                const aPendente = a.data_conclusao ? 1 : 0;
+                const bPendente = b.data_conclusao ? 1 : 0;
+                if (aPendente !== bPendente) return aPendente - bPendente;
+                return b.id - a.id;
             }).slice(0, 100);
 
             if (filtrados.length === 0) {
