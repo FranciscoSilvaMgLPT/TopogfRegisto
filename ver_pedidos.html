@@ -45,6 +45,23 @@
         .fc-event { cursor: pointer; border: none; font-size: 12px; }
         .fc-event.evento-concluido { opacity: 0.5; text-decoration: line-through; }
 
+        .fc .fc-daygrid-day.has-data-agendada {
+            background: rgba(34, 197, 94, 0.18) !important;
+            box-shadow: inset 0 0 0 2px rgba(34, 197, 94, 0.65);
+        }
+        .fc .fc-daygrid-day.has-data-agendada .fc-daygrid-day-number {
+            color: #4ade80 !important;
+            font-weight: 800;
+        }
+        .fc .fc-daygrid-day.has-data-agendada::after {
+            content: "📅";
+            position: absolute;
+            right: 4px;
+            bottom: 2px;
+            font-size: 13px;
+            line-height: 1;
+        }
+
         .modal-evento-overlay {
             display: none;
             position: fixed;
@@ -160,7 +177,8 @@
     const CAMPOS_GUARDAVEIS = [
         "tecnico", "data_hora_pedido", "requerente", "empresa", "importancia",
         "via", "local_obra", "numero_obra", "concelho", "servico", "observacao",
-        "tipo_trabalho", "frequencia", "data_hora_limite", "estado", "data_conclusao"
+        "tipo_trabalho", "frequencia", "data_hora_limite", "estado", "data_conclusao",
+        "datas_agendadas"
     ];
 
     function guardarSnapshot(dados) {
@@ -260,6 +278,71 @@
         if (e.target.id === 'modal-ocorrencias') fecharModalOcorrencias();
     }
 
+    // ===== Datas agendadas =====
+    // Converte uma data para YYYY-MM-DD usando a data/hora local.
+    function chaveDataLocal(valor) {
+        if (!valor) return null;
+
+        const data = new Date(valor);
+        if (isNaN(data.getTime())) return null;
+
+        const ano = data.getFullYear();
+        const mes = String(data.getMonth() + 1).padStart(2, "0");
+        const dia = String(data.getDate()).padStart(2, "0");
+
+        return ano + "-" + mes + "-" + dia;
+    }
+
+    // Marca no calendário todos os dias que possuem pelo menos uma
+    // datas_agendadas.
+    function marcarDiasAgendados(dados) {
+        // Remover marcações antigas
+        document.querySelectorAll("#calendario-pedidos .fc-daygrid-day.has-data-agendada")
+            .forEach(el => el.classList.remove("has-data-agendada"));
+
+        const diasAgendados = new Set();
+
+        (dados || []).forEach(row => {
+            if (!row.datas_agendadas) return;
+
+            let datas = row.datas_agendadas;
+
+            // Aceita:
+            // 1) uma string: "2026-09-23 12:44:00"
+            // 2) um array de strings
+            // 3) JSON armazenado como string: ["2026-09-23 12:44:00", ...]
+            if (typeof datas === "string") {
+                const texto = datas.trim();
+
+                if (!texto) return;
+
+                try {
+                    const convertido = JSON.parse(texto);
+                    datas = Array.isArray(convertido) ? convertido : [datas];
+                } catch (e) {
+                    datas = [datas];
+                }
+            } else if (!Array.isArray(datas)) {
+                datas = [datas];
+            }
+
+            datas.forEach(dataAgendada => {
+                const chave = chaveDataLocal(dataAgendada);
+                if (chave) diasAgendados.add(chave);
+            });
+        });
+
+        diasAgendados.forEach(chave => {
+            const dia = document.querySelector(
+                '#calendario-pedidos .fc-daygrid-day[data-date="' + chave + '"]'
+            );
+
+            if (dia) {
+                dia.classList.add("has-data-agendada");
+            }
+        });
+    }
+
     function renderizarCalendario(dados) {
         const eventos = dados
             .filter(row => row.data_hora_pedido)
@@ -277,6 +360,9 @@
         if (calendario) {
             calendario.removeAllEventSources();
             calendario.addEventSource(eventos);
+
+            // Remarcar os dias depois de atualizar os eventos.
+            setTimeout(() => marcarDiasAgendados(dados), 0);
             return;
         }
 
@@ -295,6 +381,10 @@
                 right: 'dayGridMonth,timeGridWeek,listMonth'
             },
             datesSet: function(info) {
+                // Espera o FullCalendar terminar de desenhar os dias
+                // antes de aplicar o destaque das datas agendadas.
+                setTimeout(() => marcarDiasAgendados(dados), 0);
+
                 if (info.view.type.startsWith('list')) {
                     setTimeout(() => {
                         const tbody = document.querySelector('.fc-list-table tbody');
@@ -341,6 +431,9 @@
             }
         });
         calendario.render();
+
+        // Destacar imediatamente os dias com datas_agendadas.
+        setTimeout(() => marcarDiasAgendados(dados), 0);
     }
 
     function fecharModalEvento() {
