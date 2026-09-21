@@ -86,36 +86,46 @@
         .sem-registo { color: #64748b; }
         #calendario-pedidos { position: relative; }
         
-        /* Marcador de agendamento para a Vista Mensal */
+        /* Marcador 📌 grande e visível para o dia agendado */
         .marcador-agendado-overlay {
             position: absolute;
             transform: translate(-50%, -50%);
+            font-size: 22px;
+            line-height: 1;
             cursor: pointer;
             z-index: 10;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
-            background: rgba(15, 23, 42, 0.95);
-            color: #f1f5f9;
-            padding: 6px 10px;
-            border-radius: 6px;
-            border: 1px solid #475569;
-            text-align: center;
-            max-width: 160px;
+            filter: drop-shadow(0 0 3px rgba(0,0,0,1)) drop-shadow(0 0 6px rgba(56,189,248,0.6));
             pointer-events: auto;
-            line-height: 1.3;
-            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            transition: transform 0.2s ease;
+            animation: pulse-agendado 2s infinite;
         }
         .marcador-agendado-overlay:hover {
-            transform: translate(-50%, -50%) scale(1.05);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.9);
-            border-color: #38bdf8;
+            transform: translate(-50%, -50%) scale(1.3);
         }
+        @keyframes pulse-agendado {
+            0%, 100% { filter: drop-shadow(0 0 3px rgba(0,0,0,1)) drop-shadow(0 0 6px rgba(56,189,248,0.6)); }
+            50% { filter: drop-shadow(0 0 3px rgba(0,0,0,1)) drop-shadow(0 0 12px rgba(56,189,248,1)); }
+        }
+        
+        /* Badge de agendamento para vistas semanal e lista */
+        .badge-agendado {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            background: #0ea5e9;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 700;
+            margin-left: 6px;
+            box-shadow: 0 0 6px rgba(14,165,233,0.6);
+        }
+
         @media (max-width: 640px) {
             body { padding: 12px; }
             .toolbar-actions button, .toolbar-actions a { flex: 1 1 auto; text-align: center; margin-right: 0; }
-            .marcador-agendado-overlay {
-                max-width: 130px;
-                padding: 4px 6px;
-            }
+            .marcador-agendado-overlay { font-size: 18px; }
         }
     </style>
 </head>
@@ -278,19 +288,10 @@
 
             const elRect = elCorrespondente.getBoundingClientRect();
 
-            const horaFormatada = ("0" + dataAgendada.getHours()).slice(-2) + ":" + ("0" + dataAgendada.getMinutes()).slice(-2);
-            const local = row.local_obra ? (row.local_obra.length > 22 ? row.local_obra.substring(0, 22) + '...' : row.local_obra) : 'S/Local';
-            const serv = row.servico ? (row.servico.length > 25 ? row.servico.substring(0, 25) + '...' : row.servico) : 'S/Serviço';
-
-            const marcador = document.createElement('div');
+            const marcador = document.createElement('span');
             marcador.className = 'marcador-agendado-overlay';
-            marcador.innerHTML = `
-                <div style="font-weight:700; color:#38bdf8; font-size:1.1em; margin-bottom:2px;">⏰ ${horaFormatada}</div>
-                <div style="font-size:0.9em; font-weight:600; color:#e2e8f0; margin-bottom:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${row.local_obra || ''}">📍 ${local}</div>
-                <div style="font-size:0.8em; color:#94a3b8; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${row.servico || ''}">🔧 ${serv}</div>
-            `;
-            marcador.title = `Agendado: ${dataFormatter({getValue: () => row.data_agendada})}\nLocal: ${row.local_obra || 'N/A'}\nServiço: ${row.servico || 'N/A'}`;
-            
+            marcador.innerText = '📌';
+            marcador.title = '📌 Agendado: ' + dataFormatter({getValue: () => row.data_agendada});
             marcador.style.left = (celulaRect.left - containerRect.left + celulaRect.width / 2) + 'px';
             marcador.style.top = (elRect.top - containerRect.top + elRect.height / 2) + 'px';
             
@@ -403,7 +404,7 @@
                 info.el.setAttribute('data-event-id', String(info.event.id));
                 const row = info.event.extendedProps;
 
-                // 1. Formatar hora do evento (data_hora_pedido)
+                // Formatar hora do evento (data_hora_pedido)
                 const horaEl = info.el.querySelector(".fc-event-time");
                 if (horaEl) {
                     let texto = horaEl.textContent.trim();
@@ -415,45 +416,30 @@
                     horaEl.textContent = texto;
                 }
 
-                // 2. Injetar informações de agendamento APENAS no dia correspondente à data_agendada
+                // Marcar APENAS o dia da data_agendada com um badge 📌 visível
                 if (row.data_agendada) {
                     const dataAgendada = new Date(row.data_agendada);
                     if (!isNaN(dataAgendada.getTime())) {
-                        // info.event.start é a data de início do segmento do evento sendo renderizado neste dia
                         const segmentoStart = info.event.start;
                         
-                        // Compara apenas dia, mês e ano
                         const isMesmoDia = segmentoStart.getFullYear() === dataAgendada.getFullYear() &&
                                            segmentoStart.getMonth() === dataAgendada.getMonth() &&
                                            segmentoStart.getDate() === dataAgendada.getDate();
 
                         if (isMesmoDia) {
                             const horaFormatada = ("0" + dataAgendada.getHours()).slice(-2) + ":" + ("0" + dataAgendada.getMinutes()).slice(-2);
-                            const local = row.local_obra ? (row.local_obra.length > 25 ? row.local_obra.substring(0, 25) + '...' : row.local_obra) : 'S/Local';
-                            const serv = row.servico ? (row.servico.length > 30 ? row.servico.substring(0, 30) + '...' : row.servico) : 'S/Serviço';
-                            
-                            const infoHtml = `
-                                <div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.15); font-size: 0.85em; line-height: 1.3; text-align: left;">
-                                    <div style="color:#38bdf8; font-weight:700; display:flex; align-items:center; gap:4px;">
-                                        <span>⏰</span> ${horaFormatada}
-                                    </div>
-                                    <div style="color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:4px;" title="${row.local_obra || ''}">
-                                        <span>📍</span> ${local}
-                                    </div>
-                                    <div style="color:#94a3b8; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:4px;" title="${row.servico || ''}">
-                                        <span>🔧</span> ${serv}
-                                    </div>
-                                </div>
-                            `;
+                            const badgeHtml = '<span class="badge-agendado" title="Agendado: ' + dataFormatter({getValue: () => row.data_agendada}) + '">📌 ' + horaFormatada + '</span>';
 
                             const view = info.view.type;
                             if (view === 'timeGridWeek') {
-                                const main = info.el.querySelector('.fc-event-main') || info.el;
-                                main.insertAdjacentHTML('beforeend', infoHtml);
+                                const titleEl = info.el.querySelector('.fc-event-title');
+                                if (titleEl) {
+                                    titleEl.insertAdjacentHTML('afterend', badgeHtml);
+                                }
                             } else if (view === 'listMonth') {
                                 const titleEl = info.el.querySelector('.fc-list-event-title');
                                 if (titleEl) {
-                                    titleEl.insertAdjacentHTML('beforeend', infoHtml);
+                                    titleEl.insertAdjacentHTML('beforeend', badgeHtml);
                                 }
                             }
                         }
