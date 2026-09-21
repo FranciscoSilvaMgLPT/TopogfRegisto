@@ -400,52 +400,59 @@
                 }
                 requestAnimationFrame(() => atualizarMarcadoresAgendados(ultimoDadosCalendario));
             },
-            eventDidMount: function(info) {
-                info.el.setAttribute('data-event-id', String(info.event.id));
-                const row = info.event.extendedProps;
+           eventDidMount: function(info) {
+    info.el.setAttribute('data-event-id', String(info.event.id));
+    const row = info.event.extendedProps;
 
-                // Formatar hora do evento (data_hora_pedido)
-                const horaEl = info.el.querySelector(".fc-event-time");
-                if (horaEl) {
-                    let texto = horaEl.textContent.trim();
-                    if (texto.endsWith(":00")) {
-                        texto = texto.slice(0, -3) + "h";
-                    } else {
-                        texto = texto.replace(":", "h");
+    // Formatar hora do evento (data_hora_pedido)
+    const horaEl = info.el.querySelector(".fc-event-time");
+    if (horaEl) {
+        let texto = horaEl.textContent.trim();
+        if (texto.endsWith(":00")) {
+            texto = texto.slice(0, -3) + "h";
+        } else {
+            texto = texto.replace(":", "h");
+        }
+        horaEl.textContent = texto;
+    }
+
+    // Marcar APENAS o dia exato da data_agendada com um badge 📌
+    if (row.data_agendada) {
+        const dataAgendada = new Date(row.data_agendada);
+        if (!isNaN(dataAgendada.getTime())) {
+            // Construir a data agendada no formato "YYYY-MM-DD" (fuso local, consistente)
+            const diaAgendado = dataAgendada.getFullYear() + '-' +
+                String(dataAgendada.getMonth() + 1).padStart(2, '0') + '-' +
+                String(dataAgendada.getDate()).padStart(2, '0');
+
+            // Obter o dia do segmento que está a ser renderizado a partir do DOM
+            // O FullCalendar coloca sempre um atributo data-date no elemento pai do evento
+            const segmentoEl = info.el.closest('[data-date]');
+            if (!segmentoEl) return;
+            
+            const diaSegmento = segmentoEl.getAttribute('data-date'); // formato "YYYY-MM-DD"
+
+            // Só injeta o badge se o dia do segmento for EXATAMENTE o dia agendado
+            if (diaSegmento === diaAgendado) {
+                const horaFormatada = ("0" + dataAgendada.getHours()).slice(-2) + ":" + ("0" + dataAgendada.getMinutes()).slice(-2);
+                const badgeHtml = '<span class="badge-agendado" title="Agendado: ' + dataFormatter({getValue: () => row.data_agendada}) + '">📌 ' + horaFormatada + '</span>';
+
+                const view = info.view.type;
+                if (view === 'timeGridWeek') {
+                    const titleEl = info.el.querySelector('.fc-event-title');
+                    if (titleEl) {
+                        titleEl.insertAdjacentHTML('afterend', badgeHtml);
                     }
-                    horaEl.textContent = texto;
-                }
-
-                // Marcar APENAS o dia da data_agendada com um badge 📌 visível
-                if (row.data_agendada) {
-                    const dataAgendada = new Date(row.data_agendada);
-                    if (!isNaN(dataAgendada.getTime())) {
-                        const segmentoStart = info.event.start;
-                        
-                        const isMesmoDia = segmentoStart.getFullYear() === dataAgendada.getFullYear() &&
-                                           segmentoStart.getMonth() === dataAgendada.getMonth() &&
-                                           segmentoStart.getDate() === dataAgendada.getDate();
-
-                        if (isMesmoDia) {
-                            const horaFormatada = ("0" + dataAgendada.getHours()).slice(-2) + ":" + ("0" + dataAgendada.getMinutes()).slice(-2);
-                            const badgeHtml = '<span class="badge-agendado" title="Agendado: ' + dataFormatter({getValue: () => row.data_agendada}) + '">📌 ' + horaFormatada + '</span>';
-
-                            const view = info.view.type;
-                            if (view === 'timeGridWeek') {
-                                const titleEl = info.el.querySelector('.fc-event-title');
-                                if (titleEl) {
-                                    titleEl.insertAdjacentHTML('afterend', badgeHtml);
-                                }
-                            } else if (view === 'listMonth') {
-                                const titleEl = info.el.querySelector('.fc-list-event-title');
-                                if (titleEl) {
-                                    titleEl.insertAdjacentHTML('beforeend', badgeHtml);
-                                }
-                            }
-                        }
+                } else if (view === 'listMonth') {
+                    const titleEl = info.el.querySelector('.fc-list-event-title');
+                    if (titleEl) {
+                        titleEl.insertAdjacentHTML('beforeend', badgeHtml);
                     }
                 }
-            },
+            }
+        }
+    }
+},
             height: 'auto',
             events: eventos,
             eventClick: function(info) {
