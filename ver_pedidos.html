@@ -259,7 +259,6 @@
                 String(dataAgendada.getMonth() + 1).padStart(2, '0') + '-' +
                 String(dataAgendada.getDate()).padStart(2, '0');
 
-            // O seletor .fc-daygrid-day é específico da vista mensal
             const celulaDia = container.querySelector('.fc-daygrid-day[data-date="' + chaveDia + '"]');
             if (!celulaDia) return; 
 
@@ -416,36 +415,46 @@
                     horaEl.textContent = texto;
                 }
 
-                // 2. Injetar informações de agendamento (data_agendada) nas vistas Semanal e Lista
-                const view = info.view.type;
-                if ((view === 'timeGridWeek' || view === 'listMonth') && row.data_agendada) {
+                // 2. Injetar informações de agendamento APENAS no dia correspondente à data_agendada
+                if (row.data_agendada) {
                     const dataAgendada = new Date(row.data_agendada);
                     if (!isNaN(dataAgendada.getTime())) {
-                        const horaFormatada = ("0" + dataAgendada.getHours()).slice(-2) + ":" + ("0" + dataAgendada.getMinutes()).slice(-2);
-                        const local = row.local_obra ? (row.local_obra.length > 25 ? row.local_obra.substring(0, 25) + '...' : row.local_obra) : 'S/Local';
-                        const serv = row.servico ? (row.servico.length > 30 ? row.servico.substring(0, 30) + '...' : row.servico) : 'S/Serviço';
+                        // info.event.start é a data de início do segmento do evento sendo renderizado neste dia
+                        const segmentoStart = info.event.start;
                         
-                        const infoHtml = `
-                            <div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.15); font-size: 0.85em; line-height: 1.3; text-align: left;">
-                                <div style="color:#38bdf8; font-weight:700; display:flex; align-items:center; gap:4px;">
-                                    <span>⏰</span> ${horaFormatada}
-                                </div>
-                                <div style="color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:4px;" title="${row.local_obra || ''}">
-                                    <span>📍</span> ${local}
-                                </div>
-                                <div style="color:#94a3b8; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:4px;" title="${row.servico || ''}">
-                                    <span>🔧</span> ${serv}
-                                </div>
-                            </div>
-                        `;
+                        // Compara apenas dia, mês e ano
+                        const isMesmoDia = segmentoStart.getFullYear() === dataAgendada.getFullYear() &&
+                                           segmentoStart.getMonth() === dataAgendada.getMonth() &&
+                                           segmentoStart.getDate() === dataAgendada.getDate();
 
-                        if (view === 'timeGridWeek') {
-                            const main = info.el.querySelector('.fc-event-main') || info.el;
-                            main.insertAdjacentHTML('beforeend', infoHtml);
-                        } else if (view === 'listMonth') {
-                            const titleEl = info.el.querySelector('.fc-list-event-title');
-                            if (titleEl) {
-                                titleEl.insertAdjacentHTML('beforeend', infoHtml);
+                        if (isMesmoDia) {
+                            const horaFormatada = ("0" + dataAgendada.getHours()).slice(-2) + ":" + ("0" + dataAgendada.getMinutes()).slice(-2);
+                            const local = row.local_obra ? (row.local_obra.length > 25 ? row.local_obra.substring(0, 25) + '...' : row.local_obra) : 'S/Local';
+                            const serv = row.servico ? (row.servico.length > 30 ? row.servico.substring(0, 30) + '...' : row.servico) : 'S/Serviço';
+                            
+                            const infoHtml = `
+                                <div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.15); font-size: 0.85em; line-height: 1.3; text-align: left;">
+                                    <div style="color:#38bdf8; font-weight:700; display:flex; align-items:center; gap:4px;">
+                                        <span>⏰</span> ${horaFormatada}
+                                    </div>
+                                    <div style="color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:4px;" title="${row.local_obra || ''}">
+                                        <span>📍</span> ${local}
+                                    </div>
+                                    <div style="color:#94a3b8; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:4px;" title="${row.servico || ''}">
+                                        <span>🔧</span> ${serv}
+                                    </div>
+                                </div>
+                            `;
+
+                            const view = info.view.type;
+                            if (view === 'timeGridWeek') {
+                                const main = info.el.querySelector('.fc-event-main') || info.el;
+                                main.insertAdjacentHTML('beforeend', infoHtml);
+                            } else if (view === 'listMonth') {
+                                const titleEl = info.el.querySelector('.fc-list-event-title');
+                                if (titleEl) {
+                                    titleEl.insertAdjacentHTML('beforeend', infoHtml);
+                                }
                             }
                         }
                     }
