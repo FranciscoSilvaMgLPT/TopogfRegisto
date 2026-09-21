@@ -84,6 +84,16 @@
         }
         .link-anexo { color: #60a5fa; text-decoration: none; }
         .sem-registo { color: #64748b; }
+        #calendario-pedidos { position: relative; }
+        .marcador-agendado-overlay {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            font-size: 13px;
+            line-height: 1;
+            cursor: pointer;
+            z-index: 5;
+            filter: drop-shadow(0 0 1px rgba(0,0,0,0.9));
+        }
 
         /* Ajuste para dispositivos móveis */
         @media (max-width: 640px) {
@@ -205,6 +215,7 @@
     };
 
     let calendario = null;
+    let ultimoDadosCalendario = [];
 
     function corPorImportancia(row) {
         if (row.estado === "Concluido") return "#64748b";
@@ -213,6 +224,65 @@
         if (row.importancia === "Baixa") return "#22c55e";
         return "#0ea5e9";
     }
+
+    // ===== Marcador 📌 na linha do pedido, alinhado com o dia da "Data Agendada" =====
+    function limparMarcadoresAgendados() {
+        document.querySelectorAll('#calendario-pedidos .marcador-agendado-overlay').forEach(el => el.remove());
+    }
+
+    function atualizarMarcadoresAgendados(dados) {
+        const container = document.getElementById('calendario-pedidos');
+        limparMarcadoresAgendados();
+        if (!container || !dados) return;
+        const containerRect = container.getBoundingClientRect();
+
+        dados.forEach(row => {
+            if (!row.data_agendada) return;
+
+            const dataAgendada = new Date(row.data_agendada);
+            const chaveDia = dataAgendada.getFullYear() + '-' +
+                String(dataAgendada.getMonth() + 1).padStart(2, '0') + '-' +
+                String(dataAgendada.getDate()).padStart(2, '0');
+
+            const celulaDia = container.querySelector('.fc-daygrid-day[data-date="' + chaveDia + '"]');
+            if (!celulaDia) return; // dia fora da vista atual (outro mês/semana)
+
+            const eventoEls = container.querySelectorAll('[data-event-id="' + row.id + '"]');
+            if (eventoEls.length === 0) return;
+
+            const celulaRect = celulaDia.getBoundingClientRect();
+
+            // Encontra o segmento do evento que está na mesma linha (semana) do dia agendado
+            let elCorrespondente = null;
+            eventoEls.forEach(el => {
+                const elRect = el.getBoundingClientRect();
+                if (elRect.top < celulaRect.bottom && elRect.bottom > celulaRect.top) {
+                    elCorrespondente = el;
+                }
+            });
+            if (!elCorrespondente) return;
+
+            const elRect = elCorrespondente.getBoundingClientRect();
+
+            const marcador = document.createElement('span');
+            marcador.className = 'marcador-agendado-overlay';
+            marcador.innerText = '📌';
+            marcador.title = 'Agendado: ' + dataFormatter({getValue: () => row.data_agendada});
+            marcador.style.left = (celulaRect.left - containerRect.left + celulaRect.width / 2) + 'px';
+            marcador.style.top = (elRect.top - containerRect.top + elRect.height / 2) + 'px';
+            marcador.addEventListener('click', function (ev) {
+                ev.stopPropagation();
+                elCorrespondente.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+            });
+            container.appendChild(marcador);
+        });
+    }
+
+    let redimensionamentoTimeout = null;
+    window.addEventListener('resize', function () {
+        clearTimeout(redimensionamentoTimeout);
+        redimensionamentoTimeout = setTimeout(() => atualizarMarcadoresAgendados(ultimoDadosCalendario), 150);
+    });
 
     // ===== Modals de atividades e ocorrências =====
     function abrirModalAtividades(pedidoId) {
@@ -261,11 +331,12 @@
     }
 
     function renderizarCalendario(dados) {
+        ultimoDadosCalendario = dados;
         const eventos = dados
             .filter(row => row.data_hora_pedido)
             .map(row => ({
                 id: row.id,
-                title: (row.data_agendada ? '📌 ' : '') + (row.tecnico || 'Sem técnico') + (row.local_obra ? ' — ' + row.local_obra : ''),
+                title: (row.tecnico || 'Sem técnico') + (row.local_obra ? ' — ' + row.local_obra : ''),
                 start: row.data_hora_pedido,
                 end: row.data_hora_limite || row.data_hora_pedido,
                 backgroundColor: corPorImportancia(row),
@@ -277,6 +348,7 @@
         if (calendario) {
             calendario.removeAllEventSources();
             calendario.addEventSource(eventos);
+            requestAnimationFrame(() => atualizarMarcadoresAgendados(dados));
             return;
         }
 
@@ -302,8 +374,11 @@
                         Array.from(tbody.children).reverse().forEach(el => tbody.appendChild(el));
                     }, 0);
                 }
+                requestAnimationFrame(() => atualizarMarcadoresAgendados(ultimoDadosCalendario));
             },
             eventDidMount: function(info) {
+                info.el.setAttribute('data-event-id', String(info.event.id));
+
                 const hora = info.el.querySelector(".fc-event-time");
                 if (!hora) return;
 
@@ -342,6 +417,7 @@
             }
         });
         calendario.render();
+        requestAnimationFrame(() => atualizarMarcadoresAgendados(dados));
     }
 
     function fecharModalEvento() {
