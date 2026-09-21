@@ -163,6 +163,16 @@
           <input type="text" id="dataHoraPedidoDisplay" placeholder="Selecionar data e hora" readonly required autocomplete="off">
           <input type="hidden" id="dataHoraPedido" name="data_hora_pedido">
         </div>
+        <div>
+          <label>Data Limite</label>
+          <input type="text" id="dataHoraLimiteDisplay" placeholder="Selecionar data e hora" readonly autocomplete="off">
+          <input type="hidden" id="dataHoraLimite" name="data_hora_limite">
+        </div>
+                       <div>
+          <label>Data Agendada</label>
+          <input type="text" id="dataAgendadaDisplay" placeholder="Selecionar data e hora" readonly autocomplete="off">
+          <input type="hidden" id="dataAgendada" name="data_agendada">
+        </div>
         <div><label>Requerente *</label><input type="text" name="requerente" required></div>
         <div><label>Empresa *</label>
           <select name="empresa" required>
@@ -230,11 +240,6 @@
             <option value="Mensal">Mensal</option>
             <option value="Trimestral">Trimestral</option>
           </select>
-        </div>
-        <div>
-          <label>Data Limite</label>
-          <input type="text" id="dataHoraLimiteDisplay" placeholder="Selecionar data e hora" readonly autocomplete="off">
-          <input type="hidden" id="dataHoraLimite" name="data_hora_limite">
         </div>
       </div>
       <button type="submit" id="btnEnviar">Enviar Pedido</button>
@@ -428,10 +433,13 @@
 
     const dataHoraPedidoDisplay = document.getElementById('dataHoraPedidoDisplay');
     const dataHoraPedido = document.getElementById('dataHoraPedido');
+    const dataAgendadaDisplay = document.getElementById('dataAgendadaDisplay');
+    const dataAgendada = document.getElementById('dataAgendada');
     const dataHoraLimiteDisplay = document.getElementById('dataHoraLimiteDisplay');
     const dataHoraLimite = document.getElementById('dataHoraLimite');
 
     dataHoraPedidoDisplay.addEventListener('click', () => openPicker(dataHoraPedido, dataHoraPedidoDisplay));
+    dataAgendadaDisplay.addEventListener('click', () => openPicker(dataAgendada, dataAgendadaDisplay));
     dataHoraLimiteDisplay.addEventListener('click', () => openPicker(dataHoraLimite, dataHoraLimiteDisplay));
 
     // Mapas para preenchimento automático cruzado entre Local/Obra e Nº Obra
@@ -567,6 +575,10 @@
         delete dbData.data_conclusao;
       }
 
+      if (!dbData.data_agendada || dbData.data_agendada.trim() === "") {
+        delete dbData.data_agendada;
+      }
+
       if (!dbData.data_hora_limite || dbData.data_hora_limite.trim() === "") {
         delete dbData.data_hora_limite;
       }
@@ -586,6 +598,8 @@
       form.reset();
       campoOutroDiv.style.display = "none";
       definirDataPedidoAtual();
+      dataAgendadaDisplay.value = "";
+      dataAgendada.value = "";
       dataHoraLimiteDisplay.value = "";
       dataHoraLimite.value = "";
       
