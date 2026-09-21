@@ -85,17 +85,6 @@
         .link-anexo { color: #60a5fa; text-decoration: none; }
         .sem-registo { color: #64748b; }
 
-        .fc-daygrid-day-frame { position: relative; }
-        .marcador-agendado {
-            position: absolute;
-            top: 3px;
-            left: 4px;
-            font-size: 13px;
-            line-height: 1;
-            cursor: pointer;
-            z-index: 3;
-        }
-
         /* Ajuste para dispositivos móveis */
         @media (max-width: 640px) {
             body { padding: 12px; }
@@ -153,15 +142,6 @@
     </div>
 </div>
 
-<!-- Modal de pedidos agendados do dia -->
-<div id="modal-agendados" class="modal-evento-overlay" onclick="fecharModalAgendadosSeBackdrop(event)">
-    <div class="modal-evento-conteudo" onclick="event.stopPropagation()">
-        <button type="button" class="modal-evento-fechar" onclick="fecharModalAgendados()" aria-label="Fechar">✕</button>
-        <h3 id="modal-agendados-titulo" style="margin-top:0;"></h3>
-        <div id="modal-agendados-corpo"></div>
-    </div>
-</div>
-
 <script>
     const supabaseUrl = 'https://dunondjiqawovisnwavg.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
@@ -171,7 +151,6 @@
     let mostrandoConcluidos = false; 
     let mapaAtividadesPorPedido = {};
     let mapaOcorrenciasPorPedido = {};
-    let diasComAgendamento = {};
 
     // ===== Otimização: rastrear apenas as linhas realmente alteradas =====
     // idsAlterados é só um "hint" rápido; a deteção real e fiável é feita
@@ -281,55 +260,12 @@
         if (e.target.id === 'modal-ocorrencias') fecharModalOcorrencias();
     }
 
-    // ===== Marcador de dias com "Data Agendada" =====
-    function chaveDataLocal(date) {
-        return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
-    }
-
-    function calcularDiasComAgendamento(dados) {
-        diasComAgendamento = {};
-        dados.forEach(row => {
-            if (!row.data_agendada) return;
-            const data = new Date(row.data_agendada);
-            const chave = chaveDataLocal(data);
-            if (!diasComAgendamento[chave]) diasComAgendamento[chave] = [];
-            diasComAgendamento[chave].push(row);
-        });
-    }
-
-    function abrirModalAgendados(chaveData) {
-        const pedidosDoDia = diasComAgendamento[chaveData] || [];
-        const [ano, mes, dia] = chaveData.split('-');
-        document.getElementById('modal-agendados-titulo').innerText = '📌 Agendados — ' + dia + '/' + mes + '/' + ano;
-        document.getElementById('modal-agendados-corpo').innerHTML = pedidosDoDia.map(function (p) {
-            const hora = dataFormatter({getValue: () => p.data_agendada}).split(' ')[1] || '';
-            return '<p style="margin-left:6px; border-left:3px solid #f59e0b; padding-left:8px; margin-bottom:8px;">' +
-                   '<strong>' + hora + '</strong> — ' + (p.tecnico || 'Sem técnico') +
-                   (p.local_obra ? ' — ' + p.local_obra : '') +
-                   (p.servico ? '<br><span style="color:#cbd5e1; font-size:13px;">' + p.servico + '</span>' : '') +
-                   '</p>';
-        }).join('') || '<p class="sem-registo">Sem pedidos agendados.</p>';
-        document.getElementById('modal-agendados').classList.add('aberta');
-        document.body.style.overflow = 'hidden';
-    }
-
-    function fecharModalAgendados() {
-        document.getElementById('modal-agendados').classList.remove('aberta');
-        document.body.style.overflow = '';
-    }
-
-    function fecharModalAgendadosSeBackdrop(e) {
-        if (e.target.id === 'modal-agendados') fecharModalAgendados();
-    }
-
     function renderizarCalendario(dados) {
-        calcularDiasComAgendamento(dados);
-
         const eventos = dados
             .filter(row => row.data_hora_pedido)
             .map(row => ({
                 id: row.id,
-                title: (row.tecnico || 'Sem técnico') + (row.local_obra ? ' — ' + row.local_obra : ''),
+                title: (row.data_agendada ? '📌 ' : '') + (row.tecnico || 'Sem técnico') + (row.local_obra ? ' — ' + row.local_obra : ''),
                 start: row.data_hora_pedido,
                 end: row.data_hora_limite || row.data_hora_pedido,
                 backgroundColor: corPorImportancia(row),
@@ -341,7 +277,6 @@
         if (calendario) {
             calendario.removeAllEventSources();
             calendario.addEventSource(eventos);
-            setTimeout(atualizarMarcadoresAgendados, 0);
             return;
         }
 
@@ -367,7 +302,6 @@
                         Array.from(tbody.children).reverse().forEach(el => tbody.appendChild(el));
                     }, 0);
                 }
-                setTimeout(atualizarMarcadoresAgendados, 0);
             },
             eventDidMount: function(info) {
                 const hora = info.el.querySelector(".fc-event-time");
@@ -408,27 +342,6 @@
             }
         });
         calendario.render();
-        setTimeout(atualizarMarcadoresAgendados, 0);
-    }
-
-    function atualizarMarcadoresAgendados() {
-        document.querySelectorAll('#calendario-pedidos .fc-daygrid-day').forEach(function (el) {
-            const chave = el.getAttribute('data-date');
-            const antigo = el.querySelector('.marcador-agendado');
-            if (antigo) antigo.remove();
-            if (chave && diasComAgendamento[chave] && diasComAgendamento[chave].length > 0) {
-                const frame = el.querySelector('.fc-daygrid-day-frame') || el;
-                const marcador = document.createElement('span');
-                marcador.className = 'marcador-agendado';
-                marcador.innerText = '📌';
-                marcador.title = diasComAgendamento[chave].length + ' pedido(s) agendado(s) neste dia';
-                marcador.onclick = function (ev) {
-                    ev.stopPropagation();
-                    abrirModalAgendados(chave);
-                };
-                frame.appendChild(marcador);
-            }
-        });
     }
 
     function fecharModalEvento() {
@@ -445,7 +358,6 @@
             fecharModalEvento();
             fecharModalAtividades();
             fecharModalOcorrencias();
-            fecharModalAgendados();
         }
     });
 
