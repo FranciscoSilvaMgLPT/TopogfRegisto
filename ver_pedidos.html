@@ -160,7 +160,7 @@
     const CAMPOS_GUARDAVEIS = [
         "tecnico", "data_hora_pedido", "requerente", "empresa", "importancia",
         "via", "local_obra", "numero_obra", "concelho", "servico", "observacao",
-        "tipo_trabalho", "frequencia", "data_hora_limite", "estado", "data_conclusao"
+        "tipo_trabalho", "frequencia", "data_agendada", "data_hora_limite", "estado", "data_conclusao"
     ];
 
     function guardarSnapshot(dados) {
@@ -324,6 +324,7 @@
                     '<p><strong>Estado:</strong> ' + (row.estado || '—') + '</p>' +
                     '<p><strong>Importância:</strong> ' + (row.importancia || '—') + '</p>' +
                     '<p><strong>Data Pedido:</strong> ' + dataFormatter({getValue: () => row.data_hora_pedido}) + '</p>' +
+                    '<p><strong>Data Agendada:</strong> ' + (row.data_agendada ? dataFormatter({getValue: () => row.data_agendada}) : '—') + '</p>' +
                     '<p><strong>Limite:</strong> ' + dataFormatter({getValue: () => row.data_hora_limite}) + '</p>' +
                     '<p><strong>Requerente:</strong> ' + (row.requerente || '—') + '</p>' +
                     '<p><strong>Empresa:</strong> ' + (row.empresa || '—') + '</p>' +
@@ -459,6 +460,7 @@
                 {title: "Obs", field: "observacao", minWidth: 180, editor: "input"},
                 {title: "Tipo", field: "tipo_trabalho", minWidth: 160, editor: "list", editorParams: {values: ["Lev. Topográfico", "Monitorização", "Implantação", "Gabinete / Estudos"]}},
                 {title: "Freq", field: "frequencia", minWidth: 120, editor: "list", editorParams: {values: ["Única", "Contínua", "Diária", "Semanal", "Mensal", "Trimestral"]}},
+                {title: "Data Agendada", field: "data_agendada", minWidth: 150, editor: dateEditor, formatter: dataFormatter},
                 {title: "Limite", field: "data_hora_limite", minWidth: 150, editor: dateEditor, formatter: dataFormatter},
                 {title: "Estado", field: "estado", minWidth: 120, editor: "list", editorParams: {values: ["Pendente", "Concluido"]}},
                 {title: "Data Conclusão", field: "data_conclusao", minWidth: 150, editor: dateEditor, formatter: dataFormatter},
@@ -555,8 +557,8 @@
                     tecnico: item.tecnico, data_hora_pedido: item.data_hora_pedido, requerente: item.requerente,
                     empresa: item.empresa, importancia: item.importancia, via: item.via, local_obra: item.local_obra,
                     numero_obra: item.numero_obra, concelho: item.concelho, servico: item.servico, observacao: item.observacao,
-                    tipo_trabalho: item.tipo_trabalho, frequencia: item.frequencia, data_hora_limite: item.data_hora_limite,
-                    estado: item.estado, data_conclusao: item.data_conclusao
+                    tipo_trabalho: item.tipo_trabalho, frequencia: item.frequencia, data_agendada: item.data_agendada,
+                    data_hora_limite: item.data_hora_limite, estado: item.estado, data_conclusao: item.data_conclusao
                 }).eq('id', item.id)
             ));
 
