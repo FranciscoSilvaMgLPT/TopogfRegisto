@@ -85,20 +85,37 @@
         .link-anexo { color: #60a5fa; text-decoration: none; }
         .sem-registo { color: #64748b; }
         #calendario-pedidos { position: relative; }
+        
+        /* Marcador de agendamento detalhado e responsivo */
         .marcador-agendado-overlay {
             position: absolute;
             transform: translate(-50%, -50%);
-            font-size: 13px;
-            line-height: 1;
             cursor: pointer;
-            z-index: 5;
-            filter: drop-shadow(0 0 1px rgba(0,0,0,0.9));
+            z-index: 10;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+            background: rgba(15, 23, 42, 0.95);
+            color: #f1f5f9;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #475569;
+            text-align: center;
+            max-width: 160px;
+            pointer-events: auto;
+            line-height: 1.3;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         }
-
-        /* Ajuste para dispositivos móveis */
+        .marcador-agendado-overlay:hover {
+            transform: translate(-50%, -50%) scale(1.05);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.9);
+            border-color: #38bdf8;
+        }
         @media (max-width: 640px) {
             body { padding: 12px; }
             .toolbar-actions button, .toolbar-actions a { flex: 1 1 auto; text-align: center; margin-right: 0; }
+            .marcador-agendado-overlay {
+                max-width: 120px;
+                padding: 4px 6px;
+            }
         }
     </style>
 </head>
@@ -162,9 +179,6 @@
     let mapaAtividadesPorPedido = {};
     let mapaOcorrenciasPorPedido = {};
 
-    // ===== Otimização: rastrear apenas as linhas realmente alteradas =====
-    // idsAlterados é só um "hint" rápido; a deteção real e fiável é feita
-    // comparando o estado atual da tabela com dadosOriginais (snapshot).
     let idsAlterados = new Set();
     let dadosOriginais = {};
     const CAMPOS_GUARDAVEIS = [
@@ -184,7 +198,7 @@
 
     function linhaFoiAlterada(item) {
         const original = dadosOriginais[item.id];
-        if (!original) return true; // linha nova, sem snapshot -> guarda por segurança
+        if (!original) return true;
         return CAMPOS_GUARDAVEIS.some(campo => (item[campo] ?? null) !== (original[campo] ?? null));
     }
 
@@ -225,7 +239,6 @@
         return "#0ea5e9";
     }
 
-    // ===== Marcador 📌 na linha do pedido, alinhado com o dia da "Data Agendada" =====
     function limparMarcadoresAgendados() {
         document.querySelectorAll('#calendario-pedidos .marcador-agendado-overlay').forEach(el => el.remove());
     }
@@ -240,19 +253,20 @@
             if (!row.data_agendada) return;
 
             const dataAgendada = new Date(row.data_agendada);
+            if (isNaN(dataAgendada.getTime())) return; // Proteção contra datas inválidas
+
             const chaveDia = dataAgendada.getFullYear() + '-' +
                 String(dataAgendada.getMonth() + 1).padStart(2, '0') + '-' +
                 String(dataAgendada.getDate()).padStart(2, '0');
 
             const celulaDia = container.querySelector('.fc-daygrid-day[data-date="' + chaveDia + '"]');
-            if (!celulaDia) return; // dia fora da vista atual (outro mês/semana)
+            if (!celulaDia) return; 
 
             const eventoEls = container.querySelectorAll('[data-event-id="' + row.id + '"]');
             if (eventoEls.length === 0) return;
 
             const celulaRect = celulaDia.getBoundingClientRect();
 
-            // Encontra o segmento do evento que está na mesma linha (semana) do dia agendado
             let elCorrespondente = null;
             eventoEls.forEach(el => {
                 const elRect = el.getBoundingClientRect();
@@ -264,12 +278,23 @@
 
             const elRect = elCorrespondente.getBoundingClientRect();
 
-            const marcador = document.createElement('span');
+            // Formatar hora e truncar textos longos para manter o design compacto e legível
+            const horaFormatada = ("0" + dataAgendada.getHours()).slice(-2) + ":" + ("0" + dataAgendada.getMinutes()).slice(-2);
+            const local = row.local_obra ? (row.local_obra.length > 22 ? row.local_obra.substring(0, 22) + '...' : row.local_obra) : 'S/Local';
+            const serv = row.servico ? (row.servico.length > 25 ? row.servico.substring(0, 25) + '...' : row.servico) : 'S/Serviço';
+
+            const marcador = document.createElement('div');
             marcador.className = 'marcador-agendado-overlay';
-            marcador.innerText = '>>>>📌📅📌<<<<';
-            marcador.title = 'Agendado: ' + dataFormatter({getValue: () => row.data_agendada});
+            marcador.innerHTML = `
+                <div style="font-weight:700; color:#38bdf8; font-size:1.1em; margin-bottom:2px;">${horaFormatada}</div>
+                <div style="font-size:0.9em; font-weight:600; color:#e2e8f0; margin-bottom:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${row.local_obra || ''}">${local}</div>
+                <div style="font-size:0.8em; color:#94a3b8; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${row.servico || ''}">${serv}</div>
+            `;
+            marcador.title = `Agendado: ${dataFormatter({getValue: () => row.data_agendada})}\nLocal: ${row.local_obra || 'N/A'}\nServiço: ${row.servico || 'N/A'}`;
+            
             marcador.style.left = (celulaRect.left - containerRect.left + celulaRect.width / 2) + 'px';
             marcador.style.top = (elRect.top - containerRect.top + elRect.height / 2) + 'px';
+            
             marcador.addEventListener('click', function (ev) {
                 ev.stopPropagation();
                 elCorrespondente.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -284,7 +309,6 @@
         redimensionamentoTimeout = setTimeout(() => atualizarMarcadoresAgendados(ultimoDadosCalendario), 150);
     });
 
-    // ===== Modals de atividades e ocorrências =====
     function abrirModalAtividades(pedidoId) {
         const atividades = mapaAtividadesPorPedido[pedidoId] || [];
         document.getElementById('modal-atividades-titulo').innerText = '📊 Atividades — Pedido #' + pedidoId;
@@ -444,7 +468,6 @@
 
         const { data } = await sbClient.from('pedidos').select('*').order('id', { ascending: false });
 
-        // ===== Carregar atividades associadas aos pedidos =====
         const pedidosIds = data.map(p => p.id);
         mapaAtividadesPorPedido = {};
         mapaOcorrenciasPorPedido = {};
@@ -463,7 +486,6 @@
                     mapaAtividadesPorPedido[a.pedido_id].push(a);
                 });
 
-                // Carregar ocorrências das atividades desses pedidos
                 const atividadesIds = atividadesData.map(a => a.id);
                 if (atividadesIds.length > 0) {
                     const { data: ocorrenciasData, error: errOcorrencias } = await sbClient
@@ -474,7 +496,6 @@
                     if (errOcorrencias) {
                         console.error("Erro ao carregar ocorrências:", errOcorrencias);
                     } else {
-                        // Mapear atividade_id -> pedido_id
                         const atividadeParaPedido = {};
                         atividadesData.forEach(a => { atividadeParaPedido[a.id] = a.pedido_id; });
 
@@ -490,7 +511,6 @@
             }
         }
 
-        // Adicionar contadores aos dados
         data.forEach(p => {
             p.atividades_count = (mapaAtividadesPorPedido[p.id] || []).length;
             p.ocorrencias_count = (mapaOcorrenciasPorPedido[p.id] || []).length;
@@ -505,7 +525,6 @@
             paginationSize: 50,
             paginationSizeSelector: [15, 50, 100],
             cellEdited: function(cell) {
-                // Marca a linha como alterada para a otimização do guardar
                 idsAlterados.add(cell.getRow().getData().id);
                 aplicarFiltros();
                 renderizarCalendario(table.getData());
@@ -604,17 +623,10 @@
         aplicarFiltros();
     }
 
-    // ===== Guardar Alterações — otimizado =====
-    // 1) Deteta as linhas alteradas comparando com o snapshot original
-    //    (mais fiável do que confiar só no evento cellEdited)
-    // 2) Envia todos os updates em paralelo (Promise.all) em vez de um a um
     async function guardarAlteracoes() {
-        // Força o fecho de qualquer editor de célula ainda aberto (ex: flatpickr),
-        // para garantir que a última alteração feita fica mesmo registada.
         document.activeElement && document.activeElement.blur();
 
         const dados = table.getData();
-        // Une o hint do cellEdited com a comparação robusta ao snapshot
         const linhasParaGuardar = dados.filter(item => idsAlterados.has(item.id) || linhaFoiAlterada(item));
 
         if (linhasParaGuardar.length === 0) {
