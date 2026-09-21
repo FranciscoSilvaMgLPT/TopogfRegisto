@@ -84,48 +84,11 @@
         }
         .link-anexo { color: #60a5fa; text-decoration: none; }
         .sem-registo { color: #64748b; }
-        #calendario-pedidos { position: relative; }
-        
-        /* Marcador 📌 grande e visível para o dia agendado */
-        .marcador-agendado-overlay {
-            position: absolute;
-            transform: translate(-50%, -50%);
-            font-size: 22px;
-            line-height: 1;
-            cursor: pointer;
-            z-index: 10;
-            filter: drop-shadow(0 0 3px rgba(0,0,0,1)) drop-shadow(0 0 6px rgba(56,189,248,0.6));
-            pointer-events: auto;
-            transition: transform 0.2s ease;
-            animation: pulse-agendado 2s infinite;
-        }
-        .marcador-agendado-overlay:hover {
-            transform: translate(-50%, -50%) scale(1.3);
-        }
-        @keyframes pulse-agendado {
-            0%, 100% { filter: drop-shadow(0 0 3px rgba(0,0,0,1)) drop-shadow(0 0 6px rgba(56,189,248,0.6)); }
-            50% { filter: drop-shadow(0 0 3px rgba(0,0,0,1)) drop-shadow(0 0 12px rgba(56,189,248,1)); }
-        }
-        
-        /* Badge de agendamento para vistas semanal e lista */
-        .badge-agendado {
-            display: inline-flex;
-            align-items: center;
-            gap: 3px;
-            background: #0ea5e9;
-            color: white;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.85em;
-            font-weight: 700;
-            margin-left: 6px;
-            box-shadow: 0 0 6px rgba(14,165,233,0.6);
-        }
 
+        /* Ajuste para dispositivos móveis */
         @media (max-width: 640px) {
             body { padding: 12px; }
             .toolbar-actions button, .toolbar-actions a { flex: 1 1 auto; text-align: center; margin-right: 0; }
-            .marcador-agendado-overlay { font-size: 18px; }
         }
     </style>
 </head>
@@ -189,12 +152,15 @@
     let mapaAtividadesPorPedido = {};
     let mapaOcorrenciasPorPedido = {};
 
+    // ===== Otimização: rastrear apenas as linhas realmente alteradas =====
+    // idsAlterados é só um "hint" rápido; a deteção real e fiável é feita
+    // comparando o estado atual da tabela com dadosOriginais (snapshot).
     let idsAlterados = new Set();
     let dadosOriginais = {};
     const CAMPOS_GUARDAVEIS = [
         "tecnico", "data_hora_pedido", "requerente", "empresa", "importancia",
         "via", "local_obra", "numero_obra", "concelho", "servico", "observacao",
-        "tipo_trabalho", "frequencia", "data_agendada", "data_hora_limite", "estado", "data_conclusao"
+        "tipo_trabalho", "frequencia", "data_hora_limite", "estado", "data_conclusao"
     ];
 
     function guardarSnapshot(dados) {
@@ -208,7 +174,7 @@
 
     function linhaFoiAlterada(item) {
         const original = dadosOriginais[item.id];
-        if (!original) return true;
+        if (!original) return true; // linha nova, sem snapshot -> guarda por segurança
         return CAMPOS_GUARDAVEIS.some(campo => (item[campo] ?? null) !== (original[campo] ?? null));
     }
 
@@ -239,7 +205,6 @@
     };
 
     let calendario = null;
-    let ultimoDadosCalendario = [];
 
     function corPorImportancia(row) {
         if (row.estado === "Concluido") return "#64748b";
@@ -249,66 +214,7 @@
         return "#0ea5e9";
     }
 
-    function limparMarcadoresAgendados() {
-        document.querySelectorAll('#calendario-pedidos .marcador-agendado-overlay').forEach(el => el.remove());
-    }
-
-    function atualizarMarcadoresAgendados(dados) {
-        const container = document.getElementById('calendario-pedidos');
-        limparMarcadoresAgendados();
-        if (!container || !dados) return;
-        const containerRect = container.getBoundingClientRect();
-
-        dados.forEach(row => {
-            if (!row.data_agendada) return;
-
-            const dataAgendada = new Date(row.data_agendada);
-            if (isNaN(dataAgendada.getTime())) return;
-
-            const chaveDia = dataAgendada.getFullYear() + '-' +
-                String(dataAgendada.getMonth() + 1).padStart(2, '0') + '-' +
-                String(dataAgendada.getDate()).padStart(2, '0');
-
-            const celulaDia = container.querySelector('.fc-daygrid-day[data-date="' + chaveDia + '"]');
-            if (!celulaDia) return; 
-
-            const eventoEls = container.querySelectorAll('[data-event-id="' + row.id + '"]');
-            if (eventoEls.length === 0) return;
-
-            const celulaRect = celulaDia.getBoundingClientRect();
-
-            let elCorrespondente = null;
-            eventoEls.forEach(el => {
-                const elRect = el.getBoundingClientRect();
-                if (elRect.top < celulaRect.bottom && elRect.bottom > celulaRect.top) {
-                    elCorrespondente = el;
-                }
-            });
-            if (!elCorrespondente) return;
-
-            const elRect = elCorrespondente.getBoundingClientRect();
-
-            const marcador = document.createElement('span');
-            marcador.className = 'marcador-agendado-overlay';
-            marcador.innerText = '📌';
-            marcador.title = '📌 Agendado: ' + dataFormatter({getValue: () => row.data_agendada});
-            marcador.style.left = (celulaRect.left - containerRect.left + celulaRect.width / 2) + 'px';
-            marcador.style.top = (elRect.top - containerRect.top + elRect.height / 2) + 'px';
-            
-            marcador.addEventListener('click', function (ev) {
-                ev.stopPropagation();
-                elCorrespondente.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-            });
-            container.appendChild(marcador);
-        });
-    }
-
-    let redimensionamentoTimeout = null;
-    window.addEventListener('resize', function () {
-        clearTimeout(redimensionamentoTimeout);
-        redimensionamentoTimeout = setTimeout(() => atualizarMarcadoresAgendados(ultimoDadosCalendario), 150);
-    });
-
+    // ===== Modals de atividades e ocorrências =====
     function abrirModalAtividades(pedidoId) {
         const atividades = mapaAtividadesPorPedido[pedidoId] || [];
         document.getElementById('modal-atividades-titulo').innerText = '📊 Atividades — Pedido #' + pedidoId;
@@ -355,7 +261,6 @@
     }
 
     function renderizarCalendario(dados) {
-        ultimoDadosCalendario = dados;
         const eventos = dados
             .filter(row => row.data_hora_pedido)
             .map(row => ({
@@ -372,7 +277,6 @@
         if (calendario) {
             calendario.removeAllEventSources();
             calendario.addEventSource(eventos);
-            requestAnimationFrame(() => atualizarMarcadoresAgendados(dados));
             return;
         }
 
@@ -398,61 +302,19 @@
                         Array.from(tbody.children).reverse().forEach(el => tbody.appendChild(el));
                     }, 0);
                 }
-                requestAnimationFrame(() => atualizarMarcadoresAgendados(ultimoDadosCalendario));
             },
-           eventDidMount: function(info) {
-    info.el.setAttribute('data-event-id', String(info.event.id));
-    const row = info.event.extendedProps;
+            eventDidMount: function(info) {
+                const hora = info.el.querySelector(".fc-event-time");
+                if (!hora) return;
 
-    // Formatar hora do evento (data_hora_pedido)
-    const horaEl = info.el.querySelector(".fc-event-time");
-    if (horaEl) {
-        let texto = horaEl.textContent.trim();
-        if (texto.endsWith(":00")) {
-            texto = texto.slice(0, -3) + "h";
-        } else {
-            texto = texto.replace(":", "h");
-        }
-        horaEl.textContent = texto;
-    }
-
-    // Marcar APENAS o dia exato da data_agendada com um badge 📌
-    if (row.data_agendada) {
-        const dataAgendada = new Date(row.data_agendada);
-        if (!isNaN(dataAgendada.getTime())) {
-            // Construir a data agendada no formato "YYYY-MM-DD" (fuso local, consistente)
-            const diaAgendado = dataAgendada.getFullYear() + '-' +
-                String(dataAgendada.getMonth() + 1).padStart(2, '0') + '-' +
-                String(dataAgendada.getDate()).padStart(2, '0');
-
-            // Obter o dia do segmento que está a ser renderizado a partir do DOM
-            // O FullCalendar coloca sempre um atributo data-date no elemento pai do evento
-            const segmentoEl = info.el.closest('[data-date]');
-            if (!segmentoEl) return;
-            
-            const diaSegmento = segmentoEl.getAttribute('data-date'); // formato "YYYY-MM-DD"
-
-            // Só injeta o badge se o dia do segmento for EXATAMENTE o dia agendado
-            if (diaSegmento === diaAgendado) {
-                const horaFormatada = ("0" + dataAgendada.getHours()).slice(-2) + ":" + ("0" + dataAgendada.getMinutes()).slice(-2);
-                const badgeHtml = '<span class="badge-agendado" title="Agendado: ' + dataFormatter({getValue: () => row.data_agendada}) + '">📌 ' + horaFormatada + '</span>';
-
-                const view = info.view.type;
-                if (view === 'timeGridWeek') {
-                    const titleEl = info.el.querySelector('.fc-event-title');
-                    if (titleEl) {
-                        titleEl.insertAdjacentHTML('afterend', badgeHtml);
-                    }
-                } else if (view === 'listMonth') {
-                    const titleEl = info.el.querySelector('.fc-list-event-title');
-                    if (titleEl) {
-                        titleEl.insertAdjacentHTML('beforeend', badgeHtml);
-                    }
+                let texto = hora.textContent.trim();
+                if (texto.endsWith(":00")) {
+                    texto = texto.slice(0, -3) + "h";
+                } else {
+                    texto = texto.replace(":", "h");
                 }
-            }
-        }
-    }
-},
+                hora.textContent = texto;
+            },
             height: 'auto',
             events: eventos,
             eventClick: function(info) {
@@ -462,7 +324,6 @@
                     '<p><strong>Estado:</strong> ' + (row.estado || '—') + '</p>' +
                     '<p><strong>Importância:</strong> ' + (row.importancia || '—') + '</p>' +
                     '<p><strong>Data Pedido:</strong> ' + dataFormatter({getValue: () => row.data_hora_pedido}) + '</p>' +
-                    '<p><strong>Data Agendada:</strong> ' + (row.data_agendada ? dataFormatter({getValue: () => row.data_agendada}) : '—') + '</p>' +
                     '<p><strong>Limite:</strong> ' + dataFormatter({getValue: () => row.data_hora_limite}) + '</p>' +
                     '<p><strong>Requerente:</strong> ' + (row.requerente || '—') + '</p>' +
                     '<p><strong>Empresa:</strong> ' + (row.empresa || '—') + '</p>' +
@@ -480,7 +341,6 @@
             }
         });
         calendario.render();
-        requestAnimationFrame(() => atualizarMarcadoresAgendados(dados));
     }
 
     function fecharModalEvento() {
@@ -507,6 +367,7 @@
 
         const { data } = await sbClient.from('pedidos').select('*').order('id', { ascending: false });
 
+        // ===== Carregar atividades associadas aos pedidos =====
         const pedidosIds = data.map(p => p.id);
         mapaAtividadesPorPedido = {};
         mapaOcorrenciasPorPedido = {};
@@ -525,6 +386,7 @@
                     mapaAtividadesPorPedido[a.pedido_id].push(a);
                 });
 
+                // Carregar ocorrências das atividades desses pedidos
                 const atividadesIds = atividadesData.map(a => a.id);
                 if (atividadesIds.length > 0) {
                     const { data: ocorrenciasData, error: errOcorrencias } = await sbClient
@@ -535,6 +397,7 @@
                     if (errOcorrencias) {
                         console.error("Erro ao carregar ocorrências:", errOcorrencias);
                     } else {
+                        // Mapear atividade_id -> pedido_id
                         const atividadeParaPedido = {};
                         atividadesData.forEach(a => { atividadeParaPedido[a.id] = a.pedido_id; });
 
@@ -550,6 +413,7 @@
             }
         }
 
+        // Adicionar contadores aos dados
         data.forEach(p => {
             p.atividades_count = (mapaAtividadesPorPedido[p.id] || []).length;
             p.ocorrencias_count = (mapaOcorrenciasPorPedido[p.id] || []).length;
@@ -564,6 +428,7 @@
             paginationSize: 50,
             paginationSizeSelector: [15, 50, 100],
             cellEdited: function(cell) {
+                // Marca a linha como alterada para a otimização do guardar
                 idsAlterados.add(cell.getRow().getData().id);
                 aplicarFiltros();
                 renderizarCalendario(table.getData());
@@ -594,7 +459,6 @@
                 {title: "Obs", field: "observacao", minWidth: 180, editor: "input"},
                 {title: "Tipo", field: "tipo_trabalho", minWidth: 160, editor: "list", editorParams: {values: ["Lev. Topográfico", "Monitorização", "Implantação", "Gabinete / Estudos"]}},
                 {title: "Freq", field: "frequencia", minWidth: 120, editor: "list", editorParams: {values: ["Única", "Contínua", "Diária", "Semanal", "Mensal", "Trimestral"]}},
-                {title: "Data Agendada", field: "data_agendada", minWidth: 150, editor: dateEditor, formatter: dataFormatter},
                 {title: "Limite", field: "data_hora_limite", minWidth: 150, editor: dateEditor, formatter: dataFormatter},
                 {title: "Estado", field: "estado", minWidth: 120, editor: "list", editorParams: {values: ["Pendente", "Concluido"]}},
                 {title: "Data Conclusão", field: "data_conclusao", minWidth: 150, editor: dateEditor, formatter: dataFormatter},
@@ -662,10 +526,17 @@
         aplicarFiltros();
     }
 
+    // ===== Guardar Alterações — otimizado =====
+    // 1) Deteta as linhas alteradas comparando com o snapshot original
+    //    (mais fiável do que confiar só no evento cellEdited)
+    // 2) Envia todos os updates em paralelo (Promise.all) em vez de um a um
     async function guardarAlteracoes() {
+        // Força o fecho de qualquer editor de célula ainda aberto (ex: flatpickr),
+        // para garantir que a última alteração feita fica mesmo registada.
         document.activeElement && document.activeElement.blur();
 
         const dados = table.getData();
+        // Une o hint do cellEdited com a comparação robusta ao snapshot
         const linhasParaGuardar = dados.filter(item => idsAlterados.has(item.id) || linhaFoiAlterada(item));
 
         if (linhasParaGuardar.length === 0) {
@@ -684,8 +555,8 @@
                     tecnico: item.tecnico, data_hora_pedido: item.data_hora_pedido, requerente: item.requerente,
                     empresa: item.empresa, importancia: item.importancia, via: item.via, local_obra: item.local_obra,
                     numero_obra: item.numero_obra, concelho: item.concelho, servico: item.servico, observacao: item.observacao,
-                    tipo_trabalho: item.tipo_trabalho, frequencia: item.frequencia, data_agendada: item.data_agendada,
-                    data_hora_limite: item.data_hora_limite, estado: item.estado, data_conclusao: item.data_conclusao
+                    tipo_trabalho: item.tipo_trabalho, frequencia: item.frequencia, data_hora_limite: item.data_hora_limite,
+                    estado: item.estado, data_conclusao: item.data_conclusao
                 }).eq('id', item.id)
             ));
 
