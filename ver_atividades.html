@@ -174,6 +174,7 @@
         let todosPedidos = [];
         let mapaPedidosGlobal = {};
         let atividadeParaAssociarPedido = null;
+        let mapaObrasGlobal = {};
         
         let fotosOcorrenciaAtual = [];
         let fotoOcorrenciaIndexAtual = 0;
@@ -609,12 +610,38 @@
             const { data, error } = await sbClient.from('atividades').select('*').order('id', { ascending: false });
             if (error) { console.error("Erro ao carregar:", error); return; }
 
-            dadosAtividadesPorId = {};
-            data.forEach(a => { dadosAtividadesPorId[a.id] = a; });
+            // A tabela OBRAS passa a ser a fonte oficial de:
+            // numero_obra, local_obra, empresa e concelho.
+            const { data: obrasData, error: errObras } = await sbClient
+                .from('obras')
+                .select('id, numero_obra, local_obra, empresa, concelho')
+                .order('numero_obra', { ascending: true });
+
+            if (errObras) {
+                console.error("Erro ao carregar obras:", errObras);
+            }
+
+            mapaObrasGlobal = {};
+            (obrasData || []).forEach(o => { mapaObrasGlobal[o.id] = o; });
+
+            // Aplicar a informação central da obra à atividade.
+            data.forEach(a => {
+                const obra = mapaObrasGlobal[a.obra_id];
+                a.obra_info = obra || null;
+
+                if (obra) {
+                    a.numero_obra = obra.numero_obra;
+                    a.local_obra = obra.local_obra;
+                    a.empresa = obra.empresa;
+                    a.concelho = obra.concelho;
+                }
+
+                dadosAtividadesPorId[a.id] = a;
+            });
 
             const { data: pedidosData, error: errPedidos } = await sbClient
                 .from('pedidos')
-                .select('id, requerente, empresa, servico, local_obra, numero_obra, data_hora_pedido, estado, importancia, data_conclusao')
+                .select('id, requerente, empresa, servico, local_obra, numero_obra, data_hora_pedido, estado, importancia, data_conclusao, obra_id')
                 .order('id', { ascending: false });
             mapaPedidosGlobal = {};
             if (errPedidos) {
@@ -622,7 +649,17 @@
                 todosPedidos = [];
             } else {
                 todosPedidos = pedidosData || [];
-                todosPedidos.forEach(p => { mapaPedidosGlobal[p.id] = p; });
+                todosPedidos.forEach(p => {
+                    const obra = mapaObrasGlobal[p.obra_id];
+                    if (obra) {
+                        p.numero_obra = obra.numero_obra;
+                        p.local_obra = obra.local_obra;
+                        p.empresa = obra.empresa;
+                        p.concelho = obra.concelho;
+                    }
+                    p.obra_info = obra || null;
+                    mapaPedidosGlobal[p.id] = p;
+                });
             }
             data.forEach(a => {
                 a.pedido_info = mapaPedidosGlobal[a.pedido_id]
@@ -820,7 +857,37 @@
             const resultados = await Promise.all(idsParaGravar.map(id => {
                 const item = dadosPorId[id];
                 if (!item) return Promise.resolve({ id, error: null });
-                return sbClient.from('atividades').update({ tecnico: item.tecnico, data_hora_inicio: item.data_hora_inicio, data_hora_fim: item.data_hora_fim, local_obra: item.local_obra, numero_obra: item.numero_obra, servico: item.servico }).eq('id', item.id).then(({ error }) => ({ id, error }));
+                return (async () => {
+                    // Dados próprios da atividade
+                    const { error: erroAtividade } = await sbClient
+                        .from('atividades')
+                        .update({
+                            tecnico: item.tecnico,
+                            data_hora_inicio: item.data_hora_inicio,
+                            data_hora_fim: item.data_hora_fim,
+                            servico: item.servico
+                        })
+                        .eq('id', item.id);
+
+                    if (erroAtividade) return { id, error: erroAtividade };
+
+                    // Dados da obra são guardados exclusivamente em OBRAS.
+                    if (item.obra_id) {
+                        const { error: erroObra } = await sbClient
+                            .from('obras')
+                            .update({
+                                numero_obra: item.numero_obra,
+                                local_obra: item.local_obra,
+                                empresa: item.empresa || null,
+                                concelho: item.concelho || null
+                            })
+                            .eq('id', item.obra_id);
+
+                        if (erroObra) return { id, error: erroObra };
+                    }
+
+                    return { id, error: null };
+                })();
             }));
 
             const falhas = resultados.filter(r => r.error);
