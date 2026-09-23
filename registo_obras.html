@@ -1,0 +1,545 @@
+```html
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>🏗️ Registo de Obras</title>
+
+    <link rel="icon" type="image/jpeg" href="favicon.png">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0f172a;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: white;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn-voltar {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #334155;
+            color: white;
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .btn-voltar:hover {
+            background: #475569;
+        }
+
+        .user-info {
+            color: #94a3b8;
+            font-size: 0.85em;
+        }
+
+        .user-info strong {
+            color: #60a5fa;
+        }
+
+        .card {
+            background: #1e293b;
+            border-radius: 18px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            margin: 0 0 8px 0;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            margin: 0 0 25px 0;
+            font-size: 0.9em;
+        }
+
+        .logo {
+            display: block;
+            width: 55px;
+            height: 55px;
+            object-fit: contain;
+            margin-bottom: 15px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 7px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 13px;
+            border-radius: 7px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: white;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+        }
+
+        input::placeholder {
+            color: #64748b;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 22px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            border: none;
+            border-radius: 7px;
+            padding: 11px 20px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-primary:disabled {
+            background: #64748b;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #475569;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #64748b;
+        }
+
+        .btn-edit {
+            background: #f59e0b;
+            color: white;
+            padding: 7px 11px;
+            font-size: 13px;
+        }
+
+        .btn-edit:hover {
+            background: #d97706;
+        }
+
+        .btn-delete {
+            background: #ef4444;
+            color: white;
+            padding: 7px 11px;
+            font-size: 13px;
+        }
+
+        .btn-delete:hover {
+            background: #dc2626;
+        }
+
+        .mensagem {
+            display: none;
+            margin-top: 15px;
+            padding: 11px 14px;
+            border-radius: 7px;
+            font-size: 0.9em;
+        }
+
+        .mensagem.sucesso {
+            display: block;
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid #22c55e;
+            color: #86efac;
+        }
+
+        .mensagem.erro {
+            display: block;
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid #ef4444;
+            color: #fca5a5;
+        }
+
+        .lista-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+
+        .lista-header h2 {
+            margin: 0;
+            font-size: 21px;
+        }
+
+        .pesquisa {
+            max-width: 300px;
+        }
+
+        .tabela-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 10px;
+            border: 1px solid #334155;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 700px;
+        }
+
+        thead {
+            background: #334155;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px;
+            font-size: 0.85em;
+            color: #cbd5e1;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 12px;
+            border-top: 1px solid #334155;
+            font-size: 0.9em;
+            color: #e2e8f0;
+        }
+
+        tbody tr:hover {
+            background: rgba(71, 85, 105, 0.25);
+        }
+
+        .numero-obra {
+            font-weight: bold;
+            color: #60a5fa;
+        }
+
+        .acoes {
+            display: flex;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .sem-resultados {
+            text-align: center;
+            padding: 30px;
+            color: #94a3b8;
+        }
+
+        .contador {
+            color: #94a3b8;
+            font-size: 0.8em;
+            margin-top: 12px;
+        }
+
+        .loading {
+            text-align: center;
+            color: #94a3b8;
+            padding: 25px;
+        }
+
+        @media (max-width: 650px) {
+
+            body {
+                padding: 10px;
+            }
+
+            .card {
+                padding: 18px;
+                border-radius: 14px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 14px;
+            }
+
+            .form-group.full {
+                grid-column: auto;
+            }
+
+            .lista-header {
+                align-items: stretch;
+            }
+
+            .pesquisa {
+                max-width: none;
+            }
+
+            .top-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn-voltar {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- ===== TOPO ===== -->
+    <div class="top-bar">
+
+        <a href="index.html" class="btn-voltar">
+            ⬅️ Voltar ao Painel
+        </a>
+
+        <div class="user-info">
+            Logado como:
+            <strong id="user-email">...</strong>
+        </div>
+
+    </div>
+
+
+    <!-- ===== FORMULÁRIO ===== -->
+    <div class="card">
+
+        <img src="favicon.png" alt="Logo" class="logo">
+
+        <h1>🏗️ Registo de Obras</h1>
+
+        <p class="subtitle">
+            Regista e gere as obras utilizadas no sistema.
+        </p>
+
+        <form id="form-obra">
+
+            <div class="form-grid">
+
+                <div class="form-group">
+                    <label for="local_obra">
+                        📍 Local da Obra *
+                    </label>
+
+                    <input
+                        type="text"
+                        id="local_obra"
+                        placeholder="Ex.: Rua da Boavista, Porto"
+                        required
+                    >
+                </div>
+
+
+                <div class="form-group">
+                    <label for="numero_obra">
+                        🔢 Número da Obra *
+                    </label>
+
+                    <input
+                        type="text"
+                        id="numero_obra"
+                        placeholder="Ex.: 2026-001"
+                        required
+                    >
+                </div>
+
+
+                <div class="form-group">
+                    <label for="empresa">
+                        🏢 Empresa
+                    </label>
+
+                    <input
+                        type="text"
+                        id="empresa"
+                        placeholder="Nome da empresa"
+                    >
+                </div>
+
+
+                <div class="form-group">
+                    <label for="concelho">
+                        🗺️ Concelho
+                    </label>
+
+                    <input
+                        type="text"
+                        id="concelho"
+                        placeholder="Ex.: Vila do Conde"
+                    >
+                </div>
+
+            </div>
+
+
+            <div class="form-actions">
+
+                <button
+                    type="submit"
+                    class="btn-primary"
+                    id="btn-guardar"
+                >
+                    ➕ Registar Obra
+                </button>
+
+                <button
+                    type="button"
+                    class="btn-secondary"
+                    id="btn-cancelar"
+                    onclick="cancelarEdicao()"
+                    style="display:none;"
+                >
+                    Cancelar edição
+                </button>
+
+            </div>
+
+            <div id="mensagem" class="mensagem"></div>
+
+        </form>
+
+    </div>
+
+
+    <!-- ===== LISTA DE OBRAS ===== -->
+    <div class="card">
+
+        <div class="lista-header">
+
+            <h2>📋 Obras registadas</h2>
+
+            <input
+                type="text"
+                id="pesquisa"
+                class="pesquisa"
+                placeholder="🔎 Pesquisar obra..."
+            >
+
+        </div>
+
+
+        <div class="tabela-wrapper">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>N.º Obra</th>
+                        <th>Local da Obra</th>
+                        <th>Empresa</th>
+                        <th>Concelho</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+
+                <tbody id="tabela-obras">
+
+                    <tr>
+                        <td colspan="5" class="loading">
+                            A carregar obras...
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        <div class="contador" id="contador-obras"></div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+    // ============================================================
+    // SUPABASE
+    // ============================================================
+
+    const SUPABASE_URL =
+        'https://dunondjiqawovisnwavg.supabase.co';
+
+    const SUPABASE_ANON_KEY =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
+
+    const supabaseClient =
+        supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_ANON_KEY
+        );
+
+
+    // =======================================
+```
