@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -7,95 +6,166 @@
 
     <title>🏗️ Registo de Obras</title>
 
-    <link rel="icon" type="image/jpeg" href="favicon.png">
+    <link rel="icon" type="image/png" href="favicon.png">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
         * {
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
         }
 
         body {
-            background: #0f172a;
-            font-family: 'Segoe UI', Arial, sans-serif;
-            color: white;
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(135deg, #eef2f3, #dfe9f3);
             min-height: 100vh;
-            margin: 0;
             padding: 20px;
+            color: #333;
         }
 
         .container {
-            width: 100%;
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
         }
 
-        .top-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 15px;
+        /* =========================
+           CABEÇALHO
+        ========================= */
+
+        .header {
+            background: white;
+            border-radius: 16px;
+            padding: 20px 25px;
             margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
             flex-wrap: wrap;
         }
 
-        .btn-voltar {
-            display: inline-flex;
+        .header-left {
+            display: flex;
             align-items: center;
-            gap: 8px;
-            background: #334155;
-            color: white;
-            text-decoration: none;
-            padding: 10px 16px;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: background 0.2s;
+            gap: 15px;
         }
 
-        .btn-voltar:hover {
-            background: #475569;
+        .header-icon {
+            font-size: 42px;
         }
 
-        .user-info {
-            color: #94a3b8;
-            font-size: 0.85em;
+        .header-title h1 {
+            font-size: 25px;
+            color: #1f2937;
+            margin-bottom: 4px;
         }
 
-        .user-info strong {
-            color: #60a5fa;
+        .header-title p {
+            font-size: 14px;
+            color: #6b7280;
         }
 
-        .card {
-            background: #1e293b;
-            border-radius: 18px;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        .user-box {
+            background: #f3f4f6;
+            border-radius: 10px;
+            padding: 10px 15px;
+            text-align: right;
+        }
+
+        .user-label {
+            font-size: 11px;
+            color: #6b7280;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+
+        #user-email {
+            font-size: 14px;
+            font-weight: bold;
+            color: #2563eb;
+        }
+
+        /* =========================
+           BOTÕES
+        ========================= */
+
+        .top-buttons {
+            display: flex;
+            gap: 10px;
             margin-bottom: 20px;
         }
 
-        h1 {
-            margin: 0 0 8px 0;
-            font-size: 28px;
+        .btn {
+            border: none;
+            border-radius: 9px;
+            padding: 11px 18px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
         }
 
-        .subtitle {
-            color: #94a3b8;
-            margin: 0 0 25px 0;
-            font-size: 0.9em;
+        .btn:hover {
+            transform: translateY(-1px);
         }
 
-        .logo {
-            display: block;
-            width: 55px;
-            height: 55px;
-            object-fit: contain;
-            margin-bottom: 15px;
+        .btn-voltar {
+            background: #374151;
+            color: white;
+        }
+
+        .btn-voltar:hover {
+            background: #1f2937;
+        }
+
+        .btn-nova {
+            background: #2563eb;
+            color: white;
+        }
+
+        .btn-nova:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-guardar {
+            background: #16a34a;
+            color: white;
+        }
+
+        .btn-guardar:hover {
+            background: #15803d;
+        }
+
+        .btn-cancelar {
+            background: #6b7280;
+            color: white;
+        }
+
+        /* =========================
+           FORMULÁRIO
+        ========================= */
+
+        .form-card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .form-card h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #1f2937;
         }
 
         .form-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(2, 1fr);
             gap: 18px;
         }
 
@@ -109,243 +179,256 @@
         }
 
         label {
-            font-size: 0.9em;
-            font-weight: 600;
-            color: #cbd5e1;
+            font-size: 13px;
+            font-weight: bold;
             margin-bottom: 7px;
+            color: #374151;
         }
 
         input {
             width: 100%;
             padding: 12px 13px;
-            border-radius: 7px;
-            border: 1px solid #475569;
-            background: #0f172a;
-            color: white;
-            font-size: 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
             outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: 0.2s;
         }
 
         input:focus {
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
-        }
-
-        input::placeholder {
-            color: #64748b;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
 
         .form-actions {
             display: flex;
             gap: 10px;
-            margin-top: 22px;
-            flex-wrap: wrap;
+            margin-top: 20px;
         }
 
-        button {
-            border: none;
-            border-radius: 7px;
-            padding: 11px 20px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
+        /* =========================
+           LISTAGEM
+        ========================= */
+
+        .list-card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
         }
 
-        button:active {
-            transform: scale(0.98);
-        }
-
-        .btn-primary {
-            background: #3b82f6;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #2563eb;
-        }
-
-        .btn-primary:disabled {
-            background: #64748b;
-            cursor: not-allowed;
-        }
-
-        .btn-secondary {
-            background: #475569;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #64748b;
-        }
-
-        .btn-edit {
-            background: #f59e0b;
-            color: white;
-            padding: 7px 11px;
-            font-size: 13px;
-        }
-
-        .btn-edit:hover {
-            background: #d97706;
-        }
-
-        .btn-delete {
-            background: #ef4444;
-            color: white;
-            padding: 7px 11px;
-            font-size: 13px;
-        }
-
-        .btn-delete:hover {
-            background: #dc2626;
-        }
-
-        .mensagem {
-            display: none;
-            margin-top: 15px;
-            padding: 11px 14px;
-            border-radius: 7px;
-            font-size: 0.9em;
-        }
-
-        .mensagem.sucesso {
-            display: block;
-            background: rgba(34, 197, 94, 0.15);
-            border: 1px solid #22c55e;
-            color: #86efac;
-        }
-
-        .mensagem.erro {
-            display: block;
-            background: rgba(239, 68, 68, 0.15);
-            border: 1px solid #ef4444;
-            color: #fca5a5;
-        }
-
-        .lista-header {
+        .list-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             gap: 15px;
-            margin-bottom: 18px;
             flex-wrap: wrap;
+            margin-bottom: 20px;
         }
 
-        .lista-header h2 {
-            margin: 0;
-            font-size: 21px;
+        .list-header h2 {
+            font-size: 20px;
+            color: #1f2937;
         }
 
-        .pesquisa {
-            max-width: 300px;
+        .contador {
+            font-size: 13px;
+            color: #6b7280;
+            margin-top: 4px;
         }
 
-        .tabela-wrapper {
+        .search-box {
+            width: 300px;
+        }
+
+        .search-box input {
+            background: #f9fafb;
+        }
+
+        .table-container {
             width: 100%;
             overflow-x: auto;
-            border-radius: 10px;
-            border: 1px solid #334155;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 700px;
+            min-width: 750px;
         }
 
         thead {
-            background: #334155;
+            background: #f3f4f6;
         }
 
         th {
+            padding: 13px 12px;
             text-align: left;
-            padding: 12px;
-            font-size: 0.85em;
-            color: #cbd5e1;
-            white-space: nowrap;
+            font-size: 12px;
+            color: #374151;
+            text-transform: uppercase;
+            border-bottom: 2px solid #e5e7eb;
         }
 
         td {
-            padding: 12px;
-            border-top: 1px solid #334155;
-            font-size: 0.9em;
-            color: #e2e8f0;
+            padding: 13px 12px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px;
+            vertical-align: middle;
         }
 
         tbody tr:hover {
-            background: rgba(71, 85, 105, 0.25);
+            background: #f9fafb;
         }
 
         .numero-obra {
             font-weight: bold;
-            color: #60a5fa;
+            color: #2563eb;
         }
 
         .acoes {
             display: flex;
-            gap: 6px;
-            white-space: nowrap;
+            gap: 7px;
         }
 
+        .btn-editar {
+            background: #f59e0b;
+            color: white;
+            padding: 7px 10px;
+            font-size: 12px;
+        }
+
+        .btn-editar:hover {
+            background: #d97706;
+        }
+
+        .btn-apagar {
+            background: #dc2626;
+            color: white;
+            padding: 7px 10px;
+            font-size: 12px;
+        }
+
+        .btn-apagar:hover {
+            background: #b91c1c;
+        }
+
+        .loading,
         .sem-resultados {
             text-align: center;
-            padding: 30px;
-            color: #94a3b8;
+            padding: 35px !important;
+            color: #6b7280;
         }
 
-        .contador {
-            color: #94a3b8;
-            font-size: 0.8em;
-            margin-top: 12px;
+        /* =========================
+           MENSAGENS
+        ========================= */
+
+        #mensagens {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+
+            max-width: 400px;
         }
 
-        .loading {
-            text-align: center;
-            color: #94a3b8;
-            padding: 25px;
+        .mensagem {
+            padding: 14px 18px;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+            animation: aparecer 0.2s ease;
         }
 
-        @media (max-width: 650px) {
+        .mensagem.sucesso {
+            background: #16a34a;
+        }
+
+        .mensagem.erro {
+            background: #dc2626;
+        }
+
+        .mensagem.info {
+            background: #2563eb;
+        }
+
+        @keyframes aparecer {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* =========================
+           RESPONSIVO
+        ========================= */
+
+        @media (max-width: 700px) {
 
             body {
                 padding: 10px;
             }
 
-            .card {
+            .header {
                 padding: 18px;
-                border-radius: 14px;
             }
 
-            h1 {
-                font-size: 24px;
+            .header-left {
+                width: 100%;
+            }
+
+            .user-box {
+                width: 100%;
+                text-align: left;
             }
 
             .form-grid {
                 grid-template-columns: 1fr;
-                gap: 14px;
             }
 
             .form-group.full {
                 grid-column: auto;
             }
 
-            .lista-header {
-                align-items: stretch;
+            .search-box {
+                width: 100%;
             }
 
-            .pesquisa {
-                max-width: none;
-            }
-
-            .top-bar {
+            .list-header {
                 flex-direction: column;
                 align-items: stretch;
             }
 
-            .btn-voltar {
-                justify-content: center;
+            .form-actions {
+                flex-direction: column;
+            }
+
+            .form-actions .btn {
+                width: 100%;
+            }
+
+            .top-buttons {
+                flex-direction: column;
+            }
+
+            .top-buttons .btn {
+                width: 100%;
+            }
+
+            #mensagens {
+                left: 10px;
+                right: 10px;
+                max-width: none;
             }
         }
     </style>
@@ -353,55 +436,85 @@
 
 <body>
 
+<div id="mensagens"></div>
+
 <div class="container">
 
-    <!-- ===== TOPO ===== -->
-    <div class="top-bar">
+    <!-- =========================
+         CABEÇALHO
+    ========================== -->
 
-        <a href="index.html" class="btn-voltar">
-            ⬅️ Voltar ao Painel
-        </a>
+    <div class="header">
 
-        <div class="user-info">
-            Logado como:
-            <strong id="user-email">...</strong>
+        <div class="header-left">
+
+            <div class="header-icon">
+                🏗️
+            </div>
+
+            <div class="header-title">
+                <h1>Registo de Obras</h1>
+                <p>Gestão das obras de topografia</p>
+            </div>
+
+        </div>
+
+        <div class="user-box">
+
+            <div class="user-label">
+                Utilizador
+            </div>
+
+            <div id="user-email">
+                A carregar...
+            </div>
+
         </div>
 
     </div>
 
 
-    <!-- ===== FORMULÁRIO ===== -->
-    <div class="card">
+    <!-- =========================
+         BOTÕES
+    ========================== -->
 
-        <img src="favicon.png" alt="Logo" class="logo">
+    <div class="top-buttons">
 
-        <h1>🏗️ Registo de Obras</h1>
+        <button
+            type="button"
+            class="btn btn-voltar"
+            onclick="voltarInicio()">
+            ← Voltar
+        </button>
 
-        <p class="subtitle">
-            Regista e gere as obras utilizadas no sistema.
-        </p>
+        <button
+            type="button"
+            class="btn btn-nova"
+            onclick="novaObra()">
+            ➕ Nova Obra
+        </button>
+
+    </div>
+
+
+    <!-- =========================
+         FORMULÁRIO
+    ========================== -->
+
+    <div class="form-card">
+
+        <h2 id="titulo-formulario">
+            ➕ Registar Nova Obra
+        </h2>
 
         <form id="form-obra">
 
             <div class="form-grid">
 
                 <div class="form-group">
-                    <label for="local_obra">
-                        📍 Local da Obra *
-                    </label>
 
-                    <input
-                        type="text"
-                        id="local_obra"
-                        placeholder="Ex.: Rua da Boavista, Porto"
-                        required
-                    >
-                </div>
-
-
-                <div class="form-group">
                     <label for="numero_obra">
-                        🔢 Número da Obra *
+                        Número da Obra *
                     </label>
 
                     <input
@@ -409,33 +522,54 @@
                         id="numero_obra"
                         placeholder="Ex.: 2026-001"
                         required
-                    >
+                        autocomplete="off">
+
                 </div>
 
 
                 <div class="form-group">
+
+                    <label for="local_obra">
+                        Local da Obra *
+                    </label>
+
+                    <input
+                        type="text"
+                        id="local_obra"
+                        placeholder="Ex.: Rua Principal, Vila do Conde"
+                        required
+                        autocomplete="off">
+
+                </div>
+
+
+                <div class="form-group">
+
                     <label for="empresa">
-                        🏢 Empresa
+                        Empresa
                     </label>
 
                     <input
                         type="text"
                         id="empresa"
                         placeholder="Nome da empresa"
-                    >
+                        autocomplete="off">
+
                 </div>
 
 
                 <div class="form-group">
+
                     <label for="concelho">
-                        🗺️ Concelho
+                        Concelho
                     </label>
 
                     <input
                         type="text"
                         id="concelho"
                         placeholder="Ex.: Vila do Conde"
-                    >
+                        autocomplete="off">
+
                 </div>
 
             </div>
@@ -445,53 +579,68 @@
 
                 <button
                     type="submit"
-                    class="btn-primary"
-                    id="btn-guardar"
-                >
-                    ➕ Registar Obra
+                    class="btn btn-guardar"
+                    id="btn-guardar">
+                    💾 Guardar Obra
                 </button>
 
                 <button
                     type="button"
-                    class="btn-secondary"
+                    class="btn btn-cancelar"
                     id="btn-cancelar"
                     onclick="cancelarEdicao()"
-                    style="display:none;"
-                >
-                    Cancelar edição
+                    style="display:none;">
+                    ✖ Cancelar
                 </button>
 
             </div>
-
-            <div id="mensagem" class="mensagem"></div>
 
         </form>
 
     </div>
 
 
-    <!-- ===== LISTA DE OBRAS ===== -->
-    <div class="card">
+    <!-- =========================
+         LISTAGEM
+    ========================== -->
 
-        <div class="lista-header">
+    <div class="list-card">
 
-            <h2>📋 Obras registadas</h2>
+        <div class="list-header">
 
-            <input
-                type="text"
-                id="pesquisa"
-                class="pesquisa"
-                placeholder="🔎 Pesquisar obra..."
-            >
+            <div>
+
+                <h2>
+                    📋 Obras Registadas
+                </h2>
+
+                <div
+                    id="contador-obras"
+                    class="contador">
+                    A carregar...
+                </div>
+
+            </div>
+
+            <div class="search-box">
+
+                <input
+                    type="text"
+                    id="pesquisa"
+                    placeholder="🔎 Pesquisar obra..."
+                    autocomplete="off">
+
+            </div>
 
         </div>
 
 
-        <div class="tabela-wrapper">
+        <div class="table-container">
 
             <table>
 
                 <thead>
+
                     <tr>
                         <th>N.º Obra</th>
                         <th>Local da Obra</th>
@@ -499,12 +648,15 @@
                         <th>Concelho</th>
                         <th>Ações</th>
                     </tr>
+
                 </thead>
 
                 <tbody id="tabela-obras">
 
                     <tr>
-                        <td colspan="5" class="loading">
+                        <td
+                            colspan="5"
+                            class="loading">
                             A carregar obras...
                         </td>
                     </tr>
@@ -515,8 +667,6 @@
 
         </div>
 
-        <div class="contador" id="contador-obras"></div>
-
     </div>
 
 </div>
@@ -524,22 +674,1214 @@
 
 <script>
 
-    // ============================================================
-    // SUPABASE
-    // ============================================================
+    /* =====================================================
+       SUPABASE
+    ===================================================== */
 
     const SUPABASE_URL =
         'https://dunondjiqawovisnwavg.supabase.co';
 
     const SUPABASE_ANON_KEY =
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwiaWF0IjoxNzgwMDU5NzIyLCJleHAiOjIwOTU2MzcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
 
     const supabaseClient =
-        supabase.createClient(
+        window.supabase.createClient(
             SUPABASE_URL,
             SUPABASE_ANON_KEY
         );
 
 
-    // =======================================
-```
+    /* =====================================================
+       VARIÁVEIS
+    ===================================================== */
+
+    let obras = [];
+
+    let obraEmEdicao = null;
+
+
+    /* =====================================================
+       INICIALIZAÇÃO
+    ===================================================== */
+
+    window.addEventListener(
+        'DOMContentLoaded',
+        inicializar
+    );
+
+
+    async function inicializar() {
+
+        console.log('=================================');
+        console.log('INICIALIZAÇÃO REGISTO DE OBRAS');
+        console.log('=================================');
+
+        try {
+
+            /*
+             * Usamos getUser() em vez de depender
+             * apenas do getSession().
+             */
+            const {
+                data,
+                error
+            } = await supabaseClient.auth.getUser();
+
+
+            console.log(
+                'Resultado getUser():',
+                data
+            );
+
+            console.log(
+                'Erro getUser():',
+                error
+            );
+
+
+            if (error) {
+
+                console.error(
+                    'Erro ao obter utilizador:',
+                    error
+                );
+
+                mostrarMensagem(
+                    'Erro ao verificar o utilizador: ' +
+                    error.message,
+                    'erro'
+                );
+
+                setTimeout(
+                    () => {
+                        window.location.href =
+                            'index.html';
+                    },
+                    2000
+                );
+
+                return;
+            }
+
+
+            const user = data.user;
+
+
+            if (!user) {
+
+                console.warn(
+                    'Não existe utilizador autenticado.'
+                );
+
+                window.location.href =
+                    'index.html';
+
+                return;
+            }
+
+
+            console.log(
+                'UTILIZADOR AUTENTICADO:',
+                user
+            );
+
+
+            /*
+             * Mostrar nome/email
+             */
+            mostrarUtilizador(user);
+
+
+            /*
+             * Carregar obras
+             */
+            await carregarObras();
+
+
+        } catch (erro) {
+
+            console.error(
+                'Erro inesperado:',
+                erro
+            );
+
+            mostrarMensagem(
+                'Ocorreu um erro ao iniciar a página.',
+                'erro'
+            );
+
+        }
+
+    }
+
+
+    /* =====================================================
+       MOSTRAR UTILIZADOR
+    ===================================================== */
+
+    function mostrarUtilizador(user) {
+
+        const elemento =
+            document.getElementById(
+                'user-email'
+            );
+
+
+        if (!elemento) {
+            return;
+        }
+
+
+        const metadata =
+            user.user_metadata || {};
+
+
+        /*
+         * Tenta encontrar um nome definido
+         * no metadata do utilizador.
+         */
+        const nome =
+            metadata.full_name ||
+            metadata.name ||
+            metadata.nome ||
+            metadata.username ||
+            metadata.user_name;
+
+
+        /*
+         * Se não existir nome,
+         * utiliza o email.
+         */
+        const texto =
+            nome ||
+            user.email ||
+            'Utilizador';
+
+
+        elemento.textContent =
+            texto;
+
+
+        console.log(
+            'Nome apresentado:',
+            texto
+        );
+
+    }
+
+
+    /* =====================================================
+       CARREGAR OBRAS
+    ===================================================== */
+
+    async function carregarObras() {
+
+        const tabela =
+            document.getElementById(
+                'tabela-obras'
+            );
+
+        const contador =
+            document.getElementById(
+                'contador-obras'
+            );
+
+
+        tabela.innerHTML = `
+            <tr>
+                <td colspan="5" class="loading">
+                    ⏳ A carregar obras...
+                </td>
+            </tr>
+        `;
+
+
+        contador.textContent =
+            'A consultar a base de dados...';
+
+
+        console.log(
+            'A consultar public.obras...'
+        );
+
+
+        const {
+            data,
+            error,
+            status
+        } = await supabaseClient
+            .from('obras')
+            .select(
+                'id, local_obra, numero_obra, empresa, concelho'
+            )
+            .order(
+                'id',
+                {
+                    ascending: false
+                }
+            );
+
+
+        console.log(
+            'Status Supabase:',
+            status
+        );
+
+        console.log(
+            'Dados recebidos:',
+            data
+        );
+
+        console.log(
+            'Erro:',
+            error
+        );
+
+
+        if (error) {
+
+            console.error(
+                'ERRO AO CARREGAR OBRAS:',
+                error
+            );
+
+
+            tabela.innerHTML = `
+                <tr>
+                    <td
+                        colspan="5"
+                        class="sem-resultados">
+                        ❌ Erro ao carregar as obras.<br><br>
+                        <small>
+                            ${escaparHTML(
+                                error.message
+                            )}
+                        </small>
+                    </td>
+                </tr>
+            `;
+
+
+            contador.textContent =
+                'Erro ao consultar a tabela obras.';
+
+
+            mostrarMensagem(
+                'Erro ao carregar obras: ' +
+                error.message,
+                'erro'
+            );
+
+
+            return;
+        }
+
+
+        obras =
+            data || [];
+
+
+        console.log(
+            'Número de obras:',
+            obras.length
+        );
+
+
+        mostrarObras(obras);
+
+    }
+
+
+    /* =====================================================
+       MOSTRAR OBRAS
+    ===================================================== */
+
+    function mostrarObras(lista) {
+
+        const tabela =
+            document.getElementById(
+                'tabela-obras'
+            );
+
+        const contador =
+            document.getElementById(
+                'contador-obras'
+            );
+
+
+        contador.textContent =
+            lista.length === 1
+                ? '1 obra registada'
+                : `${lista.length} obras registadas`;
+
+
+        if (!lista.length) {
+
+            tabela.innerHTML = `
+                <tr>
+                    <td
+                        colspan="5"
+                        class="sem-resultados">
+                        📭 Não existem obras registadas.
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+
+        tabela.innerHTML =
+            lista.map(
+                obra => `
+
+                    <tr>
+
+                        <td class="numero-obra">
+                            ${escaparHTML(
+                                obra.numero_obra
+                            )}
+                        </td>
+
+                        <td>
+                            ${escaparHTML(
+                                obra.local_obra
+                            )}
+                        </td>
+
+                        <td>
+                            ${escaparHTML(
+                                obra.empresa ||
+                                '-'
+                            )}
+                        </td>
+
+                        <td>
+                            ${escaparHTML(
+                                obra.concelho ||
+                                '-'
+                            )}
+                        </td>
+
+                        <td>
+
+                            <div class="acoes">
+
+                                <button
+                                    type="button"
+                                    class="btn btn-editar"
+                                    onclick="editarObra(${obra.id})">
+                                    ✏️ Editar
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn btn-apagar"
+                                    onclick="apagarObra(${obra.id})">
+                                    🗑️ Apagar
+                                </button>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                `
+            ).join('');
+
+    }
+
+
+    /* =====================================================
+       PESQUISA
+    ===================================================== */
+
+    document
+        .getElementById('pesquisa')
+        .addEventListener(
+            'input',
+            function () {
+
+                const termo =
+                    this.value
+                        .trim()
+                        .toLowerCase();
+
+
+                if (!termo) {
+
+                    mostrarObras(obras);
+
+                    return;
+                }
+
+
+                const filtradas =
+                    obras.filter(
+                        obra => {
+
+                            return (
+
+                                String(
+                                    obra.numero_obra ||
+                                    ''
+                                )
+                                .toLowerCase()
+                                .includes(termo)
+
+                                ||
+
+                                String(
+                                    obra.local_obra ||
+                                    ''
+                                )
+                                .toLowerCase()
+                                .includes(termo)
+
+                                ||
+
+                                String(
+                                    obra.empresa ||
+                                    ''
+                                )
+                                .toLowerCase()
+                                .includes(termo)
+
+                                ||
+
+                                String(
+                                    obra.concelho ||
+                                    ''
+                                )
+                                .toLowerCase()
+                                .includes(termo)
+
+                            );
+
+                        }
+                    );
+
+
+                mostrarObras(
+                    filtradas
+                );
+
+            }
+        );
+
+
+    /* =====================================================
+       SUBMETER FORMULÁRIO
+    ===================================================== */
+
+    document
+        .getElementById('form-obra')
+        .addEventListener(
+            'submit',
+            async function (event) {
+
+                event.preventDefault();
+
+
+                const numeroObra =
+                    document
+                        .getElementById(
+                            'numero_obra'
+                        )
+                        .value
+                        .trim();
+
+
+                const localObra =
+                    document
+                        .getElementById(
+                            'local_obra'
+                        )
+                        .value
+                        .trim();
+
+
+                const empresa =
+                    document
+                        .getElementById(
+                            'empresa'
+                        )
+                        .value
+                        .trim();
+
+
+                const concelho =
+                    document
+                        .getElementById(
+                            'concelho'
+                        )
+                        .value
+                        .trim();
+
+
+                if (!numeroObra) {
+
+                    mostrarMensagem(
+                        'Introduza o número da obra.',
+                        'erro'
+                    );
+
+                    return;
+                }
+
+
+                if (!localObra) {
+
+                    mostrarMensagem(
+                        'Introduza o local da obra.',
+                        'erro'
+                    );
+
+                    return;
+                }
+
+
+                const botao =
+                    document.getElementById(
+                        'btn-guardar'
+                    );
+
+
+                botao.disabled =
+                    true;
+
+
+                botao.textContent =
+                    '⏳ A guardar...';
+
+
+                try {
+
+                    if (obraEmEdicao) {
+
+                        await atualizarObra(
+                            obraEmEdicao,
+                            numeroObra,
+                            localObra,
+                            empresa,
+                            concelho
+                        );
+
+                    } else {
+
+                        await inserirObra(
+                            numeroObra,
+                            localObra,
+                            empresa,
+                            concelho
+                        );
+
+                    }
+
+                } finally {
+
+                    botao.disabled =
+                        false;
+
+                    botao.textContent =
+                        obraEmEdicao
+                            ? '💾 Guardar Alterações'
+                            : '💾 Guardar Obra';
+
+                }
+
+            }
+        );
+
+
+    /* =====================================================
+       INSERIR OBRA
+    ===================================================== */
+
+    async function inserirObra(
+        numeroObra,
+        localObra,
+        empresa,
+        concelho
+    ) {
+
+        console.log(
+            'A inserir obra...'
+        );
+
+
+        const {
+            data,
+            error
+        } = await supabaseClient
+            .from('obras')
+            .insert([
+                {
+                    numero_obra:
+                        numeroObra,
+
+                    local_obra:
+                        localObra,
+
+                    empresa:
+                        empresa || null,
+
+                    concelho:
+                        concelho || null
+                }
+            ])
+            .select()
+            .single();
+
+
+        console.log(
+            'Insert data:',
+            data
+        );
+
+        console.log(
+            'Insert error:',
+            error
+        );
+
+
+        if (error) {
+
+            console.error(
+                'Erro INSERT:',
+                error
+            );
+
+
+            if (
+                error.code ===
+                '23505'
+            ) {
+
+                mostrarMensagem(
+                    'Já existe uma obra com esse número.',
+                    'erro'
+                );
+
+            } else {
+
+                mostrarMensagem(
+                    'Erro ao guardar obra: ' +
+                    error.message,
+                    'erro'
+                );
+
+            }
+
+            return;
+        }
+
+
+        mostrarMensagem(
+            'Obra registada com sucesso! ✅',
+            'sucesso'
+        );
+
+
+        limparFormulario();
+
+
+        await carregarObras();
+
+    }
+
+
+    /* =====================================================
+       EDITAR OBRA
+    ===================================================== */
+
+    function editarObra(id) {
+
+        const obra =
+            obras.find(
+                item =>
+                    Number(item.id) ===
+                    Number(id)
+            );
+
+
+        if (!obra) {
+
+            mostrarMensagem(
+                'Não foi possível encontrar a obra.',
+                'erro'
+            );
+
+            return;
+        }
+
+
+        obraEmEdicao =
+            obra.id;
+
+
+        document.getElementById(
+            'numero_obra'
+        ).value =
+            obra.numero_obra || '';
+
+
+        document.getElementById(
+            'local_obra'
+        ).value =
+            obra.local_obra || '';
+
+
+        document.getElementById(
+            'empresa'
+        ).value =
+            obra.empresa || '';
+
+
+        document.getElementById(
+            'concelho'
+        ).value =
+            obra.concelho || '';
+
+
+        document.getElementById(
+            'titulo-formulario'
+        ).textContent =
+            '✏️ Editar Obra';
+
+
+        document.getElementById(
+            'btn-guardar'
+        ).textContent =
+            '💾 Guardar Alterações';
+
+
+        document.getElementById(
+            'btn-cancelar'
+        ).style.display =
+            'inline-block';
+
+
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+
+    }
+
+
+    /* =====================================================
+       ATUALIZAR OBRA
+    ===================================================== */
+
+    async function atualizarObra(
+        id,
+        numeroObra,
+        localObra,
+        empresa,
+        concelho
+    ) {
+
+        console.log(
+            'A atualizar obra:',
+            id
+        );
+
+
+        const {
+            error
+        } = await supabaseClient
+            .from('obras')
+            .update({
+
+                numero_obra:
+                    numeroObra,
+
+                local_obra:
+                    localObra,
+
+                empresa:
+                    empresa || null,
+
+                concelho:
+                    concelho || null
+
+            })
+            .eq(
+                'id',
+                id
+            );
+
+
+        if (error) {
+
+            console.error(
+                'Erro UPDATE:',
+                error
+            );
+
+
+            if (
+                error.code ===
+                '23505'
+            ) {
+
+                mostrarMensagem(
+                    'Já existe outra obra com esse número.',
+                    'erro'
+                );
+
+            } else {
+
+                mostrarMensagem(
+                    'Erro ao atualizar obra: ' +
+                    error.message,
+                    'erro'
+                );
+
+            }
+
+            return;
+        }
+
+
+        mostrarMensagem(
+            'Obra atualizada com sucesso! ✅',
+            'sucesso'
+        );
+
+
+        cancelarEdicao();
+
+
+        await carregarObras();
+
+    }
+
+
+    /* =====================================================
+       APAGAR OBRA
+    ===================================================== */
+
+    async function apagarObra(id) {
+
+        const obra =
+            obras.find(
+                item =>
+                    Number(item.id) ===
+                    Number(id)
+            );
+
+
+        if (!obra) {
+
+            mostrarMensagem(
+                'Obra não encontrada.',
+                'erro'
+            );
+
+            return;
+        }
+
+
+        const confirmar =
+            confirm(
+                `Tem a certeza que pretende apagar a obra "${obra.numero_obra}"?`
+            );
+
+
+        if (!confirmar) {
+            return;
+        }
+
+
+        console.log(
+            'A apagar obra:',
+            id
+        );
+
+
+        const {
+            error
+        } = await supabaseClient
+            .from('obras')
+            .delete()
+            .eq(
+                'id',
+                id
+            );
+
+
+        if (error) {
+
+            console.error(
+                'Erro DELETE:',
+                error
+            );
+
+
+            mostrarMensagem(
+                'Erro ao apagar obra: ' +
+                error.message,
+                'erro'
+            );
+
+            return;
+        }
+
+
+        mostrarMensagem(
+            'Obra apagada com sucesso. 🗑️',
+            'sucesso'
+        );
+
+
+        await carregarObras();
+
+    }
+
+
+    /* =====================================================
+       NOVA OBRA
+    ===================================================== */
+
+    function novaObra() {
+
+        obraEmEdicao =
+            null;
+
+
+        limparFormulario();
+
+
+        document.getElementById(
+            'titulo-formulario'
+        ).textContent =
+            '➕ Registar Nova Obra';
+
+
+        document.getElementById(
+            'btn-guardar'
+        ).textContent =
+            '💾 Guardar Obra';
+
+
+        document.getElementById(
+            'btn-cancelar'
+        ).style.display =
+            'none';
+
+
+        document
+            .getElementById(
+                'numero_obra'
+            )
+            .focus();
+
+    }
+
+
+    /* =====================================================
+       CANCELAR EDIÇÃO
+    ===================================================== */
+
+    function cancelarEdicao() {
+
+        obraEmEdicao =
+            null;
+
+
+        limparFormulario();
+
+
+        document.getElementById(
+            'titulo-formulario'
+        ).textContent =
+            '➕ Registar Nova Obra';
+
+
+        document.getElementById(
+            'btn-guardar'
+        ).textContent =
+            '💾 Guardar Obra';
+
+
+        document.getElementById(
+            'btn-cancelar'
+        ).style.display =
+            'none';
+
+    }
+
+
+    /* =====================================================
+       LIMPAR FORMULÁRIO
+    ===================================================== */
+
+    function limparFormulario() {
+
+        document
+            .getElementById(
+                'form-obra'
+            )
+            .reset();
+
+    }
+
+
+    /* =====================================================
+       VOLTAR
+    ===================================================== */
+
+    function voltarInicio() {
+
+        window.location.href =
+            'index.html';
+
+    }
+
+
+    /* =====================================================
+       ESCAPAR HTML
+    ===================================================== */
+
+    function escaparHTML(valor) {
+
+        if (
+            valor === null ||
+            valor === undefined
+        ) {
+
+            return '';
+
+        }
+
+
+        return String(valor)
+            .replace(
+                /&/g,
+                '&amp;'
+            )
+            .replace(
+                /</g,
+                '&lt;'
+            )
+            .replace(
+                />/g,
+                '&gt;'
+            )
+            .replace(
+                /"/g,
+                '&quot;'
+            )
+            .replace(
+                /'/g,
+                '&#039;'
+            );
+
+    }
+
+
+    /* =====================================================
+       MENSAGENS
+    ===================================================== */
+
+    function mostrarMensagem(
+        texto,
+        tipo = 'info'
+    ) {
+
+        const container =
+            document.getElementById(
+                'mensagens'
+            );
+
+
+        const mensagem =
+            document.createElement(
+                'div'
+            );
+
+
+        mensagem.className =
+            `mensagem ${tipo}`;
+
+
+        mensagem.textContent =
+            texto;
+
+
+        container.appendChild(
+            mensagem
+        );
+
+
+        setTimeout(
+            () => {
+
+                mensagem.style.opacity =
+                    '0';
+
+                mensagem.style.transform =
+                    'translateX(20px)';
+
+                setTimeout(
+                    () => {
+                        mensagem.remove();
+                    },
+                    250
+                );
+
+            },
+            4000
+        );
+
+    }
+
+
+    /* =====================================================
+       ALTERAÇÕES DE AUTENTICAÇÃO
+    ===================================================== */
+
+    supabaseClient.auth
+        .onAuthStateChange(
+            function (
+                event,
+                session
+            ) {
+
+                console.log(
+                    'Auth event:',
+                    event
+                );
+
+
+                if (
+                    !session &&
+                    event !==
+                    'INITIAL_SESSION'
+                ) {
+
+                    window.location.href =
+                        'index.html';
+
+                    return;
+                }
+
+
+                if (session) {
+
+                    mostrarUtilizador(
+                        session.user
+                    );
+
+                }
+
+            }
+        );
+
+</script>
+
+</body>
+</html>
