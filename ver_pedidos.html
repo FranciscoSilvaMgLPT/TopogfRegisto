@@ -365,11 +365,13 @@
         const { data: { session } } = await sbClient.auth.getSession();
         if (!session) { window.location.href = 'login.html'; return; }
         document.getElementById('utilizador-info').innerText = session.user.email;
+        
 
-        const { data, error: errPedidosBase } = await sbClient.from('pedidos').select('*').order('id', { ascending: false });
-        if (errPedidosBase) {
-            console.error("Erro ao carregar pedidos:", errPedidosBase);
-            return;
+
+const [{ data, error: errPedidosBase }, { data: obrasData, error: errObras }] = await Promise.all([
+    sbClient.from('pedidos').select('*').order('id', { ascending: false }),
+    sbClient.from('obras').select('id, numero_obra, local_obra, empresa, concelho').order('numero_obra', { ascending: true })
+]);
         }
 
         // A tabela OBRAS passa a ser a fonte oficial de:
