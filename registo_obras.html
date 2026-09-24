@@ -1,9 +1,9 @@
 <!DOCTYPE html>
+
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 
 <title>🏗️ Registo de Obras</title>
 
@@ -19,11 +19,11 @@
     }
 
     body {
-        font-family: "Segoe UI", Arial, Helvetica, sans-serif;
-        background: #0f172a;
+        font-family: Arial, Helvetica, sans-serif;
+        background: linear-gradient(135deg, #eef2f3, #dfe9f3);
         min-height: 100vh;
         padding: 20px;
-        color: #fff;
+        color: #333;
     }
 
     .container {
@@ -36,12 +36,11 @@
     ========================= */
 
     .header {
-        background: #1e293b;
-        border: 1px solid #334155;
-        border-radius: 18px;
+        background: white;
+        border-radius: 16px;
         padding: 20px 25px;
         margin-bottom: 20px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
 
         display: flex;
         justify-content: space-between;
@@ -62,25 +61,25 @@
 
     .header-title h1 {
         font-size: 25px;
-        color: #fff;
+        color: #1f2937;
         margin-bottom: 4px;
     }
 
     .header-title p {
         font-size: 14px;
-        color: #94a3b8;
+        color: #6b7280;
     }
 
     .user-box {
-        background: #334155;
-        border-radius: 12px;
+        background: #f3f4f6;
+        border-radius: 10px;
         padding: 10px 15px;
         text-align: right;
     }
 
     .user-label {
         font-size: 11px;
-        color: #94a3b8;
+        color: #6b7280;
         text-transform: uppercase;
         margin-bottom: 3px;
     }
@@ -88,7 +87,7 @@
     #user-email {
         font-size: 14px;
         font-weight: bold;
-        color: #60a5fa;
+        color: #2563eb;
     }
 
     /* =========================
@@ -115,46 +114,36 @@
         transform: translateY(-1px);
     }
 
-    .btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-    }
-
     .btn-voltar {
-        background: #334155;
+        background: #374151;
         color: white;
     }
 
     .btn-voltar:hover {
-        background: #475569;
+        background: #1f2937;
     }
 
     .btn-nova {
-        background: #3b82f6;
+        background: #2563eb;
         color: white;
     }
 
     .btn-nova:hover {
-        background: #2563eb;
+        background: #1d4ed8;
     }
 
     .btn-guardar {
-        background: #3b82f6;
+        background: #16a34a;
         color: white;
     }
 
     .btn-guardar:hover {
-        background: #2563eb;
+        background: #15803d;
     }
 
     .btn-cancelar {
-        background: #64748b;
+        background: #6b7280;
         color: white;
-    }
-
-    .btn-cancelar:hover {
-        background: #475569;
     }
 
     /* =========================
@@ -162,18 +151,17 @@
     ========================= */
 
     .form-card {
-        background: #1e293b;
-        border: 1px solid #334155;
-        border-radius: 18px;
+        background: white;
+        border-radius: 16px;
         padding: 25px;
         margin-bottom: 20px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
     }
 
     .form-card h2 {
         font-size: 20px;
         margin-bottom: 20px;
-        color: #fff;
+        color: #1f2937;
     }
 
     .form-grid {
@@ -195,28 +183,22 @@
         font-size: 13px;
         font-weight: bold;
         margin-bottom: 7px;
-        color: #cbd5e1;
+        color: #374151;
     }
 
     input {
         width: 100%;
         padding: 12px 13px;
-        border: 1px solid #475569;
+        border: 1px solid #d1d5db;
         border-radius: 8px;
         font-size: 14px;
         outline: none;
         transition: 0.2s;
-        background: #0f172a;
-        color: #fff;
-    }
-
-    input::placeholder {
-        color: #64748b;
     }
 
     input:focus {
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
     }
 
     .form-actions {
@@ -230,11 +212,10 @@
     ========================= */
 
     .list-card {
-        background: #1e293b;
-        border: 1px solid #334155;
-        border-radius: 18px;
+        background: white;
+        border-radius: 16px;
         padding: 25px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
     }
 
     .list-header {
@@ -248,12 +229,12 @@
 
     .list-header h2 {
         font-size: 20px;
-        color: #fff;
+        color: #1f2937;
     }
 
     .contador {
         font-size: 13px;
-        color: #94a3b8;
+        color: #6b7280;
         margin-top: 4px;
     }
 
@@ -262,14 +243,12 @@
     }
 
     .search-box input {
-        background: #0f172a;
+        background: #f9fafb;
     }
 
     .table-container {
         width: 100%;
         overflow-x: auto;
-        border: 1px solid #334155;
-        border-radius: 12px;
     }
 
     table {
@@ -279,42 +258,32 @@
     }
 
     thead {
-        background: #334155;
+        background: #f3f4f6;
     }
 
     th {
         padding: 13px 12px;
         text-align: left;
         font-size: 12px;
-        color: #cbd5e1;
+        color: #374151;
         text-transform: uppercase;
-        border-bottom: 2px solid #475569;
+        border-bottom: 2px solid #e5e7eb;
     }
 
     td {
         padding: 13px 12px;
-        border-bottom: 1px solid #334155;
+        border-bottom: 1px solid #e5e7eb;
         font-size: 14px;
         vertical-align: middle;
-        color: #fff;
-    }
-
-    tbody tr {
-        background: #1e293b;
-        transition: 0.15s;
     }
 
     tbody tr:hover {
-        background: #334155;
-    }
-
-    tbody tr:last-child td {
-        border-bottom: none;
+        background: #f9fafb;
     }
 
     .numero-obra {
         font-weight: bold;
-        color: #60a5fa;
+        color: #2563eb;
     }
 
     .acoes {
@@ -323,33 +292,32 @@
     }
 
     .btn-editar {
-        background: #334155;
-        color: #60a5fa;
-        border: 1px solid #475569;
+        background: #f59e0b;
+        color: white;
         padding: 7px 10px;
         font-size: 12px;
     }
 
     .btn-editar:hover {
-        background: #475569;
+        background: #d97706;
     }
 
     .btn-apagar {
-        background: #ef4444;
+        background: #dc2626;
         color: white;
         padding: 7px 10px;
         font-size: 12px;
     }
 
     .btn-apagar:hover {
-        background: #dc2626;
+        background: #b91c1c;
     }
 
     .loading,
     .sem-resultados {
         text-align: center;
         padding: 35px !important;
-        color: #94a3b8;
+        color: #6b7280;
     }
 
     /* =========================
@@ -374,17 +342,20 @@
         border-radius: 10px;
         color: white;
         font-size: 14px;
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.25);
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
         animation: aparecer 0.2s ease;
     }
 
-    .mensagem.sucesso,
-    .mensagem.info {
-        background: #3b82f6;
+    .mensagem.sucesso {
+        background: #16a34a;
     }
 
     .mensagem.erro {
-        background: #ef4444;
+        background: #dc2626;
+    }
+
+    .mensagem.info {
+        background: #2563eb;
     }
 
     @keyframes aparecer {
@@ -463,12 +434,13 @@
     }
 </style>
 
-
 </head>
-<body>
-<div id="mensagens"></div>
-<div class="container">
 
+<body>
+
+<div id="mensagens"></div>
+
+<div class="container">
 
 <!-- =========================
      CABEÇALHO
@@ -699,8 +671,8 @@
 
 </div>
 
-
 </div>
+
 <script>
 
     /* =====================================================
@@ -1790,23 +1762,23 @@
         return String(valor)
             .replace(
                 /&/g,
-                '&'
+                '&amp;'
             )
             .replace(
                 /</g,
-                '<'
+                '&lt;'
             )
             .replace(
                 />/g,
-                '>'
+                '&gt;'
             )
             .replace(
                 /"/g,
-                '"'
+                '&quot;'
             )
             .replace(
                 /'/g,
-                '''
+                '&#039;'
             );
 
     }
@@ -1911,5 +1883,6 @@
         );
 
 </script>
+
 </body>
 </html>
