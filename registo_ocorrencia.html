@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>🚨 Registo de Ocorrência</title>
+<title>🚨Registo de Ocorrência</title>
 <link rel="icon" type="image/jpeg" href="favicon.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -20,8 +20,6 @@ label { display: block; margin-bottom: 8px; font-size: 14px; color: #cbd5e1; }
 input, textarea, select { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #334155; color: white; font-size: 16px; }
 input[readonly] { cursor: pointer; }
 textarea { min-height: 120px; resize: vertical; }
-select { cursor: pointer; }
-select option { background: #334155; color: white; padding: 10px; }
 
 /* ===== Secção de associação de atividade ===== */
 .atividade-association {
@@ -33,6 +31,7 @@ select option { background: #334155; color: white; padding: 10px; }
 }
 .atividade-association h3 { color: #60a5fa; margin-bottom: 15px; font-size: 18px; }
 .atividade-select { min-height: 50px; cursor: pointer; }
+.atividade-select option { padding: 10px; background: #334155; }
 
 /* ===== Painel com a informação completa da atividade selecionada ===== */
 .atividade-details {
@@ -64,27 +63,70 @@ select option { background: #334155; color: white; padding: 10px; }
   display: block;
   margin-top: 8px;
 }
-.foto-input-direto:hover { border-color: #3b82f6; background: #3b4a63; }
-.foto-input-direto::file-selector-button {
-  background: #3b82f6; color: white; border: none; padding: 10px 20px;
-  border-radius: 8px; margin-right: 12px; cursor: pointer; font-weight: bold; font-size: 14px;
+
+.foto-input-direto:hover { 
+  border-color: #3b82f6; 
+  background: #3b4a63; 
 }
-.foto-input-direto::file-selector-button:hover { background: #2563eb; }
+
+/* Estiliza o botão nativo "Escolher ficheiros" para ficar moderno */
+.foto-input-direto::file-selector-button {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  margin-right: 12px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.foto-input-direto::file-selector-button:hover {
+  background: #2563eb;
+}
 
 .foto-preview-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
 }
 .foto-thumb {
-  position: relative; width: 100%; aspect-ratio: 1 / 1; border-radius: 10px;
-  overflow: hidden; background: #0f172a; border: 1px solid #475569;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0f172a;
+  border: 1px solid #475569;
 }
 .foto-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .foto-remove {
-  position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border-radius: 50%;
-  background: rgba(15, 23, 42, 0.85); color: #f87171; border: none; font-size: 14px;
-  font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; margin-top: 0;
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.85);
+  color: #f87171;
+  border: none;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin-top: 0;
 }
-.foto-upload-status { margin-top: 8px; font-size: 13px; color: #94a3b8; }
+.foto-upload-status {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #94a3b8;
+}
 
 button { width: 100%; margin-top: 25px; padding: 16px; border: none; border-radius: 10px; background: #2563eb; color: white; font-size: 16px; font-weight: bold; cursor: pointer; }
 button:disabled { background: #475569; cursor: not-allowed; }
@@ -97,56 +139,143 @@ button:disabled { background: #475569; cursor: not-allowed; }
   h1 { font-size: 24px; }
   .grid { grid-template-columns: 1fr; gap: 12px; }
   .atividade-association { padding: 15px; }
-  .foto-input-direto { text-align: center; padding: 20px 10px; }
-  .foto-input-direto::file-selector-button { display: block; width: 100%; margin-right: 0; margin-bottom: 10px; }
+  
+  .foto-input-direto {
+    text-align: center;
+    padding: 20px 10px;
+  }
+  .foto-input-direto::file-selector-button {
+    display: block;
+    width: 100%;
+    margin-right: 0;
+    margin-bottom: 10px;
+  }
 }
 
 /* ===== Custom Date/Time Picker ===== */
 .dt-picker-overlay {
-  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 1000;
-  align-items: center; justify-content: center; padding: 16px; padding-bottom: max(16px, env(safe-area-inset-bottom));
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
 }
 .dt-picker-overlay.open { display: flex; }
 .dt-picker {
-  background: #1e293b; border-radius: 16px; padding: 18px; width: 100%; max-width: 340px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  background: #1e293b;
+  border-radius: 16px;
+  padding: 18px;
+  width: 100%;
+  max-width: 340px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
 }
-.dt-picker-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-.dt-picker-header span { font-weight: bold; font-size: 17px; text-transform: capitalize; }
+.dt-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.dt-picker-header span {
+  font-weight: bold;
+  font-size: 17px;
+  text-transform: capitalize;
+}
 .dt-nav {
-  width: 38px; margin-top: 0; padding: 8px 0; background: #334155; border-radius: 8px;
-  font-size: 18px; line-height: 1; border: none; color: white; cursor: pointer;
+  width: 38px;
+  margin-top: 0;
+  padding: 8px 0;
+  background: #334155;
+  border-radius: 8px;
+  font-size: 18px;
+  line-height: 1;
+  border: none;
+  color: white;
+  cursor: pointer;
 }
 .dt-weekdays {
-  display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px;
-  color: #93c5fd; font-weight: bold; margin-bottom: 6px;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 12px;
+  color: #93c5fd;
+  font-weight: bold;
+  margin-bottom: 6px;
 }
-.dt-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.dt-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
 .dt-day {
-  aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center;
-  border-radius: 8px; font-size: 14px; cursor: pointer; background: transparent; color: white;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  background: transparent;
+  color: white;
 }
 .dt-day:hover { background: #334155; }
 .dt-day.dt-empty { cursor: default; }
 .dt-day.dt-empty:hover { background: transparent; }
 .dt-day.dt-today { border: 1px solid #60a5fa; }
 .dt-day.dt-selected { background: #2563eb; font-weight: bold; }
-.dt-time { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
+.dt-time {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
 .dt-time label { margin-bottom: 0; white-space: nowrap; }
 .dt-time input {
-  width: 60px; padding: 10px; text-align: center; font-size: 15px;
+  width: 60px;
+  padding: 10px;
+  text-align: center;
+  font-size: 15px;
 }
+/* Esconder setas de número no Chrome/Safari mobile */
 .dt-time input[type="number"]::-webkit-inner-spin-button, 
-.dt-time input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-.dt-time input[type="number"] { -moz-appearance: textfield; }
-.dt-actions { display: flex; gap: 10px; margin-top: 18px; }
-.dt-actions button { margin-top: 0; flex: 1; padding: 12px; font-size: 14px; }
+.dt-time input[type="number"]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+.dt-time input[type="number"] {
+  -moz-appearance: textfield; /* Firefox */
+}
+.dt-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+.dt-actions button {
+  margin-top: 0;
+  flex: 1;
+  padding: 12px;
+  font-size: 14px;
+}
 #dtCancel { background: #334155; }
 
 @media (max-width: 400px) {
-  .dt-picker { padding: 14px; max-width: 100%; }
-  .dt-day { font-size: 13px; }
-  .dt-time input { width: 50px; padding: 8px; }
-  .dt-actions button { padding: 14px; }
+  .dt-picker {
+    padding: 14px;
+    max-width: 100%;
+  }
+  .dt-day {
+    font-size: 13px;
+  }
+  .dt-time input {
+    width: 50px;
+    padding: 8px;
+  }
+  .dt-actions button {
+    padding: 14px;
+  }
 }
 </style>
 </head>
@@ -180,20 +309,23 @@ button:disabled { background: #475569; cursor: not-allowed; }
         <input type="hidden" id="dataOcorrencia" name="data">
       </div>
 
-      <!-- ===== Seleção de Obra (igual ao registo de pedidos) ===== -->
-      <div class="full">
-        <label>Obra</label>
-        <select id="selectObra" name="obra_id">
-          <option value="">-- Selecionar obra --</option>
-        </select>
-        <!-- Campos ocultos para manter compatibilidade com a estrutura atual da BD -->
-        <input type="hidden" name="local_obra" id="hiddenLocalObra">
-        <input type="hidden" name="numero_obra" id="hiddenNumeroObra">
+      <!-- ===== Local / Obra com datalist (existente ou novo) ===== -->
+      <div>
+        <label>Local / Obra</label>
+        <input type="text" name="local_obra" id="inputLocalObra" list="lista-local-obra" autocomplete="off">
+        <datalist id="lista-local-obra"></datalist>
+      </div>
+
+      <!-- ===== Nº Obra com datalist (existente ou novo) ===== -->
+      <div>
+        <label>Nº Obra</label>
+        <input type="text" name="numero_obra" id="inputNumeroObra" list="lista-numero-obra" autocomplete="off">
+        <datalist id="lista-numero-obra"></datalist>
       </div>
 
       <div class="full">
         <label>Ocorrência *</label>
-        <textarea name="ocorrencia" placeholder="Se algo correu mal ou houve imprevisto, descreve aqui..." required></textarea>
+        <textarea name="ocorrencia" placeholder="Se algo correu mal ou houve imprevisto, descreve aqui... " required></textarea>
       </div>
 
       <!-- ===== Fotografias associadas à ocorrência (opcional) ===== -->
@@ -239,12 +371,15 @@ button:disabled { background: #475569; cursor: not-allowed; }
 
 <script>
 const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
+const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const selectAtividade = document.getElementById('selectAtividade');
 const detalhesAtividade = document.getElementById('detalhesAtividade');
-const selectObra = document.getElementById('selectObra');
+
+// ===== Mapas para preenchimento cruzado Local <-> Nº Obra =====
+let mapaLocalParaObra = {};
+let mapaObraParaLocal = {};
 
 // ===== Fotografias selecionadas para esta ocorrência =====
 const NOME_BUCKET_FOTOS = 'fotos-ocorrencias';
@@ -318,7 +453,6 @@ async function carregarFotosParaStorage(ocorrenciaId) {
     return urls;
 }
 
-// ===== Carregar Atividades =====
 async function carregarAtividades() {
     selectAtividade.innerHTML = '<option value="">-- Nenhuma atividade associada --</option>';
     try {
@@ -350,47 +484,75 @@ async function carregarAtividades() {
         }
     } catch (err) {
         console.error("Erro ao carregar atividades:", err);
+        const option = document.createElement('option');
+        option.value = "";
+        option.textContent = "Erro ao carregar atividades";
+        option.disabled = true;
+        selectAtividade.appendChild(option);
     }
 }
 
-// ===== Carregar Obras (Igual ao registo de pedidos) =====
-async function carregarObras() {
-    selectObra.innerHTML = '<option value="">-- Selecionar obra --</option>';
+async function carregarHistoricoLocais() {
     try {
-        const { data: obras, error } = await supabaseClient
-            .from('obras')
-            .select('id, local_obra, numero_obra, empresa, concelho')
-            .order('local_obra', { ascending: true });
+        const [{ data: atividadesData }, { data: pedidosData }, { data: ocorrenciasData }] = await Promise.all([
+            supabaseClient.from('atividades').select('local_obra, numero_obra').order('id', { ascending: false }),
+            supabaseClient.from('pedidos').select('local_obra, numero_obra').order('id', { ascending: false }),
+            supabaseClient.from('ocorrencias').select('local_obra, numero_obra').order('id', { ascending: false })
+        ]);
 
-        if (error) throw error;
+        const combos = [...(atividadesData || []), ...(pedidosData || []), ...(ocorrenciasData || [])];
+        const locaisSet = new Set();
+        const obrasSet = new Set();
 
-        (obras || []).forEach(obra => {
-            const option = document.createElement('option');
-            option.value = obra.id;
-            option.dataset.local = obra.local_obra || '';
-            option.dataset.numero = obra.numero_obra || '';
-            
-            const numero = obra.numero_obra ? `${obra.numero_obra} ` : '';
-            const local = obra.local_obra || '';
-            const empresa = obra.empresa ? ` - ${obra.empresa}` : '';
-            
-            option.textContent = `${numero}${local}${empresa}`.trim();
-            selectObra.appendChild(option);
+        combos.forEach(item => {
+            const local = (item.local_obra || '').trim();
+            const obra = (item.numero_obra || '').trim();
+            if (local) {
+                locaisSet.add(local);
+                if (obra && !(local in mapaLocalParaObra)) mapaLocalParaObra[local] = obra;
+            }
+            if (obra) {
+                obrasSet.add(obra);
+                if (local && !(obra in mapaObraParaLocal)) mapaObraParaLocal[obra] = local;
+            }
+        });
+
+        const datalistLocal = document.getElementById('lista-local-obra');
+        locaisSet.forEach(local => {
+            const opt = document.createElement('option');
+            opt.value = local;
+            datalistLocal.appendChild(opt);
+        });
+
+        const datalistObra = document.getElementById('lista-numero-obra');
+        obrasSet.forEach(obra => {
+            const opt = document.createElement('option');
+            opt.value = obra;
+            datalistObra.appendChild(opt);
         });
     } catch (err) {
-        console.error("Erro ao carregar obras:", err);
+        console.error("Erro ao carregar histórico de Local/Obra e Nº Obra:", err);
     }
 }
 
-// Atualizar campos ocultos quando uma obra é selecionada
-selectObra.addEventListener('change', function() {
-    const selectedOption = this.options[this.selectedIndex];
-    document.getElementById('hiddenLocalObra').value = selectedOption.dataset.local || '';
-    document.getElementById('hiddenNumeroObra').value = selectedOption.dataset.numero || '';
+document.getElementById('inputLocalObra').addEventListener('input', (e) => {
+    const valor = e.target.value.trim();
+    if (mapaLocalParaObra[valor]) {
+        document.getElementById('inputNumeroObra').value = mapaLocalParaObra[valor];
+    }
 });
 
-// Atualizar seleção de obra quando uma atividade é associada
+document.getElementById('inputNumeroObra').addEventListener('input', (e) => {
+    const valor = e.target.value.trim();
+    if (mapaObraParaLocal[valor]) {
+        document.getElementById('inputLocalObra').value = mapaObraParaLocal[valor];
+    }
+});
+
 selectAtividade.addEventListener('change', () => {
+    const inputLocal = document.getElementById('inputLocalObra');
+    const inputObra = document.getElementById('inputNumeroObra');
+
     if (selectAtividade.value) {
         const selectedOption = selectAtividade.options[selectAtividade.selectedIndex];
         detalhesAtividade.textContent = '📄 ' + selectedOption.dataset.textoCompleto;
@@ -399,31 +561,12 @@ selectAtividade.addEventListener('change', () => {
         const localObra = selectedOption.dataset.localObra;
         const numeroObra = selectedOption.dataset.numeroObra;
 
-        // Tentar encontrar e selecionar a obra correspondente no dropdown
-        let obraEncontrada = false;
-        for (let i = 0; i < selectObra.options.length; i++) {
-            const opt = selectObra.options[i];
-            if (opt.dataset.local === localObra && opt.dataset.numero === numeroObra) {
-                selectObra.selectedIndex = i;
-                obraEncontrada = true;
-                break;
-            }
-        }
-        
-        // Se não encontrar exatamente, atualiza os hidden fields manualmente
-        if (!obraEncontrada) {
-            document.getElementById('hiddenLocalObra').value = localObra || '';
-            document.getElementById('hiddenNumeroObra').value = numeroObra || '';
-        } else {
-            // Dispara o evento change para garantir que os hidden fields são atualizados
-            selectObra.dispatchEvent(new Event('change'));
-        }
-
+        if (localObra) inputLocal.value = localObra;
+        if (numeroObra) inputObra.value = numeroObra;
     } else {
         detalhesAtividade.style.display = 'none';
-        selectObra.value = "";
-        document.getElementById('hiddenLocalObra').value = '';
-        document.getElementById('hiddenNumeroObra').value = '';
+        inputLocal.value = '';
+        inputObra.value = '';
     }
 });
 
@@ -578,7 +721,7 @@ const dataOcorrencia = document.getElementById('dataOcorrencia');
 
 dataOcorrenciaDisplay.addEventListener('click', () => openPicker(dataOcorrencia, dataOcorrenciaDisplay));
 
-// ===== Inicialização =====
+// ===== Submissão do Formulário =====
 window.onload = async () => {
     const { data: { user }, error } = await supabaseClient.auth.getUser();
     if (error || !user) {
@@ -586,12 +729,11 @@ window.onload = async () => {
     } else {
         document.getElementById('user-display').innerText = user.email;
         definirDataAtual();
-        carregarObras(); // Carrega as obras no formato "265 Belarmino - CCR ENG&CONST"
+        carregarHistoricoLocais();
         carregarAtividades();
     }
 };
 
-// ===== Submissão do Formulário =====
 const form = document.getElementById("formularioOcorrencia");
 const btnEnviar = document.getElementById("btnEnviar");
 
@@ -601,11 +743,10 @@ form.addEventListener("submit", async (e) => {
     btnEnviar.innerText = "A gravar...";
 
     const dadosParaEnviar = {
-        data: document.getElementById("dataOcorrencia").value,
+        data: document.getElementById("dataOcorrencia").value, // Lê do campo hidden
         ocorrencia: form.ocorrencia.value,
-        local_obra: document.getElementById("hiddenLocalObra").value,
-        numero_obra: document.getElementById("hiddenNumeroObra").value,
-        obra_id: form.obra_id.value ? parseInt(form.obra_id.value) : null
+        local_obra: form.local_obra.value,
+        numero_obra: form.numero_obra.value
     };
 
     const atividadeId = selectAtividade.value;
@@ -652,12 +793,12 @@ form.addEventListener("submit", async (e) => {
     document.getElementById("successMessage").style.display = "block";
     form.reset();
     selectAtividade.value = "";
-    selectObra.value = "";
     detalhesAtividade.style.display = "none";
     ficheirosSelecionados = [];
     renderizarPreviewsFotos();
     fotoUploadStatus.textContent = '';
     definirDataAtual();
+    carregarHistoricoLocais();
 
     setTimeout(() => {
         document.getElementById("successMessage").style.display = "none";
