@@ -12,13 +12,15 @@
     <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
 
     <link href="https://unpkg.com/tabulator-tables@6.2.1/dist/css/tabulator_midnight.min.css" rel="stylesheet">
-    <script src="https://unpkg.com/tabulator-tables@6.2.1/dist/js/tabulator.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.2.1/dist/js/tabulator.min.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/locales/pt-br.global.min.js"></script>
 
     <style>
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+        }
 
         body {
             background-color: #0f172a;
@@ -76,15 +78,6 @@
             color: #f8fafc !important;
             text-decoration: line-through !important;
             opacity: 0.8;
-        }
-
-        /*
-         * Campos provenientes da tabela obras.
-         * São apenas informativos e não devem ser editados
-         * directamente nesta tabela.
-         */
-        .campo-obra-auto {
-            background: rgba(14, 165, 233, 0.08);
         }
 
         #calendario-pedidos {
@@ -199,6 +192,17 @@
             color: #64748b;
         }
 
+        /* Campos provenientes da tabela obras */
+        .campo-obra {
+            color: #cbd5e1;
+            font-weight: 500;
+        }
+
+        .campo-obra::before {
+            content: "🏗️ ";
+        }
+
+        /* Ajuste para dispositivos móveis */
         @media (max-width: 640px) {
             body {
                 padding: 12px;
@@ -223,40 +227,32 @@
     </strong>
 </div>
 
-<div
-    style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;"
-    class="toolbar-header"
->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;" class="toolbar-header">
+
     <h1 style="margin: 0;">
         Histórico de Pedidos
-        <span
-            id="contador-pedidos"
-            style="color: #64748b; font-size: 0.8em;"
-        ></span>
+        <span id="contador-pedidos" style="color: #64748b; font-size: 0.8em;"></span>
     </h1>
 
     <div class="toolbar-actions">
 
         <button
             onclick="window.location.href='https://franciscosilvamglpt.github.io/TopogfRegisto/registo_pedidos.html'"
-            style="background: #3b82f6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;"
-        >
+            style="background: #3b82f6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">
             ➕ Adicionar Pedido
         </button>
 
         <button
             id="btn-filtro-concluidos"
             onclick="toggleConcluidos()"
-            style="background: #64748b; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;"
-        >
+            style="background: #64748b; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">
             👁️ Mostrar Concluídos
         </button>
 
         <button
             id="btn-guardar"
             onclick="guardarAlteracoes()"
-            style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;"
-        >
+            style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">
             💾 Guardar Alterações
         </button>
 
@@ -270,8 +266,7 @@
 <input
     type="text"
     id="filtro-pesquisa"
-    placeholder="🔍 Pesquisar"
->
+    placeholder="🔍 Pesquisar">
 
 <div id="tabela-pedidos-wrap">
     <div id="tabela-pedidos"></div>
@@ -287,169 +282,142 @@
 
 </div>
 
-
-<!-- ========================================================= -->
-<!-- MODAL EVENTO -->
-<!-- ========================================================= -->
-
+<!-- Modal de evento -->
 <div
     id="modal-evento"
     class="modal-evento-overlay"
-    onclick="fecharModalEventoSeBackdrop(event)"
->
+    onclick="fecharModalEventoSeBackdrop(event)">
+
     <div
         class="modal-evento-conteudo"
-        onclick="event.stopPropagation()"
-    >
+        onclick="event.stopPropagation()">
 
         <button
             type="button"
             class="modal-evento-fechar"
             onclick="fecharModalEvento()"
-            aria-label="Fechar"
-        >
+            aria-label="Fechar">
             ✕
         </button>
 
-        <h3
-            id="modal-evento-titulo"
-            style="margin-top:0;"
-        ></h3>
+        <h3 id="modal-evento-titulo" style="margin-top:0;"></h3>
 
         <div id="modal-evento-corpo"></div>
 
     </div>
 </div>
 
-
-<!-- ========================================================= -->
-<!-- MODAL ATIVIDADES -->
-<!-- ========================================================= -->
-
+<!-- Modal de atividades -->
 <div
     id="modal-atividades"
     class="modal-evento-overlay"
-    onclick="fecharModalAtividadesSeBackdrop(event)"
->
+    onclick="fecharModalAtividadesSeBackdrop(event)">
+
     <div
         class="modal-evento-conteudo"
-        onclick="event.stopPropagation()"
-    >
+        onclick="event.stopPropagation()">
 
         <button
             type="button"
             class="modal-evento-fechar"
             onclick="fecharModalAtividades()"
-            aria-label="Fechar"
-        >
+            aria-label="Fechar">
             ✕
         </button>
 
-        <h3
-            id="modal-atividades-titulo"
-            style="margin-top:0;"
-        ></h3>
+        <h3 id="modal-atividades-titulo" style="margin-top:0;"></h3>
 
         <div id="modal-atividades-corpo"></div>
 
     </div>
 </div>
 
-
-<!-- ========================================================= -->
-<!-- MODAL OCORRÊNCIAS -->
-<!-- ========================================================= -->
-
+<!-- Modal de ocorrências -->
 <div
     id="modal-ocorrencias"
     class="modal-evento-overlay"
-    onclick="fecharModalOcorrenciasSeBackdrop(event)"
->
+    onclick="fecharModalOcorrenciasSeBackdrop(event)">
+
     <div
         class="modal-evento-conteudo"
-        onclick="event.stopPropagation()"
-    >
+        onclick="event.stopPropagation()">
 
         <button
             type="button"
             class="modal-evento-fechar"
             onclick="fecharModalOcorrencias()"
-            aria-label="Fechar"
-        >
+            aria-label="Fechar">
             ✕
         </button>
 
-        <h3
-            id="modal-ocorrencias-titulo"
-            style="margin-top:0;"
-        ></h3>
+        <h3 id="modal-ocorrencias-titulo" style="margin-top:0;"></h3>
 
         <div id="modal-ocorrencias-corpo"></div>
 
     </div>
 </div>
 
-
 <script>
-
-    /* =========================================================
-       SUPABASE
-    ========================================================= */
 
     const supabaseUrl =
         'https://dunondjiqawovisnwavg.supabase.co';
 
     const supabaseKey =
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmF3ZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwiaWF0IjoxNzgwMDU5NzIyLCJleHAiOjIwOTU2MzU3MjJ9.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
 
     const sbClient =
         supabase.createClient(supabaseUrl, supabaseKey);
 
 
-    /* =========================================================
-       VARIÁVEIS
-    ========================================================= */
-
     let table;
 
     let mostrandoConcluidos = false;
-
-    let calendario = null;
 
     let mapaAtividadesPorPedido = {};
 
     let mapaOcorrenciasPorPedido = {};
 
     /*
-     * Mapa das obras.
+     * ============================================================
+     * OBRAS
+     * ============================================================
      *
-     * Exemplo:
+     * mapaObras:
      *
-     * mapaObras["1234"] = {
-     *      id: 5,
+     * {
+     *   "123": {
+     *      id: 1,
+     *      numero_obra: "123",
      *      local_obra: "...",
-     *      numero_obra: "1234",
      *      empresa: "...",
      *      concelho: "..."
+     *   }
      * }
+     *
+     * A chave é numero_obra porque é UNIQUE na tabela obras.
      */
+
     let mapaObras = {};
 
     let listaObras = [];
 
-    let idsAlterados = new Set();
-
-    let dadosOriginais = {};
-
 
     /*
+     * ============================================================
+     * CAMPOS GUARDÁVEIS
+     * ============================================================
+     *
      * IMPORTANTE:
      *
-     * empresa, local_obra, numero_obra e concelho
-     * vêm agora da tabela "obras".
+     * empresa
+     * local_obra
+     * concelho
      *
-     * Apenas numero_obra é necessário guardar em "pedidos".
+     * já não são guardados na tabela pedidos.
+     *
+     * São obtidos sempre através de obras.
      */
+
     const CAMPOS_GUARDAVEIS = [
         "tecnico",
         "data_hora_pedido",
@@ -467,9 +435,10 @@
     ];
 
 
-    /* =========================================================
-       SNAPSHOT
-    ========================================================= */
+    let idsAlterados = new Set();
+
+    let dadosOriginais = {};
+
 
     function guardarSnapshot(dados) {
 
@@ -499,116 +468,72 @@
 
         if (!original) return true;
 
-        return CAMPOS_GUARDAVEIS.some(campo => {
-
-            return (
-                (item[campo] ?? null) !==
-                (original[campo] ?? null)
-            );
-
-        });
+        return CAMPOS_GUARDAVEIS.some(campo =>
+            (item[campo] ?? null) !==
+            (original[campo] ?? null)
+        );
     }
 
 
-    /* =========================================================
-       CONTADOR
-    ========================================================= */
+    /*
+     * ============================================================
+     * APLICAR DADOS DA OBRA
+     * ============================================================
+     */
 
-    function atualizarContador() {
+    function aplicarDadosDaObra(pedido) {
 
-        if (table) {
+        const numeroObra =
+            pedido.numero_obra;
 
-            const contagem =
-                table.getRows("active").length;
+        if (!numeroObra) {
 
-            document.getElementById(
-                "contador-pedidos"
-            ).innerText =
-                "(" + contagem + ")";
+            pedido.local_obra = "";
+            pedido.empresa = "";
+            pedido.concelho = "";
+
+            return pedido;
+        }
+
+
+        const obra =
+            mapaObras[String(numeroObra)];
+
+
+        if (obra) {
+
+            pedido.local_obra =
+                obra.local_obra || "";
+
+            pedido.empresa =
+                obra.empresa || "";
+
+            pedido.concelho =
+                obra.concelho || "";
+
+        } else {
+
+            /*
+             * Se o numero_obra existir no pedido mas já não
+             * existir em obras, não inventamos informação.
+             */
+
+            pedido.local_obra = "";
+            pedido.empresa = "";
+            pedido.concelho = "";
 
         }
 
+
+        return pedido;
     }
 
 
-    /* =========================================================
-       DATAS
-    ========================================================= */
-
-    const dataFormatter = (cell) => {
-
-        const val =
-            cell.getValue();
-
-        if (!val) return "";
-
-        const data =
-            new Date(val);
-
-        return (
-            ("0" + data.getDate()).slice(-2)
-            + "/"
-            + ("0" + (data.getMonth() + 1)).slice(-2)
-            + "/"
-            + data.getFullYear()
-            + " "
-            + ("0" + data.getHours()).slice(-2)
-            + ":"
-            + ("0" + data.getMinutes()).slice(-2)
-        );
-
-    };
-
-
-    const dateEditor = function(
-        cell,
-        onRendered,
-        success,
-        cancel
-    ) {
-
-        const input =
-            document.createElement("input");
-
-        input.style.width = "100%";
-
-        input.value =
-            cell.getValue() || "";
-
-        onRendered(function() {
-
-            input.focus();
-
-            flatpickr(input, {
-
-                enableTime: true,
-
-                dateFormat: "Y-m-d H:i",
-
-                time_24hr: true,
-
-                locale: "pt",
-
-                onClose: function(
-                    selectedDates,
-                    dateStr
-                ) {
-
-                    success(dateStr);
-
-                }
-
-            });
-
-        });
-
-        return input;
-    };
-
-
-    /* =========================================================
-       OBRAS
-    ========================================================= */
+    /*
+     * ============================================================
+     * CARREGAR OBRAS
+     * ============================================================
+     */
 
     async function carregarObras() {
 
@@ -620,9 +545,10 @@
             .select(
                 'id, local_obra, numero_obra, empresa, concelho'
             )
-            .order('numero_obra', {
-                ascending: true
-            });
+            .order(
+                'numero_obra',
+                { ascending: true }
+            );
 
 
         if (error) {
@@ -636,23 +562,17 @@
                 "Não foi possível carregar a tabela de obras."
             );
 
-            return;
-
+            return false;
         }
 
 
-        listaObras =
-            data || [];
+        listaObras = data || [];
 
         mapaObras = {};
 
 
         listaObras.forEach(obra => {
 
-            /*
-             * numero_obra é UNIQUE na tabela obras,
-             * portanto pode ser usado como chave.
-             */
             mapaObras[
                 String(obra.numero_obra)
             ] = obra;
@@ -660,118 +580,119 @@
         });
 
 
-        console.log(
-            "Obras carregadas:",
-            listaObras.length
-        );
-
+        return true;
     }
 
 
     /*
-     * Obtém os dados da obra através do número da obra.
+     * ============================================================
+     * CONTADOR
+     * ============================================================
      */
-    function obterDadosObra(numeroObra) {
 
-        if (
-            numeroObra === null ||
-            numeroObra === undefined ||
-            numeroObra === ""
-        ) {
+    function atualizarContador() {
 
-            return {
-                local_obra: "",
-                numero_obra: "",
-                empresa: "",
-                concelho: ""
-            };
+        if (!table) return;
 
-        }
+        const contagem =
+            table.getRows("active").length;
+
+        document.getElementById(
+            "contador-pedidos"
+        ).innerText =
+            "(" + contagem + ")";
+    }
 
 
-        const obra =
-            mapaObras[String(numeroObra)];
+    /*
+     * ============================================================
+     * FORMATADOR DE DATA
+     * ============================================================
+     */
+
+    const dataFormatter = (cell) => {
+
+        const val =
+            cell.getValue();
+
+        if (!val) return "";
+
+        const data =
+            new Date(val);
+
+        return (
+            ("0" + data.getDate()).slice(-2)
+            + "/" +
+            ("0" + (data.getMonth() + 1)).slice(-2)
+            + "/" +
+            data.getFullYear()
+            + " " +
+            ("0" + data.getHours()).slice(-2)
+            + ":" +
+            ("0" + data.getMinutes()).slice(-2)
+        );
+    };
 
 
-        if (!obra) {
+    /*
+     * ============================================================
+     * EDITOR DE DATA
+     * ============================================================
+     */
 
-            return {
-                local_obra: "",
-                numero_obra: numeroObra,
-                empresa: "",
-                concelho: ""
-            };
+    const dateEditor =
+        function(cell, onRendered, success, cancel) {
 
-        }
+            const input =
+                document.createElement("input");
+
+            input.style.width = "100%";
+
+            input.value =
+                cell.getValue() || "";
 
 
-        return {
+            onRendered(function() {
 
-            local_obra:
-                obra.local_obra || "",
+                input.focus();
 
-            numero_obra:
-                obra.numero_obra || "",
+                flatpickr(input, {
 
-            empresa:
-                obra.empresa || "",
+                    enableTime: true,
 
-            concelho:
-                obra.concelho || ""
+                    dateFormat:
+                        "Y-m-d H:i",
 
+                    time_24hr: true,
+
+                    locale: "pt",
+
+                    onClose: (
+                        selectedDates,
+                        dateStr
+                    ) => {
+
+                        success(dateStr);
+
+                    }
+
+                });
+
+            });
+
+
+            return input;
         };
 
-    }
+
+    let calendario = null;
 
 
     /*
-     * Quando o numero_obra é alterado na tabela,
-     * actualizar imediatamente os restantes campos
-     * provenientes de "obras".
+     * ============================================================
+     * COR POR IMPORTÂNCIA
+     * ============================================================
      */
-    function atualizarDadosDaObraNaLinha(row) {
-
-        const dados =
-            row.getData();
-
-        const obra =
-            obterDadosObra(
-                dados.numero_obra
-            );
-
-
-        /*
-         * Os valores ficam dentro da linha para:
-         *
-         * - pesquisa
-         * - calendário
-         * - modal
-         * - visualização
-         *
-         * mas não são campos independentes da BD.
-         */
-        row.update({
-
-            numero_obra:
-                obra.numero_obra,
-
-            local_obra:
-                obra.local_obra,
-
-            empresa:
-                obra.empresa,
-
-            concelho:
-                obra.concelho
-
-        });
-
-    }
-
-
-    /* =========================================================
-       IMPORTÂNCIA / CORES
-    ========================================================= */
 
     function corPorImportancia(row) {
 
@@ -788,13 +709,14 @@
             return "#22c55e";
 
         return "#0ea5e9";
-
     }
 
 
-    /* =========================================================
-       MODAL ATIVIDADES
-    ========================================================= */
+    /*
+     * ============================================================
+     * MODAL ATIVIDADES
+     * ============================================================
+     */
 
     function abrirModalAtividades(pedidoId) {
 
@@ -805,8 +727,7 @@
         document.getElementById(
             'modal-atividades-titulo'
         ).innerText =
-            '📊 Atividades — Pedido #' +
-            pedidoId;
+            '📊 Atividades — Pedido #' + pedidoId;
 
 
         document.getElementById(
@@ -825,18 +746,15 @@
 
 
                 return `
-                    <p
-                        style="
-                            margin-left:6px;
-                            border-left:3px solid #0ea5e9;
-                            padding-left:8px;
-                            margin-bottom:8px;
-                        "
-                    >
+                    <p style="
+                        margin-left:6px;
+                        border-left:3px solid #0ea5e9;
+                        padding-left:8px;
+                        margin-bottom:8px;
+                    ">
                         <strong>${dataTexto}</strong><br>
                         ${a.tecnico || 'Sem técnico'}
-                        —
-                        ${a.servico || ''}
+                        — ${a.servico || ''}
                     </p>
                 `;
 
@@ -849,7 +767,6 @@
 
         document.body.style.overflow =
             'hidden';
-
     }
 
 
@@ -860,7 +777,6 @@
         ).classList.remove('aberta');
 
         document.body.style.overflow = '';
-
     }
 
 
@@ -870,17 +786,16 @@
             e.target.id ===
             'modal-atividades'
         ) {
-
             fecharModalAtividades();
-
         }
-
     }
 
 
-    /* =========================================================
-       MODAL OCORRÊNCIAS
-    ========================================================= */
+    /*
+     * ============================================================
+     * MODAL OCORRÊNCIAS
+     * ============================================================
+     */
 
     function abrirModalOcorrencias(pedidoId) {
 
@@ -891,8 +806,7 @@
         document.getElementById(
             'modal-ocorrencias-titulo'
         ).innerText =
-            '🚨 Ocorrências — Pedido #' +
-            pedidoId;
+            '🚨 Ocorrências — Pedido #' + pedidoId;
 
 
         document.getElementById(
@@ -911,14 +825,12 @@
 
 
                 return `
-                    <p
-                        style="
-                            margin-left:6px;
-                            border-left:3px solid #a855f7;
-                            padding-left:8px;
-                            margin-bottom:8px;
-                        "
-                    >
+                    <p style="
+                        margin-left:6px;
+                        border-left:3px solid #a855f7;
+                        padding-left:8px;
+                        margin-bottom:8px;
+                    ">
                         <strong>${dataTexto}:</strong>
                         ${o.ocorrencia || ''}
                     </p>
@@ -933,7 +845,6 @@
 
         document.body.style.overflow =
             'hidden';
-
     }
 
 
@@ -944,7 +855,6 @@
         ).classList.remove('aberta');
 
         document.body.style.overflow = '';
-
     }
 
 
@@ -954,34 +864,31 @@
             e.target.id ===
             'modal-ocorrencias'
         ) {
-
             fecharModalOcorrencias();
-
         }
-
     }
 
 
-    /* =========================================================
-       CALENDÁRIO
-    ========================================================= */
+    /*
+     * ============================================================
+     * CALENDÁRIO
+     * ============================================================
+     */
 
     function renderizarCalendario(dados) {
 
         const eventos =
-
             dados
-
                 .filter(row =>
                     row.data_hora_pedido
                 )
-
                 .map(row => ({
 
                     id: row.id,
 
                     title:
-                        (row.tecnico || 'Sem técnico')
+                        (row.tecnico ||
+                            'Sem técnico')
                         +
                         (
                             row.local_obra
@@ -1023,7 +930,6 @@
             );
 
             return;
-
         }
 
 
@@ -1041,7 +947,8 @@
                     initialView:
                         'dayGridMonth',
 
-                    displayEventTime: true,
+                    displayEventTime:
+                        true,
 
                     eventTimeFormat: {
 
@@ -1084,19 +991,18 @@
                                 if (!tbody)
                                     return;
 
-
-                                Array.from(
-                                    tbody.children
-                                )
-                                .reverse()
-                                .forEach(el =>
-                                    tbody.appendChild(el)
-                                );
+                                Array
+                                    .from(
+                                        tbody.children
+                                    )
+                                    .reverse()
+                                    .forEach(
+                                        el =>
+                                            tbody.appendChild(el)
+                                    );
 
                             }, 0);
-
                         }
-
                     },
 
 
@@ -1111,10 +1017,8 @@
                             if (!hora)
                                 return;
 
-
                             let texto =
                                 hora.textContent.trim();
-
 
                             if (
                                 texto.endsWith(":00")
@@ -1133,13 +1037,10 @@
                                         ":",
                                         "h"
                                     );
-
                             }
-
 
                             hora.textContent =
                                 texto;
-
                         },
 
 
@@ -1164,100 +1065,81 @@
 
                             document.getElementById(
                                 'modal-evento-corpo'
-                            ).innerHTML = `
+                            ).innerHTML =
 
-                                <p>
-                                    <strong>Estado:</strong>
-                                    ${row.estado || '—'}
-                                </p>
+                                '<p><strong>Estado:</strong> ' +
+                                (row.estado || '—') +
+                                '</p>' +
 
-                                <p>
-                                    <strong>Importância:</strong>
-                                    ${row.importancia || '—'}
-                                </p>
+                                '<p><strong>Importância:</strong> ' +
+                                (row.importancia || '—') +
+                                '</p>' +
 
-                                <p>
-                                    <strong>Data Pedido:</strong>
-                                    ${dataFormatter({
-                                        getValue: () =>
-                                            row.data_hora_pedido
-                                    })}
-                                </p>
+                                '<p><strong>Data Pedido:</strong> ' +
+                                dataFormatter({
+                                    getValue: () =>
+                                        row.data_hora_pedido
+                                }) +
+                                '</p>' +
 
-                                <p>
-                                    <strong>Limite:</strong>
-                                    ${dataFormatter({
-                                        getValue: () =>
-                                            row.data_hora_limite
-                                    })}
-                                </p>
+                                '<p><strong>Limite:</strong> ' +
+                                dataFormatter({
+                                    getValue: () =>
+                                        row.data_hora_limite
+                                }) +
+                                '</p>' +
 
-                                <p>
-                                    <strong>Requerente:</strong>
-                                    ${row.requerente || '—'}
-                                </p>
+                                '<p><strong>Requerente:</strong> ' +
+                                (row.requerente || '—') +
+                                '</p>' +
 
-                                <p>
-                                    <strong>Empresa:</strong>
-                                    ${row.empresa || '—'}
-                                </p>
+                                '<p><strong>Empresa:</strong> ' +
+                                (row.empresa || '—') +
+                                '</p>' +
 
-                                <p>
-                                    <strong>Via:</strong>
-                                    ${row.via || '—'}
-                                </p>
+                                '<p><strong>Via:</strong> ' +
+                                (row.via || '—') +
+                                '</p>' +
 
-                                <p>
-                                    <strong>Local/Obra:</strong>
-                                    ${row.local_obra || '—'}
-                                </p>
+                                '<p><strong>Local/Obra:</strong> ' +
+                                (row.local_obra || '—') +
+                                '</p>' +
 
-                                <p>
-                                    <strong>Nº Obra:</strong>
-                                    ${row.numero_obra || '—'}
-                                </p>
+                                '<p><strong>Nº Obra:</strong> ' +
+                                (row.numero_obra || '—') +
+                                '</p>' +
 
-                                <p>
-                                    <strong>Concelho:</strong>
-                                    ${row.concelho || '—'}
-                                </p>
+                                '<p><strong>Concelho:</strong> ' +
+                                (row.concelho || '—') +
+                                '</p>' +
 
-                                <p>
-                                    <strong>Serviço:</strong>
-                                    ${row.servico || '—'}
-                                </p>
+                                '<p><strong>Serviço:</strong> ' +
+                                (row.servico || '—') +
+                                '</p>' +
 
-                                <p>
-                                    <strong>Tipo:</strong>
-                                    ${row.tipo_trabalho || '—'}
-                                </p>
+                                '<p><strong>Tipo:</strong> ' +
+                                (row.tipo_trabalho || '—') +
+                                '</p>' +
 
-                                <p>
-                                    <strong>Freq:</strong>
-                                    ${row.frequencia || '—'}
-                                </p>
+                                '<p><strong>Freq:</strong> ' +
+                                (row.frequencia || '—') +
+                                '</p>' +
 
-                                ${
+                                (
                                     row.observacao
-                                        ? `
-                                            <p>
-                                                <strong>Obs:</strong>
-                                                ${row.observacao}
-                                            </p>
-                                          `
+                                        ? '<p><strong>Obs:</strong> ' +
+                                          row.observacao +
+                                          '</p>'
                                         : ''
-                                }
+                                ) +
 
-                                <p>
-                                    <a
-                                        class="link-anexo"
-                                        href="registo_atividade.html?pedido=${row.id}"
-                                    >
-                                        ➕ Criar atividade associada a este pedido
-                                    </a>
-                                </p>
-
-                            `;
+                                '<p>' +
+                                '<a class="link-anexo" href="registo_atividade.html?pedido=' +
+                                row.id +
+                                '">' +
+                                '➕ Criar atividade associada a este pedido' +
+                                '</a>' +
+                                '</p>';
 
 
                             document.getElementById(
@@ -1266,22 +1148,14 @@
 
                             document.body.style.overflow =
                                 'hidden';
-
                         }
-
                 }
-
             );
 
 
         calendario.render();
-
     }
 
-
-    /* =========================================================
-       MODAL EVENTO
-    ========================================================= */
 
     function fecharModalEvento() {
 
@@ -1290,7 +1164,6 @@
         ).classList.remove('aberta');
 
         document.body.style.overflow = '';
-
     }
 
 
@@ -1300,11 +1173,8 @@
             e.target.id ===
             'modal-evento'
         ) {
-
             fecharModalEvento();
-
         }
-
     }
 
 
@@ -1319,22 +1189,20 @@
                 fecharModalAtividades();
 
                 fecharModalOcorrencias();
-
             }
 
         }
     );
 
 
-    /* =========================================================
-       CARREGAR DADOS
-    ========================================================= */
+    /*
+     * ============================================================
+     * CARREGAR DADOS
+     * ============================================================
+     */
 
     async function carregarDados() {
 
-        /*
-         * Primeiro verifica sessão.
-         */
         const {
             data: {
                 session
@@ -1349,7 +1217,6 @@
                 'login.html';
 
             return;
-
         }
 
 
@@ -1361,16 +1228,20 @@
 
         /*
          * Primeiro carregamos as obras.
-         *
-         * É importante fazê-lo ANTES dos pedidos,
-         * porque os pedidos vão buscar os dados da obra.
          */
-        await carregarObras();
+
+        const obrasCarregadas =
+            await carregarObras();
+
+
+        if (!obrasCarregadas)
+            return;
 
 
         /*
-         * Carregar pedidos.
+         * Depois carregamos os pedidos.
          */
+
         const {
             data,
             error
@@ -1378,9 +1249,12 @@
             await sbClient
                 .from('pedidos')
                 .select('*')
-                .order('id', {
-                    ascending: false
-                });
+                .order(
+                    'id',
+                    {
+                        ascending: false
+                    }
+                );
 
 
         if (error) {
@@ -1395,48 +1269,32 @@
             );
 
             return;
-
         }
 
 
         /*
-         * Substituir os dados de obra pelos dados
-         * actuais da tabela "obras".
-         *
-         * Isto garante que mesmo que pedidos tenha
-         * informação antiga nesses campos, a interface
-         * apresenta sempre a informação actual de "obras".
+         * Aplicar os dados da tabela obras.
          */
+
         data.forEach(pedido => {
 
-            const obra =
-                obterDadosObra(
-                    pedido.numero_obra
-                );
-
-
-            pedido.local_obra =
-                obra.local_obra;
-
-            pedido.empresa =
-                obra.empresa;
-
-            pedido.concelho =
-                obra.concelho;
-
-            pedido.numero_obra =
-                obra.numero_obra ||
-                pedido.numero_obra;
+            aplicarDadosDaObra(
+                pedido
+            );
 
         });
 
 
-        /* =====================================================
-           ATIVIDADES
-        ===================================================== */
+        /*
+         * ========================================================
+         * ATIVIDADES
+         * ========================================================
+         */
 
         const pedidosIds =
-            data.map(p => p.id);
+            data.map(
+                p => p.id
+            );
 
 
         mapaAtividadesPorPedido = {};
@@ -1470,39 +1328,47 @@
 
             } else {
 
-                (atividadesData || [])
-                    .forEach(a => {
+                (
+                    atividadesData || []
+                ).forEach(a => {
 
-                        if (
-                            !mapaAtividadesPorPedido[
-                                a.pedido_id
-                            ]
-                        ) {
-
-                            mapaAtividadesPorPedido[
-                                a.pedido_id
-                            ] = [];
-
-                        }
-
+                    if (
+                        !mapaAtividadesPorPedido[
+                            a.pedido_id
+                        ]
+                    ) {
 
                         mapaAtividadesPorPedido[
                             a.pedido_id
-                        ].push(a);
+                        ] = [];
 
-                    });
+                    }
+
+
+                    mapaAtividadesPorPedido[
+                        a.pedido_id
+                    ].push(a);
+
+                });
 
 
                 /*
-                 * Ocorrências
+                 * ====================================================
+                 * OCORRÊNCIAS
+                 * ====================================================
                  */
+
                 const atividadesIds =
-                    atividadesData.map(
+                    (
+                        atividadesData || []
+                    ).map(
                         a => a.id
                     );
 
 
-                if (atividadesIds.length > 0) {
+                if (
+                    atividadesIds.length > 0
+                ) {
 
                     const {
                         data: ocorrenciasData,
@@ -1528,10 +1394,13 @@
 
                     } else {
 
-                        const atividadeParaPedido = {};
+                        const atividadeParaPedido =
+                            {};
 
 
-                        atividadesData.forEach(a => {
+                        (
+                            atividadesData || []
+                        ).forEach(a => {
 
                             atividadeParaPedido[
                                 a.id
@@ -1541,37 +1410,38 @@
                         });
 
 
-                        (ocorrenciasData || [])
-                            .forEach(o => {
+                        (
+                            ocorrenciasData || []
+                        ).forEach(o => {
 
-                                const pedidoId =
-                                    atividadeParaPedido[
-                                        o.atividade_id
-                                    ];
+                            const pedidoId =
+                                atividadeParaPedido[
+                                    o.atividade_id
+                                ];
 
 
-                                if (pedidoId) {
+                            if (pedidoId) {
 
-                                    if (
-                                        !mapaOcorrenciasPorPedido[
-                                            pedidoId
-                                        ]
-                                    ) {
-
-                                        mapaOcorrenciasPorPedido[
-                                            pedidoId
-                                        ] = [];
-
-                                    }
-
+                                if (
+                                    !mapaOcorrenciasPorPedido[
+                                        pedidoId
+                                    ]
+                                ) {
 
                                     mapaOcorrenciasPorPedido[
                                         pedidoId
-                                    ].push(o);
+                                    ] = [];
 
                                 }
 
-                            });
+
+                                mapaOcorrenciasPorPedido[
+                                    pedidoId
+                                ].push(o);
+
+                            }
+
+                        });
 
                     }
 
@@ -1582,23 +1452,25 @@
         }
 
 
-        /* =====================================================
-           CONTADORES
-        ===================================================== */
+        /*
+         * Contadores.
+         */
 
         data.forEach(p => {
 
             p.atividades_count =
                 (
-                    mapaAtividadesPorPedido[p.id] ||
-                    []
+                    mapaAtividadesPorPedido[
+                        p.id
+                    ] || []
                 ).length;
 
 
             p.ocorrencias_count =
                 (
-                    mapaOcorrenciasPorPedido[p.id] ||
-                    []
+                    mapaOcorrenciasPorPedido[
+                        p.id
+                    ] || []
                 ).length;
 
         });
@@ -1607,9 +1479,11 @@
         guardarSnapshot(data);
 
 
-        /* =====================================================
-           TABULATOR
-        ===================================================== */
+        /*
+         * ============================================================
+         * TABULATOR
+         * ============================================================
+         */
 
         table =
             new Tabulator(
@@ -1631,40 +1505,66 @@
                     cellEdited:
                         function(cell) {
 
-                            const row =
-                                cell.getRow();
-
-                            const field =
-                                cell.getField();
+                            idsAlterados.add(
+                                cell
+                                    .getRow()
+                                    .getData()
+                                    .id
+                            );
 
 
                             /*
-                             * Se o utilizador alterar o
-                             * N.º Obra, buscar imediatamente
-                             * os restantes dados à tabela obras.
+                             * Se o utilizador alterar o Nº Obra,
+                             * atualizamos automaticamente os
+                             * campos provenientes da tabela obras.
                              */
+
                             if (
-                                field ===
+                                cell.getField() ===
                                 "numero_obra"
                             ) {
 
-                                atualizarDadosDaObraNaLinha(
-                                    row
+                                const row =
+                                    cell.getRow();
+
+                                const dados =
+                                    row.getData();
+
+                                aplicarDadosDaObra(
+                                    dados
+                                );
+
+
+                                /*
+                                 * Atualizar visualmente a linha.
+                                 */
+
+                                row.update({
+
+                                    empresa:
+                                        dados.empresa,
+
+                                    local_obra:
+                                        dados.local_obra,
+
+                                    concelho:
+                                        dados.concelho
+
+                                });
+
+
+                                /*
+                                 * Atualizar calendário.
+                                 */
+
+                                renderizarCalendario(
+                                    table.getData()
                                 );
 
                             }
 
 
-                            idsAlterados.add(
-                                row.getData().id
-                            );
-
-
                             aplicarFiltros();
-
-                            renderizarCalendario(
-                                table.getData()
-                            );
 
                         },
 
@@ -1699,9 +1599,7 @@
                                 el.style.backgroundColor =
                                     "#334155";
 
-                            }
-
-                            else if (
+                            } else if (
                                 data.importancia ===
                                 "Alta"
                             ) {
@@ -1709,9 +1607,7 @@
                                 el.style.backgroundColor =
                                     "rgba(239, 68, 68, 0.2)";
 
-                            }
-
-                            else if (
+                            } else if (
                                 data.importancia ===
                                 "Média"
                             ) {
@@ -1719,22 +1615,25 @@
                                 el.style.backgroundColor =
                                     "rgba(234, 179, 8, 0.2)";
 
-                            }
-
-                            else if (
+                            } else if (
                                 data.importancia ===
                                 "Baixa"
                             ) {
 
                                 el.style.backgroundColor =
                                     "rgba(34, 197, 94, 0.2)";
-
                             }
 
                         },
 
 
                     columns: [
+
+                        /*
+                         * ====================================================
+                         * TÉCNICO
+                         * ====================================================
+                         */
 
                         {
                             title: "Técnico",
@@ -1743,6 +1642,12 @@
                             editor: "input"
                         },
 
+
+                        /*
+                         * ====================================================
+                         * DATA PEDIDO
+                         * ====================================================
+                         */
 
                         {
                             title: "Data Pedido",
@@ -1753,6 +1658,12 @@
                         },
 
 
+                        /*
+                         * ====================================================
+                         * REQUERENTE
+                         * ====================================================
+                         */
+
                         {
                             title: "Requerente",
                             field: "requerente",
@@ -1762,20 +1673,27 @@
 
 
                         /*
-                         * =================================================
+                         * ====================================================
                          * EMPRESA
-                         * Vem da tabela OBRAS.
-                         * Não é editável aqui.
-                         * =================================================
+                         *
+                         * AGORA VEM DA TABELA OBRAS
+                         * ====================================================
                          */
+
                         {
-                            title: "Empresa",
+                            title: "Empresa 🏗️",
                             field: "empresa",
                             minWidth: 150,
-                            cssClass:
-                                "campo-obra-auto"
+                            cssClass: "campo-obra",
+                            editable: false
                         },
 
+
+                        /*
+                         * ====================================================
+                         * IMPORTÂNCIA
+                         * ====================================================
+                         */
 
                         {
                             title: "Importância❗",
@@ -1791,6 +1709,12 @@
                             }
                         },
 
+
+                        /*
+                         * ====================================================
+                         * VIA
+                         * ====================================================
+                         */
 
                         {
                             title: "Via",
@@ -1810,44 +1734,40 @@
 
 
                         /*
-                         * =================================================
+                         * ====================================================
                          * LOCAL / OBRA
-                         * Vem da tabela OBRAS.
-                         * Não é editável aqui.
-                         * =================================================
+                         *
+                         * VEM DA TABELA OBRAS
+                         * ====================================================
                          */
+
                         {
-                            title: "Local / Obra",
+                            title: "Local / Obra 🏗️",
                             field: "local_obra",
                             minWidth: 180,
-                            cssClass:
-                                "campo-obra-auto"
+                            cssClass: "campo-obra",
+                            editable: false
                         },
 
 
                         /*
-                         * =================================================
-                         * NÚMERO OBRA
+                         * ====================================================
+                         * Nº OBRA
                          *
-                         * Este é o único campo da obra que o utilizador
-                         * altera no histórico.
-                         *
-                         * Ao escolher outro número:
-                         * Empresa
-                         * Local
-                         * Concelho
-                         * são actualizados automaticamente.
-                         * =================================================
+                         * ESTE É O CAMPO DE LIGAÇÃO
+                         * ====================================================
                          */
+
                         {
-                            title: "Nº Obra",
+                            title: "Nº Obra 🏗️",
                             field: "numero_obra",
                             minWidth: 120,
                             editor: "list",
 
                             editorParams: function() {
 
-                                const valores = {};
+                                const valores =
+                                    {};
 
                                 listaObras.forEach(
                                     obra => {
@@ -1868,32 +1788,48 @@
                                 );
 
                                 return {
-                                    values: valores,
-                                    autocomplete: true,
-                                    listOnEmpty: true
+
+                                    values:
+                                        valores,
+
+                                    autocomplete:
+                                        true,
+
+                                    listOnEmpty:
+                                        true,
+
+                                    clearable:
+                                        true
+
                                 };
 
-                            },
+                            }
 
-                            cssClass:
-                                "campo-obra-auto"
                         },
 
 
                         /*
-                         * =================================================
+                         * ====================================================
                          * CONCELHO
-                         * Vem da tabela OBRAS.
-                         * =================================================
+                         *
+                         * VEM DA TABELA OBRAS
+                         * ====================================================
                          */
+
                         {
-                            title: "Concelho",
+                            title: "Concelho 🏗️",
                             field: "concelho",
                             minWidth: 140,
-                            cssClass:
-                                "campo-obra-auto"
+                            cssClass: "campo-obra",
+                            editable: false
                         },
 
+
+                        /*
+                         * ====================================================
+                         * SERVIÇO
+                         * ====================================================
+                         */
 
                         {
                             title: "Serviço",
@@ -1903,6 +1839,12 @@
                         },
 
 
+                        /*
+                         * ====================================================
+                         * OBSERVAÇÃO
+                         * ====================================================
+                         */
+
                         {
                             title: "Obs",
                             field: "observacao",
@@ -1911,11 +1853,18 @@
                         },
 
 
+                        /*
+                         * ====================================================
+                         * TIPO
+                         * ====================================================
+                         */
+
                         {
                             title: "Tipo",
                             field: "tipo_trabalho",
                             minWidth: 160,
                             editor: "list",
+
                             editorParams: {
                                 values: [
                                     "Lev. Topográfico",
@@ -1927,11 +1876,18 @@
                         },
 
 
+                        /*
+                         * ====================================================
+                         * FREQUÊNCIA
+                         * ====================================================
+                         */
+
                         {
                             title: "Freq",
                             field: "frequencia",
                             minWidth: 120,
                             editor: "list",
+
                             editorParams: {
                                 values: [
                                     "Única",
@@ -1945,6 +1901,12 @@
                         },
 
 
+                        /*
+                         * ====================================================
+                         * LIMITE
+                         * ====================================================
+                         */
+
                         {
                             title: "Limite",
                             field: "data_hora_limite",
@@ -1954,11 +1916,18 @@
                         },
 
 
+                        /*
+                         * ====================================================
+                         * ESTADO
+                         * ====================================================
+                         */
+
                         {
                             title: "Estado",
                             field: "estado",
                             minWidth: 120,
                             editor: "list",
+
                             editorParams: {
                                 values: [
                                     "Pendente",
@@ -1967,6 +1936,12 @@
                             }
                         },
 
+
+                        /*
+                         * ====================================================
+                         * DATA CONCLUSÃO
+                         * ====================================================
+                         */
 
                         {
                             title: "Data Conclusão",
@@ -1978,10 +1953,11 @@
 
 
                         /*
-                         * =================================================
+                         * ====================================================
                          * ATIVIDADES
-                         * =================================================
+                         * ====================================================
                          */
+
                         {
                             title: "Atividades",
                             field: "atividades_count",
@@ -1990,7 +1966,8 @@
                                 function(cell) {
 
                                     const count =
-                                        cell.getValue() || 0;
+                                        cell.getValue()
+                                        || 0;
 
 
                                     if (count === 0) {
@@ -2007,8 +1984,7 @@
                                     return `
                                         <a
                                             class="link-anexo"
-                                            href="javascript:void(0)"
-                                        >
+                                            href="javascript:void(0)">
                                             📊 ${count}
                                         </a>
                                     `;
@@ -2017,7 +1993,9 @@
 
                             width: 100,
 
-                            hozAlign: "center",
+                            hozAlign:
+                                "center",
+
 
                             cellClick:
                                 function(e, cell) {
@@ -2049,10 +2027,11 @@
 
 
                         /*
-                         * =================================================
+                         * ====================================================
                          * OCORRÊNCIAS
-                         * =================================================
+                         * ====================================================
                          */
+
                         {
                             title: "Ocorrências",
                             field: "ocorrencias_count",
@@ -2061,7 +2040,8 @@
                                 function(cell) {
 
                                     const count =
-                                        cell.getValue() || 0;
+                                        cell.getValue()
+                                        || 0;
 
 
                                     if (count === 0) {
@@ -2078,8 +2058,7 @@
                                     return `
                                         <a
                                             class="link-anexo"
-                                            href="javascript:void(0)"
-                                        >
+                                            href="javascript:void(0)">
                                             🚨 ${count}
                                         </a>
                                     `;
@@ -2088,7 +2067,9 @@
 
                             width: 110,
 
-                            hozAlign: "center",
+                            hozAlign:
+                                "center",
+
 
                             cellClick:
                                 function(e, cell) {
@@ -2120,10 +2101,11 @@
 
 
                         /*
-                         * =================================================
+                         * ====================================================
                          * AÇÕES
-                         * =================================================
+                         * ====================================================
                          */
+
                         {
                             title: "Ações",
 
@@ -2150,10 +2132,10 @@
                                                 margin-right:4px;
                                                 cursor:pointer;
                                                 font-size:11px;
-                                            "
-                                        >
+                                            ">
                                             ➕ Atividade
                                         </button>
+
 
                                         <button
                                             class="btn-apagar"
@@ -2165,8 +2147,7 @@
                                                 border-radius:3px;
                                                 cursor:pointer;
                                                 font-size:11px;
-                                            "
-                                        >
+                                            ">
                                             ❌
                                         </button>
 
@@ -2176,7 +2157,9 @@
 
                             width: 140,
 
-                            hozAlign: "center",
+                            hozAlign:
+                                "center",
+
 
                             cellClick:
                                 function(e, cell) {
@@ -2184,6 +2167,7 @@
                                     /*
                                      * APAGAR
                                      */
+
                                     if (
                                         e.target.classList.contains(
                                             'btn-apagar'
@@ -2192,7 +2176,7 @@
 
                                         if (
                                             confirm(
-                                                "Apagar este pedido?"
+                                                "Apagar?"
                                             )
                                         ) {
 
@@ -2211,14 +2195,14 @@
                                                     id
                                                 )
                                                 .then(
-                                                    function(result) {
+                                                    ({
+                                                        error
+                                                    }) => {
 
-                                                        if (
-                                                            result.error
-                                                        ) {
+                                                        if (error) {
 
                                                             console.error(
-                                                                result.error
+                                                                error
                                                             );
 
                                                             alert(
@@ -2226,7 +2210,6 @@
                                                             );
 
                                                             return;
-
                                                         }
 
 
@@ -2255,8 +2238,9 @@
 
 
                                     /*
-                                     * ATIVIDADE
+                                     * CRIAR ATIVIDADE
                                      */
+
                                     else if (
                                         e.target.classList.contains(
                                             'btn-atividade'
@@ -2288,7 +2272,7 @@
 
         table.on(
             "tableBuilt",
-            function() {
+            () => {
 
                 aplicarFiltros();
 
@@ -2308,17 +2292,19 @@
                 "keyup",
                 aplicarFiltros
             );
-
     }
 
 
-    /* =========================================================
-       FILTROS
-    ========================================================= */
+    /*
+     * ============================================================
+     * FILTROS
+     * ============================================================
+     */
 
     function aplicarFiltros() {
 
-        if (!table) return;
+        if (!table)
+            return;
 
 
         const input =
@@ -2334,8 +2320,7 @@
             function(data) {
 
                 const matchTexto =
-                    Object
-                        .values(data)
+                    Object.values(data)
                         .some(
                             val =>
                                 String(val)
@@ -2365,13 +2350,14 @@
             atualizarContador,
             50
         );
-
     }
 
 
-    /* =========================================================
-       CONCLUÍDOS
-    ========================================================= */
+    /*
+     * ============================================================
+     * MOSTRAR / OCULTAR CONCLUÍDOS
+     * ============================================================
+     */
 
     function toggleConcluidos() {
 
@@ -2392,26 +2378,19 @@
 
 
         aplicarFiltros();
-
     }
 
 
-    /* =========================================================
-       GUARDAR ALTERAÇÕES
-    ========================================================= */
+    /*
+     * ============================================================
+     * GUARDAR ALTERAÇÕES
+     * ============================================================
+     */
 
     async function guardarAlteracoes() {
 
-        /*
-         * Fecha qualquer editor aberto.
-         */
-        if (
-            document.activeElement
-        ) {
-
+        document.activeElement &&
             document.activeElement.blur();
-
-        }
 
 
         const dados =
@@ -2435,7 +2414,6 @@
             );
 
             return;
-
         }
 
 
@@ -2458,21 +2436,16 @@
         try {
 
             /*
-             * =====================================================
-             * IMPORTANTE
+             * Só enviamos para pedidos os campos que
+             * pertencem realmente a pedidos.
              *
-             * Já NÃO enviamos:
+             * NÃO enviamos:
              *
              * empresa
              * local_obra
              * concelho
              *
-             * para pedidos.
-             *
-             * Esses dados vêm exclusivamente da tabela obras.
-             *
-             * Apenas numero_obra é guardado no pedido.
-             * =====================================================
+             * porque esses dados pertencem à tabela obras.
              */
 
             const resultados =
@@ -2529,7 +2502,6 @@
                                     'id',
                                     item.id
                                 )
-
                     )
 
                 );
@@ -2548,26 +2520,24 @@
                     algumErro.error
                 );
 
+
                 alert(
                     "Ocorreu um erro ao guardar algumas alterações. Verifique a consola."
                 );
 
                 return;
-
             }
 
 
-            alert(
-                "Guardado com sucesso!"
-            );
-
+            /*
+             * ========================================================
+             * RECARREGAR TUDO
+             * ========================================================
+             */
 
             idsAlterados.clear();
 
 
-            /*
-             * Recarregar pedidos.
-             */
             const {
                 data: novosDados,
                 error: erroReload
@@ -2575,9 +2545,12 @@
                 await sbClient
                     .from('pedidos')
                     .select('*')
-                    .order('id', {
-                        ascending: false
-                    });
+                    .order(
+                        'id',
+                        {
+                            ascending: false
+                        }
+                    );
 
 
             if (erroReload) {
@@ -2586,52 +2559,41 @@
                     erroReload
                 );
 
-                return;
+                alert(
+                    "Alterações guardadas, mas ocorreu um erro ao atualizar a tabela."
+                );
 
+                return;
             }
 
 
             /*
-             * Voltar a aplicar os dados actuais das obras.
+             * Voltar a aplicar dados das obras.
              */
-            novosDados.forEach(pedido => {
 
-                const obra =
-                    obterDadosObra(
-                        pedido.numero_obra
-                    );
+            novosDados.forEach(
+                p => {
 
-
-                pedido.local_obra =
-                    obra.local_obra;
-
-                pedido.empresa =
-                    obra.empresa;
-
-                pedido.concelho =
-                    obra.concelho;
-
-                pedido.numero_obra =
-                    obra.numero_obra ||
-                    pedido.numero_obra;
+                    aplicarDadosDaObra(p);
 
 
-                pedido.atividades_count =
-                    (
-                        mapaAtividadesPorPedido[
-                            pedido.id
-                        ] || []
-                    ).length;
+                    p.atividades_count =
+                        (
+                            mapaAtividadesPorPedido[
+                                p.id
+                            ] || []
+                        ).length;
 
 
-                pedido.ocorrencias_count =
-                    (
-                        mapaOcorrenciasPorPedido[
-                            pedido.id
-                        ] || []
-                    ).length;
+                    p.ocorrencias_count =
+                        (
+                            mapaOcorrenciasPorPedido[
+                                p.id
+                            ] || []
+                        ).length;
 
-            });
+                }
+            );
 
 
             guardarSnapshot(
@@ -2646,13 +2608,17 @@
 
             aplicarFiltros();
 
+
             renderizarCalendario(
                 novosDados
             );
 
-        }
 
-        finally {
+            alert(
+                "Guardado com sucesso!"
+            );
+
+        } finally {
 
             btn.disabled = false;
 
@@ -2664,9 +2630,11 @@
     }
 
 
-    /* =========================================================
-       INICIAR
-    ========================================================= */
+    /*
+     * ============================================================
+     * INICIALIZAÇÃO
+     * ============================================================
+     */
 
     carregarDados();
 
