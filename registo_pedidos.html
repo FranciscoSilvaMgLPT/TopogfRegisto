@@ -440,11 +440,11 @@
 
         if (error) throw error;
 
-        (obras || []).forEach(obra => {
+           (obras || []).forEach(obra => {
           const option = document.createElement('option');
           option.value = obra.id;
-          const numero = obra.numero_obra ? ` — Nº ${obra.numero_obra}` : '';
-          const empresa = obra.empresa ? ` (${obra.empresa})` : '';
+          const numero = obra.numero_obra ? ` (${obra.numero_obra})` : '';
+          const empresa = obra.empresa ? ` ${obra.empresa}` : '';
           option.textContent = `${obra.local_obra}${numero}${empresa}`;
           selectObra.appendChild(option);
         });
