@@ -1947,44 +1947,6 @@
 
     }
 
-
-    /* =====================================================
-       AUTENTICAÇÃO
-    ===================================================== */
-
-    supabaseClient
-        .auth
-        .onAuthStateChange(
-            function (
-                event,
-                session
-            ) {
-
-                if (
-                    !session &&
-                    event !==
-                    'INITIAL_SESSION'
-                ) {
-
-                    window.location.href =
-                        'index.html';
-
-                    return;
-
-                }
-
-
-                if (session) {
-
-                    mostrarUtilizador(
-                        session.user
-                    );
-
-                }
-
-            }
-        );
-
 </script>
 
 </body>
