@@ -4,851 +4,499 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>🏗️ Registo de Obras</title>
 
-    <link rel="icon" type="image/png" href="favicon.png">
+<title>🏗️ Registo de Obras</title>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="icon" type="image/png" href="favicon.png">
 
-    <style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+        background: #0f172a;
+        min-height: 100vh;
+        padding: 20px;
+        color: #fff;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    /* =========================
+       CABEÇALHO
+    ========================= */
+
+    .header {
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 18px;
+        padding: 20px 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .header-left {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .header-icon {
+        font-size: 42px;
+    }
+
+    .header-title h1 {
+        font-size: 25px;
+        color: #fff;
+        margin-bottom: 4px;
+    }
+
+    .header-title p {
+        font-size: 14px;
+        color: #94a3b8;
+    }
+
+    .user-box {
+        background: #334155;
+        border-radius: 12px;
+        padding: 10px 15px;
+        text-align: right;
+    }
+
+    .user-label {
+        font-size: 11px;
+        color: #94a3b8;
+        text-transform: uppercase;
+        margin-bottom: 3px;
+    }
+
+    #user-email {
+        font-size: 14px;
+        font-weight: bold;
+        color: #60a5fa;
+    }
+
+    /* =========================
+       BOTÕES
+    ========================= */
+
+    .top-buttons {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .btn {
+        border: none;
+        border-radius: 9px;
+        padding: 11px 18px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .btn-voltar {
+        background: #334155;
+        color: white;
+    }
+
+    .btn-voltar:hover {
+        background: #475569;
+    }
+
+    .btn-nova {
+        background: #3b82f6;
+        color: white;
+    }
+
+    .btn-nova:hover {
+        background: #2563eb;
+    }
+
+    .btn-guardar {
+        background: #3b82f6;
+        color: white;
+    }
+
+    .btn-guardar:hover {
+        background: #2563eb;
+    }
+
+    .btn-cancelar {
+        background: #64748b;
+        color: white;
+    }
+
+    .btn-cancelar:hover {
+        background: #475569;
+    }
+
+    /* =========================
+       FORMULÁRIO
+    ========================= */
+
+    .form-card {
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 18px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    .form-card h2 {
+        font-size: 20px;
+        margin-bottom: 20px;
+        color: #fff;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-group.full {
+        grid-column: 1 / -1;
+    }
+
+    label {
+        font-size: 13px;
+        font-weight: bold;
+        margin-bottom: 7px;
+        color: #cbd5e1;
+    }
+
+    input {
+        width: 100%;
+        padding: 12px 13px;
+        border: 1px solid #475569;
+        border-radius: 8px;
+        font-size: 14px;
+        outline: none;
+        transition: 0.2s;
+        background: #0f172a;
+        color: #fff;
+    }
+
+    input::placeholder {
+        color: #64748b;
+    }
+
+    input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    /* =========================
+       LISTAGEM
+    ========================= */
+
+    .list-card {
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 18px;
+        padding: 25px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    .list-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+
+    .list-header h2 {
+        font-size: 20px;
+        color: #fff;
+    }
+
+    .contador {
+        font-size: 13px;
+        color: #94a3b8;
+        margin-top: 4px;
+    }
+
+    .search-box {
+        width: 300px;
+    }
+
+    .search-box input {
+        background: #0f172a;
+    }
+
+    .table-container {
+        width: 100%;
+        overflow-x: auto;
+        border: 1px solid #334155;
+        border-radius: 12px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 750px;
+    }
+
+    thead {
+        background: #334155;
+    }
+
+    th {
+        padding: 13px 12px;
+        text-align: left;
+        font-size: 12px;
+        color: #cbd5e1;
+        text-transform: uppercase;
+        border-bottom: 2px solid #475569;
+    }
+
+    td {
+        padding: 13px 12px;
+        border-bottom: 1px solid #334155;
+        font-size: 14px;
+        vertical-align: middle;
+        color: #fff;
+    }
+
+    tbody tr {
+        background: #1e293b;
+        transition: 0.15s;
+    }
+
+    tbody tr:hover {
+        background: #334155;
+    }
+
+    tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .numero-obra {
+        font-weight: bold;
+        color: #60a5fa;
+    }
+
+    .acoes {
+        display: flex;
+        gap: 7px;
+    }
+
+    .btn-editar {
+        background: #334155;
+        color: #60a5fa;
+        border: 1px solid #475569;
+        padding: 7px 10px;
+        font-size: 12px;
+    }
+
+    .btn-editar:hover {
+        background: #475569;
+    }
+
+    .btn-apagar {
+        background: #ef4444;
+        color: white;
+        padding: 7px 10px;
+        font-size: 12px;
+    }
+
+    .btn-apagar:hover {
+        background: #dc2626;
+    }
+
+    .loading,
+    .sem-resultados {
+        text-align: center;
+        padding: 35px !important;
+        color: #94a3b8;
+    }
+
+    /* =========================
+       MENSAGENS
+    ========================= */
+
+    #mensagens {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+
+        max-width: 400px;
+    }
+
+    .mensagem {
+        padding: 14px 18px;
+        border-radius: 10px;
+        color: white;
+        font-size: 14px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.25);
+        animation: aparecer 0.2s ease;
+    }
+
+    .mensagem.sucesso,
+    .mensagem.info {
+        background: #3b82f6;
+    }
+
+    .mensagem.erro {
+        background: #ef4444;
+    }
+
+    @keyframes aparecer {
+        from {
+            opacity: 0;
+            transform: translateX(20px);
         }
+
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    /* =========================
+       RESPONSIVO
+    ========================= */
+
+    @media (max-width: 700px) {
 
         body {
-            font-family: "Segoe UI", Arial, sans-serif;
-            background: #0f172a;
-            min-height: 100vh;
-            padding: 20px;
-            color: #ffffff;
+            padding: 10px;
         }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        /* =====================================================
-           CABEÇALHO
-        ===================================================== */
 
         .header {
-            background: #1e293b;
-            border-radius: 18px;
-            padding: 20px 25px;
-            margin-bottom: 20px;
-
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 20px;
-            flex-wrap: wrap;
-
-            border: 1px solid #334155;
+            padding: 18px;
         }
 
         .header-left {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .header-icon {
-            width: 58px;
-            height: 58px;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            background: #334155;
-            border-radius: 15px;
-
-            font-size: 30px;
-
-            border: 1px solid #475569;
-        }
-
-        .header-title h1 {
-            font-size: 25px;
-            color: #ffffff;
-            margin-bottom: 4px;
-            font-weight: 700;
-        }
-
-        .header-title p {
-            font-size: 14px;
-            color: #94a3b8;
+            width: 100%;
         }
 
         .user-box {
-            background: #334155;
-            border: 1px solid #475569;
-
-            border-radius: 12px;
-            padding: 10px 15px;
-
-            text-align: right;
-        }
-
-        .user-label {
-            font-size: 10px;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin-bottom: 3px;
-        }
-
-        #user-email {
-            font-size: 14px;
-            font-weight: 600;
-            color: #60a5fa;
-        }
-
-
-        /* =====================================================
-           BOTÕES SUPERIORES
-        ===================================================== */
-
-        .top-buttons {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .btn {
-            border: none;
-            border-radius: 10px;
-
-            padding: 11px 18px;
-
-            font-size: 14px;
-            font-weight: 600;
-
-            cursor: pointer;
-
-            transition:
-                background 0.2s,
-                transform 0.2s,
-                box-shadow 0.2s;
-
-            font-family: inherit;
-        }
-
-        .btn:hover {
-            transform: translateY(-1px);
-        }
-
-        .btn-voltar {
-            background: #334155;
-            color: #ffffff;
-            border: 1px solid #475569;
-        }
-
-        .btn-voltar:hover {
-            background: #475569;
-        }
-
-        .btn-nova {
-            background: #3b82f6;
-            color: #ffffff;
-        }
-
-        .btn-nova:hover {
-            background: #2563eb;
-            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.25);
-        }
-
-        .btn-guardar {
-            background: #3b82f6;
-            color: #ffffff;
-        }
-
-        .btn-guardar:hover {
-            background: #2563eb;
-            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.25);
-        }
-
-        .btn-cancelar {
-            background: #64748b;
-            color: #ffffff;
-        }
-
-        .btn-cancelar:hover {
-            background: #475569;
-        }
-
-
-        /* =====================================================
-           FORMULÁRIO
-        ===================================================== */
-
-        .form-card {
-            background: #1e293b;
-
-            border-radius: 18px;
-
-            padding: 25px;
-            margin-bottom: 20px;
-
-            border: 1px solid #334155;
-
-            box-shadow:
-                0 10px 30px rgba(0, 0, 0, 0.20);
-        }
-
-        .form-card h2 {
-            font-size: 20px;
-            margin-bottom: 20px;
-            color: #ffffff;
+            width: 100%;
+            text-align: left;
         }
 
         .form-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 18px;
+            grid-template-columns: 1fr;
         }
 
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        label {
-            font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 7px;
-            color: #cbd5e1;
-        }
-
-        input {
-            width: 100%;
-
-            padding: 12px 13px;
-
-            background: #0f172a;
-
-            border: 1px solid #475569;
-            border-radius: 10px;
-
-            color: #ffffff;
-
-            font-family: inherit;
-            font-size: 14px;
-
-            outline: none;
-
-            transition:
-                border-color 0.2s,
-                box-shadow 0.2s,
-                background 0.2s;
-        }
-
-        input::placeholder {
-            color: #64748b;
-        }
-
-        input:focus {
-            background: #111c30;
-            border-color: #3b82f6;
-
-            box-shadow:
-                0 0 0 3px rgba(59, 130, 246, 0.15);
-        }
-
-        .form-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-
-        /* =====================================================
-           LISTAGEM
-        ===================================================== */
-
-        .list-card {
-            background: #1e293b;
-
-            border-radius: 18px;
-
-            padding: 25px;
-
-            border: 1px solid #334155;
-
-            box-shadow:
-                0 10px 30px rgba(0, 0, 0, 0.20);
-        }
-
-        .list-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-
-            gap: 15px;
-            flex-wrap: wrap;
-
-            margin-bottom: 20px;
-        }
-
-        .list-header h2 {
-            font-size: 20px;
-            color: #ffffff;
-        }
-
-        .contador {
-            font-size: 13px;
-            color: #94a3b8;
-            margin-top: 5px;
+        .form-group.full {
+            grid-column: auto;
         }
 
         .search-box {
-            width: 300px;
-        }
-
-        .search-box input {
-            background: #0f172a;
-        }
-
-
-        /* =====================================================
-           TABELA
-        ===================================================== */
-
-        .table-container {
             width: 100%;
-            overflow-x: auto;
-
-            border-radius: 12px;
-            border: 1px solid #334155;
         }
 
-        table {
+        .list-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+
+        .form-actions .btn {
             width: 100%;
-
-            border-collapse: collapse;
-
-            min-width: 750px;
         }
 
-        thead {
-            background: #334155;
+        .top-buttons {
+            flex-direction: column;
         }
 
-        th {
-            padding: 13px 12px;
-
-            text-align: left;
-
-            font-size: 11px;
-
-            color: #cbd5e1;
-
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-
-            border-bottom: 1px solid #475569;
+        .top-buttons .btn {
+            width: 100%;
         }
-
-        td {
-            padding: 13px 12px;
-
-            border-bottom: 1px solid #334155;
-
-            font-size: 14px;
-
-            color: #e2e8f0;
-
-            vertical-align: middle;
-        }
-
-        tbody tr {
-            background: #1e293b;
-
-            transition: background 0.15s;
-        }
-
-        tbody tr:hover {
-            background: #334155;
-        }
-
-        tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        .numero-obra {
-            font-weight: 700;
-            color: #60a5fa;
-        }
-
-
-        /* =====================================================
-           AÇÕES
-        ===================================================== */
-
-        .acoes {
-            display: flex;
-            gap: 7px;
-        }
-
-        .btn-editar {
-            background: #334155;
-            color: #60a5fa;
-
-            border: 1px solid #475569;
-
-            padding: 7px 10px;
-            font-size: 12px;
-        }
-
-        .btn-editar:hover {
-            background: #475569;
-        }
-
-        .btn-apagar {
-            background: #ef4444;
-            color: #ffffff;
-
-            padding: 7px 10px;
-            font-size: 12px;
-        }
-
-        .btn-apagar:hover {
-            background: #dc2626;
-        }
-
-
-        /* =====================================================
-           LOADING / SEM RESULTADOS
-        ===================================================== */
-
-        .loading,
-        .sem-resultados {
-            text-align: center;
-
-            padding: 35px !important;
-
-            color: #94a3b8;
-        }
-
-
-        /* =====================================================
-           MENSAGENS
-        ===================================================== */
 
         #mensagens {
-            position: fixed;
-
-            top: 20px;
-            right: 20px;
-
-            z-index: 9999;
-
-            display: flex;
-            flex-direction: column;
-
-            gap: 10px;
-
-            max-width: 400px;
+            left: 10px;
+            right: 10px;
+            max-width: none;
         }
-
-        .mensagem {
-            padding: 14px 18px;
-
-            border-radius: 12px;
-
-            color: #ffffff;
-
-            font-size: 14px;
-
-            border: 1px solid rgba(255,255,255,0.08);
-
-            box-shadow:
-                0 10px 25px rgba(0,0,0,0.30);
-
-            animation: aparecer 0.2s ease;
-        }
-
-        .mensagem.sucesso {
-            background: #1e293b;
-            border-left: 4px solid #3b82f6;
-        }
-
-        .mensagem.erro {
-            background: #1e293b;
-            border-left: 4px solid #ef4444;
-        }
-
-        .mensagem.info {
-            background: #1e293b;
-            border-left: 4px solid #60a5fa;
-        }
-
-        @keyframes aparecer {
-
-            from {
-                opacity: 0;
-                transform: translateX(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-
-        }
+    }
+</style>
 
 
-        /* =====================================================
-           RESPONSIVO
-        ===================================================== */
-
-        @media (max-width: 700px) {
-
-            body {
-                padding: 10px;
-            }
-
-            .header {
-                padding: 18px;
-            }
-
-            .header-left {
-                width: 100%;
-            }
-
-            .user-box {
-                width: 100%;
-                text-align: left;
-            }
-
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .search-box {
-                width: 100%;
-            }
-
-            .list-header {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .form-actions {
-                flex-direction: column;
-            }
-
-            .form-actions .btn {
-                width: 100%;
-            }
-
-            .top-buttons {
-                flex-direction: column;
-            }
-
-            .top-buttons .btn {
-                width: 100%;
-            }
-
-            .acoes {
-                flex-wrap: wrap;
-            }
-
-            #mensagens {
-                left: 10px;
-                right: 10px;
-                max-width: none;
-            }
-
-        }
-
-    </style>
 </head>
-
-
 <body>
-
 <div id="mensagens"></div>
-
 <div class="container">
 
 
-    <!-- =====================================================
-         CABEÇALHO
-    ====================================================== -->
+<!-- =========================
+     CABEÇALHO
+========================== -->
 
-    <div class="header">
+<div class="header">
 
-        <div class="header-left">
+    <div class="header-left">
 
-            <div class="header-icon">
-                🏗️
-            </div>
-
-            <div class="header-title">
-
-                <h1>
-                    Registo de Obras
-                </h1>
-
-                <p>
-                    Gestão das obras de topografia
-                </p>
-
-            </div>
-
+        <div class="header-icon">
+            🏗️
         </div>
 
-
-        <div class="user-box">
-
-            <div class="user-label">
-                Utilizador
-            </div>
-
-            <div id="user-email">
-                A carregar...
-            </div>
-
+        <div class="header-title">
+            <h1>Registo de Obras</h1>
+            <p>Gestão das obras de topografia</p>
         </div>
 
     </div>
 
+    <div class="user-box">
 
-    <!-- =====================================================
-         BOTÕES
-    ====================================================== -->
-
-    <div class="top-buttons">
-
-        <button
-            type="button"
-            class="btn btn-voltar"
-            onclick="voltarInicio()">
-
-            ← Voltar
-
-        </button>
-
-
-        <button
-            type="button"
-            class="btn btn-nova"
-            onclick="novaObra()">
-
-            ➕ Nova Obra
-
-        </button>
-
-    </div>
-
-
-    <!-- =====================================================
-         FORMULÁRIO
-    ====================================================== -->
-
-    <div class="form-card">
-
-        <h2 id="titulo-formulario">
-            ➕ Registar Nova Obra
-        </h2>
-
-
-        <form id="form-obra">
-
-            <div class="form-grid">
-
-
-                <div class="form-group">
-
-                    <label for="numero_obra">
-                        Número da Obra *
-                    </label>
-
-                    <input
-                        type="text"
-                        id="numero_obra"
-                        placeholder="Ex.: 2026-001"
-                        required
-                        autocomplete="off">
-
-                </div>
-
-
-                <div class="form-group">
-
-                    <label for="local_obra">
-                        Local da Obra *
-                    </label>
-
-                    <input
-                        type="text"
-                        id="local_obra"
-                        placeholder="Ex.: Rua Principal, Vila do Conde"
-                        required
-                        autocomplete="off">
-
-                </div>
-
-
-                <div class="form-group">
-
-                    <label for="empresa">
-                        Empresa
-                    </label>
-
-                    <input
-                        type="text"
-                        id="empresa"
-                        placeholder="Nome da empresa"
-                        autocomplete="off">
-
-                </div>
-
-
-                <div class="form-group">
-
-                    <label for="concelho">
-                        Concelho
-                    </label>
-
-                    <input
-                        type="text"
-                        id="concelho"
-                        placeholder="Ex.: Vila do Conde"
-                        autocomplete="off">
-
-                </div>
-
-
-            </div>
-
-
-            <div class="form-actions">
-
-                <button
-                    type="submit"
-                    class="btn btn-guardar"
-                    id="btn-guardar">
-
-                    💾 Guardar Obra
-
-                </button>
-
-
-                <button
-                    type="button"
-                    class="btn btn-cancelar"
-                    id="btn-cancelar"
-                    onclick="cancelarEdicao()"
-                    style="display:none;">
-
-                    ✖ Cancelar
-
-                </button>
-
-            </div>
-
-        </form>
-
-    </div>
-
-
-    <!-- =====================================================
-         LISTAGEM
-    ====================================================== -->
-
-    <div class="list-card">
-
-        <div class="list-header">
-
-            <div>
-
-                <h2>
-                    📋 Obras Registadas
-                </h2>
-
-                <div
-                    id="contador-obras"
-                    class="contador">
-
-                    A carregar...
-
-                </div>
-
-            </div>
-
-
-            <div class="search-box">
-
-                <input
-                    type="text"
-                    id="pesquisa"
-                    placeholder="🔎 Pesquisar obra..."
-                    autocomplete="off">
-
-            </div>
-
+        <div class="user-label">
+            Utilizador
         </div>
 
-
-        <div class="table-container">
-
-            <table>
-
-                <thead>
-
-                    <tr>
-
-                        <th>
-                            N.º Obra
-                        </th>
-
-                        <th>
-                            Local da Obra
-                        </th>
-
-                        <th>
-                            Empresa
-                        </th>
-
-                        <th>
-                            Concelho
-                        </th>
-
-                        <th>
-                            Ações
-                        </th>
-
-                    </tr>
-
-                </thead>
-
-
-                <tbody id="tabela-obras">
-
-                    <tr>
-
-                        <td
-                            colspan="5"
-                            class="loading">
-
-                            ⏳ A carregar obras...
-
-                        </td>
-
-                    </tr>
-
-                </tbody>
-
-            </table>
-
+        <div id="user-email">
+            A carregar...
         </div>
 
     </div>
@@ -856,6 +504,203 @@
 </div>
 
 
+<!-- =========================
+     BOTÕES
+========================== -->
+
+<div class="top-buttons">
+
+    <button
+        type="button"
+        class="btn btn-voltar"
+        onclick="voltarInicio()">
+        ← Voltar
+    </button>
+
+    <button
+        type="button"
+        class="btn btn-nova"
+        onclick="novaObra()">
+        ➕ Nova Obra
+    </button>
+
+</div>
+
+
+<!-- =========================
+     FORMULÁRIO
+========================== -->
+
+<div class="form-card">
+
+    <h2 id="titulo-formulario">
+        ➕ Registar Nova Obra
+    </h2>
+
+    <form id="form-obra">
+
+        <div class="form-grid">
+
+            <div class="form-group">
+
+                <label for="numero_obra">
+                    Número da Obra *
+                </label>
+
+                <input
+                    type="text"
+                    id="numero_obra"
+                    placeholder="Ex.: 2026-001"
+                    required
+                    autocomplete="off">
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="local_obra">
+                    Local da Obra *
+                </label>
+
+                <input
+                    type="text"
+                    id="local_obra"
+                    placeholder="Ex.: Rua Principal, Vila do Conde"
+                    required
+                    autocomplete="off">
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="empresa">
+                    Empresa
+                </label>
+
+                <input
+                    type="text"
+                    id="empresa"
+                    placeholder="Nome da empresa"
+                    autocomplete="off">
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="concelho">
+                    Concelho
+                </label>
+
+                <input
+                    type="text"
+                    id="concelho"
+                    placeholder="Ex.: Vila do Conde"
+                    autocomplete="off">
+
+            </div>
+
+        </div>
+
+
+        <div class="form-actions">
+
+            <button
+                type="submit"
+                class="btn btn-guardar"
+                id="btn-guardar">
+                💾 Guardar Obra
+            </button>
+
+            <button
+                type="button"
+                class="btn btn-cancelar"
+                id="btn-cancelar"
+                onclick="cancelarEdicao()"
+                style="display:none;">
+                ✖ Cancelar
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+<!-- =========================
+     LISTAGEM
+========================== -->
+
+<div class="list-card">
+
+    <div class="list-header">
+
+        <div>
+
+            <h2>
+                📋 Obras Registadas
+            </h2>
+
+            <div
+                id="contador-obras"
+                class="contador">
+                A carregar...
+            </div>
+
+        </div>
+
+        <div class="search-box">
+
+            <input
+                type="text"
+                id="pesquisa"
+                placeholder="🔎 Pesquisar obra..."
+                autocomplete="off">
+
+        </div>
+
+    </div>
+
+
+    <div class="table-container">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>N.º Obra</th>
+                    <th>Local da Obra</th>
+                    <th>Empresa</th>
+                    <th>Concelho</th>
+                    <th>Ações</th>
+                </tr>
+
+            </thead>
+
+            <tbody id="tabela-obras">
+
+                <tr>
+                    <td
+                        colspan="5"
+                        class="loading">
+                        A carregar obras...
+                    </td>
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+</div>
 <script>
 
     /* =====================================================
@@ -866,7 +711,7 @@
         'https://dunondjiqawovisnwavg.supabase.co';
 
     const SUPABASE_ANON_KEY =
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzIiwicmVmIjoiZHVub25kamlxYXdpb3Zpc253YXZnIiwiaWF0IjoxNzgwMDU5NzIyLCJleHAiOjIwOTU2MzcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
 
     const supabaseClient =
         supabase.createClient(
@@ -896,15 +741,31 @@
 
     async function inicializar() {
 
+        console.log('=================================');
+        console.log('INICIALIZAÇÃO REGISTO DE OBRAS');
+        console.log('=================================');
+
         try {
 
+            /*
+             * Usamos getUser() em vez de depender
+             * apenas do getSession().
+             */
             const {
                 data,
                 error
-            } =
-                await supabaseClient
-                    .auth
-                    .getUser();
+            } = await supabaseClient.auth.getUser();
+
+
+            console.log(
+                'Resultado getUser():',
+                data
+            );
+
+            console.log(
+                'Erro getUser():',
+                error
+            );
 
 
             if (error) {
@@ -914,40 +775,62 @@
                     error
                 );
 
-                window.location.href =
-                    'index.html';
+                mostrarMensagem(
+                    'Erro ao verificar o utilizador: ' +
+                    error.message,
+                    'erro'
+                );
+
+                setTimeout(
+                    () => {
+                        window.location.href =
+                            'index.html';
+                    },
+                    2000
+                );
 
                 return;
-
             }
 
 
-            const user =
-                data.user;
+            const user = data.user;
 
 
             if (!user) {
 
+                console.warn(
+                    'Não existe utilizador autenticado.'
+                );
+
                 window.location.href =
                     'index.html';
 
                 return;
-
             }
 
 
-            mostrarUtilizador(
+            console.log(
+                'UTILIZADOR AUTENTICADO:',
                 user
             );
 
 
+            /*
+             * Mostrar nome/email
+             */
+            mostrarUtilizador(user);
+
+
+            /*
+             * Carregar obras
+             */
             await carregarObras();
 
 
         } catch (erro) {
 
             console.error(
-                'Erro:',
+                'Erro inesperado:',
                 erro
             );
 
@@ -962,7 +845,7 @@
 
 
     /* =====================================================
-       UTILIZADOR
+       MOSTRAR UTILIZADOR
     ===================================================== */
 
     function mostrarUtilizador(user) {
@@ -982,18 +865,36 @@
             user.user_metadata || {};
 
 
+        /*
+         * Tenta encontrar um nome definido
+         * no metadata do utilizador.
+         */
         const nome =
             metadata.full_name ||
             metadata.name ||
             metadata.nome ||
             metadata.username ||
-            metadata.user_name ||
+            metadata.user_name;
+
+
+        /*
+         * Se não existir nome,
+         * utiliza o email.
+         */
+        const texto =
+            nome ||
             user.email ||
             'Utilizador';
 
 
         elemento.textContent =
-            nome;
+            texto;
+
+
+        console.log(
+            'Nome apresentado:',
+            texto
+        );
 
     }
 
@@ -1009,7 +910,6 @@
                 'tabela-obras'
             );
 
-
         const contador =
             document.getElementById(
                 'contador-obras'
@@ -1018,34 +918,46 @@
 
         tabela.innerHTML = `
             <tr>
-                <td
-                    colspan="5"
-                    class="loading">
+                <td colspan="5" class="loading">
                     ⏳ A carregar obras...
                 </td>
             </tr>
         `;
 
 
-        const {
-            data,
-            error
-        } =
-            await supabaseClient
-                .from('obras')
-                .select(
-                    'id, local_obra, numero_obra, empresa, concelho'
-                )
-                .order(
-                    'id',
-                    {
-                        ascending: false
-                    }
-                );
+        contador.textContent =
+            'A consultar a base de dados...';
 
 
         console.log(
-            'Obras:',
+            'A consultar public.obras...'
+        );
+
+
+        const {
+            data,
+            error,
+            status
+        } = await supabaseClient
+            .from('obras')
+            .select(
+                'id, local_obra, numero_obra, empresa, concelho'
+            )
+            .order(
+                'id',
+                {
+                    ascending: false
+                }
+            );
+
+
+        console.log(
+            'Status Supabase:',
+            status
+        );
+
+        console.log(
+            'Dados recebidos:',
             data
         );
 
@@ -1058,7 +970,7 @@
         if (error) {
 
             console.error(
-                'Erro ao carregar obras:',
+                'ERRO AO CARREGAR OBRAS:',
                 error
             );
 
@@ -1068,24 +980,19 @@
                     <td
                         colspan="5"
                         class="sem-resultados">
-
-                        ❌ Erro ao carregar as obras.
-
-                        <br><br>
-
+                        ❌ Erro ao carregar as obras.<br><br>
                         <small>
                             ${escaparHTML(
                                 error.message
                             )}
                         </small>
-
                     </td>
                 </tr>
             `;
 
 
             contador.textContent =
-                'Erro ao consultar as obras.';
+                'Erro ao consultar a tabela obras.';
 
 
             mostrarMensagem(
@@ -1096,7 +1003,6 @@
 
 
             return;
-
         }
 
 
@@ -1104,9 +1010,13 @@
             data || [];
 
 
-        mostrarObras(
-            obras
+        console.log(
+            'Número de obras:',
+            obras.length
         );
+
+
+        mostrarObras(obras);
 
     }
 
@@ -1121,7 +1031,6 @@
             document.getElementById(
                 'tabela-obras'
             );
-
 
         const contador =
             document.getElementById(
@@ -1142,81 +1051,73 @@
                     <td
                         colspan="5"
                         class="sem-resultados">
-
                         📭 Não existem obras registadas.
-
                     </td>
                 </tr>
             `;
 
             return;
-
         }
 
 
         tabela.innerHTML =
-            lista
-                .map(
-                    obra => `
+            lista.map(
+                obra => `
 
-                        <tr>
+                    <tr>
 
-                            <td class="numero-obra">
-                                ${escaparHTML(
-                                    obra.numero_obra
-                                )}
-                            </td>
+                        <td class="numero-obra">
+                            ${escaparHTML(
+                                obra.numero_obra
+                            )}
+                        </td>
 
-                            <td>
-                                ${escaparHTML(
-                                    obra.local_obra
-                                )}
-                            </td>
+                        <td>
+                            ${escaparHTML(
+                                obra.local_obra
+                            )}
+                        </td>
 
-                            <td>
-                                ${escaparHTML(
-                                    obra.empresa || '-'
-                                )}
-                            </td>
+                        <td>
+                            ${escaparHTML(
+                                obra.empresa ||
+                                '-'
+                            )}
+                        </td>
 
-                            <td>
-                                ${escaparHTML(
-                                    obra.concelho || '-'
-                                )}
-                            </td>
+                        <td>
+                            ${escaparHTML(
+                                obra.concelho ||
+                                '-'
+                            )}
+                        </td>
 
-                            <td>
+                        <td>
 
-                                <div class="acoes">
+                            <div class="acoes">
 
-                                    <button
-                                        type="button"
-                                        class="btn btn-editar"
-                                        onclick="editarObra(${obra.id})">
+                                <button
+                                    type="button"
+                                    class="btn btn-editar"
+                                    onclick="editarObra(${obra.id})">
+                                    ✏️ Editar
+                                </button>
 
-                                        ✏️ Editar
+                                <button
+                                    type="button"
+                                    class="btn btn-apagar"
+                                    onclick="apagarObra(${obra.id})">
+                                    🗑️ Apagar
+                                </button>
 
-                                    </button>
+                            </div>
 
+                        </td>
 
-                                    <button
-                                        type="button"
-                                        class="btn btn-apagar"
-                                        onclick="apagarObra(${obra.id})">
+                    </tr>
 
-                                        🗑️ Apagar
-
-                                    </button>
-
-                                </div>
-
-                            </td>
-
-                        </tr>
-
-                    `
-                )
-                .join('');
+                `
+            ).join('');
 
     }
 
@@ -1239,12 +1140,9 @@
 
                 if (!termo) {
 
-                    mostrarObras(
-                        obras
-                    );
+                    mostrarObras(obras);
 
                     return;
-
                 }
 
 
@@ -1255,34 +1153,38 @@
                             return (
 
                                 String(
-                                    obra.numero_obra || ''
+                                    obra.numero_obra ||
+                                    ''
                                 )
-                                    .toLowerCase()
-                                    .includes(termo)
+                                .toLowerCase()
+                                .includes(termo)
 
                                 ||
 
                                 String(
-                                    obra.local_obra || ''
+                                    obra.local_obra ||
+                                    ''
                                 )
-                                    .toLowerCase()
-                                    .includes(termo)
+                                .toLowerCase()
+                                .includes(termo)
 
                                 ||
 
                                 String(
-                                    obra.empresa || ''
+                                    obra.empresa ||
+                                    ''
                                 )
-                                    .toLowerCase()
-                                    .includes(termo)
+                                .toLowerCase()
+                                .includes(termo)
 
                                 ||
 
                                 String(
-                                    obra.concelho || ''
+                                    obra.concelho ||
+                                    ''
                                 )
-                                    .toLowerCase()
-                                    .includes(termo)
+                                .toLowerCase()
+                                .includes(termo)
 
                             );
 
@@ -1299,7 +1201,7 @@
 
 
     /* =====================================================
-       FORMULÁRIO
+       SUBMETER FORMULÁRIO
     ===================================================== */
 
     document
@@ -1347,18 +1249,25 @@
                         .trim();
 
 
-                if (
-                    !numeroObra ||
-                    !localObra
-                ) {
+                if (!numeroObra) {
 
                     mostrarMensagem(
-                        'Preencha os campos obrigatórios.',
+                        'Introduza o número da obra.',
                         'erro'
                     );
 
                     return;
+                }
 
+
+                if (!localObra) {
+
+                    mostrarMensagem(
+                        'Introduza o local da obra.',
+                        'erro'
+                    );
+
+                    return;
                 }
 
 
@@ -1416,7 +1325,7 @@
 
 
     /* =====================================================
-       INSERIR
+       INSERIR OBRA
     ===================================================== */
 
     async function inserirObra(
@@ -1426,29 +1335,44 @@
         concelho
     ) {
 
+        console.log(
+            'A inserir obra...'
+        );
+
+
         const {
             data,
             error
-        } =
-            await supabaseClient
-                .from('obras')
-                .insert([
-                    {
-                        numero_obra:
-                            numeroObra,
+        } = await supabaseClient
+            .from('obras')
+            .insert([
+                {
+                    numero_obra:
+                        numeroObra,
 
-                        local_obra:
-                            localObra,
+                    local_obra:
+                        localObra,
 
-                        empresa:
-                            empresa || null,
+                    empresa:
+                        empresa || null,
 
-                        concelho:
-                            concelho || null
-                    }
-                ])
-                .select()
-                .single();
+                    concelho:
+                        concelho || null
+                }
+            ])
+            .select()
+            .single();
+
+
+        console.log(
+            'Insert data:',
+            data
+        );
+
+        console.log(
+            'Insert error:',
+            error
+        );
 
 
         if (error) {
@@ -1479,16 +1403,8 @@
 
             }
 
-
             return;
-
         }
-
-
-        console.log(
-            'Obra criada:',
-            data
-        );
 
 
         mostrarMensagem(
@@ -1506,7 +1422,7 @@
 
 
     /* =====================================================
-       EDITAR
+       EDITAR OBRA
     ===================================================== */
 
     function editarObra(id) {
@@ -1522,12 +1438,11 @@
         if (!obra) {
 
             mostrarMensagem(
-                'Obra não encontrada.',
+                'Não foi possível encontrar a obra.',
                 'erro'
             );
 
             return;
-
         }
 
 
@@ -1586,7 +1501,7 @@
 
 
     /* =====================================================
-       ATUALIZAR
+       ATUALIZAR OBRA
     ===================================================== */
 
     async function atualizarObra(
@@ -1597,28 +1512,35 @@
         concelho
     ) {
 
+        console.log(
+            'A atualizar obra:',
+            id
+        );
+
+
         const {
             error
-        } =
-            await supabaseClient
-                .from('obras')
-                .update({
-                    numero_obra:
-                        numeroObra,
+        } = await supabaseClient
+            .from('obras')
+            .update({
 
-                    local_obra:
-                        localObra,
+                numero_obra:
+                    numeroObra,
 
-                    empresa:
-                        empresa || null,
+                local_obra:
+                    localObra,
 
-                    concelho:
-                        concelho || null
-                })
-                .eq(
-                    'id',
-                    id
-                );
+                empresa:
+                    empresa || null,
+
+                concelho:
+                    concelho || null
+
+            })
+            .eq(
+                'id',
+                id
+            );
 
 
         if (error) {
@@ -1649,9 +1571,7 @@
 
             }
 
-
             return;
-
         }
 
 
@@ -1670,7 +1590,7 @@
 
 
     /* =====================================================
-       APAGAR
+       APAGAR OBRA
     ===================================================== */
 
     async function apagarObra(id) {
@@ -1691,7 +1611,6 @@
             );
 
             return;
-
         }
 
 
@@ -1706,16 +1625,21 @@
         }
 
 
+        console.log(
+            'A apagar obra:',
+            id
+        );
+
+
         const {
             error
-        } =
-            await supabaseClient
-                .from('obras')
-                .delete()
-                .eq(
-                    'id',
-                    id
-                );
+        } = await supabaseClient
+            .from('obras')
+            .delete()
+            .eq(
+                'id',
+                id
+            );
 
 
         if (error) {
@@ -1732,9 +1656,7 @@
                 'erro'
             );
 
-
             return;
-
         }
 
 
@@ -1868,23 +1790,23 @@
         return String(valor)
             .replace(
                 /&/g,
-                '&amp;'
+                '&'
             )
             .replace(
                 /</g,
-                '&lt;'
+                '<'
             )
             .replace(
                 />/g,
-                '&gt;'
+                '>'
             )
             .replace(
                 /"/g,
-                '&quot;'
+                '"'
             )
             .replace(
                 /'/g,
-                '&#039;'
+                '''
             );
 
     }
@@ -1933,7 +1855,6 @@
                 mensagem.style.transform =
                     'translateX(20px)';
 
-
                 setTimeout(
                     () => {
                         mensagem.remove();
@@ -1947,7 +1868,48 @@
 
     }
 
-</script>
 
+    /* =====================================================
+       ALTERAÇÕES DE AUTENTICAÇÃO
+    ===================================================== */
+
+    supabaseClient.auth
+        .onAuthStateChange(
+            function (
+                event,
+                session
+            ) {
+
+                console.log(
+                    'Auth event:',
+                    event
+                );
+
+
+                if (
+                    !session &&
+                    event !==
+                    'INITIAL_SESSION'
+                ) {
+
+                    window.location.href =
+                        'index.html';
+
+                    return;
+                }
+
+
+                if (session) {
+
+                    mostrarUtilizador(
+                        session.user
+                    );
+
+                }
+
+            }
+        );
+
+</script>
 </body>
 </html>
