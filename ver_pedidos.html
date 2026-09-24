@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Histórico de Pedidos</title>
-    <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <script defer src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script defer src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
     <link href="https://unpkg.com/tabulator-tables@6.2.1/dist/css/tabulator_midnight.min.css" rel="stylesheet">
-    <script defer type="text/javascript" src="https://unpkg.com/tabulator-tables@6.2.1/dist/js/tabulator.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/locales/pt-br.global.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.2.1/dist/js/tabulator.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/locales/pt-br.global.min.js"></script>
 
     <style>
         * { box-sizing: border-box; }
@@ -151,7 +151,6 @@
     let mostrandoConcluidos = false; 
     let mapaAtividadesPorPedido = {};
     let mapaOcorrenciasPorPedido = {};
-    let mapaObrasGlobal = {};
 
     // ===== Otimização: rastrear apenas as linhas realmente alteradas =====
     // idsAlterados é só um "hint" rápido; a deteção real e fiável é feita
@@ -366,39 +365,7 @@
         if (!session) { window.location.href = 'login.html'; return; }
         document.getElementById('utilizador-info').innerText = session.user.email;
 
-        // ===== Otimização: pedidos e obras não dependem um do outro,
-        // por isso são pedidos em paralelo em vez de em série. =====
-        const [
-            { data, error: errPedidosBase },
-            { data: obrasData, error: errObras }
-        ] = await Promise.all([
-            sbClient.from('pedidos').select('*').order('id', { ascending: false }),
-            sbClient.from('obras').select('id, numero_obra, local_obra, empresa, concelho').order('numero_obra', { ascending: true })
-        ]);
-
-        if (errPedidosBase) {
-            console.error("Erro ao carregar pedidos:", errPedidosBase);
-            return;
-        }
-        if (errObras) {
-            console.error("Erro ao carregar obras:", errObras);
-        }
-
-        mapaObrasGlobal = {};
-        (obrasData || []).forEach(o => { mapaObrasGlobal[o.id] = o; });
-
-        // Substituir nos dados apresentados os campos duplicados pela informação central da obra.
-        data.forEach(p => {
-            const obra = mapaObrasGlobal[p.obra_id];
-            p.obra_info = obra || null;
-
-            if (obra) {
-                p.numero_obra = obra.numero_obra;
-                p.local_obra = obra.local_obra;
-                p.empresa = obra.empresa;
-                p.concelho = obra.concelho;
-            }
-        });
+        const { data } = await sbClient.from('pedidos').select('*').order('id', { ascending: false });
 
         // ===== Carregar atividades associadas aos pedidos =====
         const pedidosIds = data.map(p => p.id);
@@ -563,8 +530,6 @@
     // 1) Deteta as linhas alteradas comparando com o snapshot original
     //    (mais fiável do que confiar só no evento cellEdited)
     // 2) Envia todos os updates em paralelo (Promise.all) em vez de um a um
-    // 3) Depois de guardar, atualiza só as linhas alteradas em memória —
-    //    não volta a pedir tudo à Supabase (evita um novo round-trip completo).
     async function guardarAlteracoes() {
         // Força o fecho de qualquer editor de célula ainda aberto (ex: flatpickr),
         // para garantir que a última alteração feita fica mesmo registada.
@@ -585,86 +550,34 @@
         btn.innerText = "⏳ A guardar...";
 
         try {
-            const resultados = await Promise.all(linhasParaGuardar.map(async item => {
-                // Dados próprios do pedido. Pede de volta a linha atualizada
-                // para não precisarmos de recarregar tudo no fim.
-                const { data: pedidoAtualizado, error: erroPedido } = await sbClient
-                    .from('pedidos')
-                    .update({
-                        tecnico: item.tecnico,
-                        data_hora_pedido: item.data_hora_pedido,
-                        requerente: item.requerente,
-                        importancia: item.importancia,
-                        via: item.via,
-                        servico: item.servico,
-                        observacao: item.observacao,
-                        tipo_trabalho: item.tipo_trabalho,
-                        frequencia: item.frequencia,
-                        data_hora_limite: item.data_hora_limite,
-                        estado: item.estado,
-                        data_conclusao: item.data_conclusao
-                    })
-                    .eq('id', item.id)
-                    .select()
-                    .single();
-
-                if (erroPedido) return { error: erroPedido, id: item.id };
-
-                // Dados da obra são guardados exclusivamente em OBRAS.
-                let obraAtualizada = null;
-                if (item.obra_id) {
-                    const { data: obraResult, error: erroObra } = await sbClient
-                        .from('obras')
-                        .update({
-                            numero_obra: item.numero_obra,
-                            local_obra: item.local_obra,
-                            empresa: item.empresa || null,
-                            concelho: item.concelho || null
-                        })
-                        .eq('id', item.obra_id)
-                        .select()
-                        .single();
-
-                    if (erroObra) return { error: erroObra, id: item.id };
-                    obraAtualizada = obraResult;
-                }
-
-                return { error: null, id: item.id, pedido: pedidoAtualizado, obra: obraAtualizada };
-            }));
+            const resultados = await Promise.all(linhasParaGuardar.map(item =>
+                sbClient.from('pedidos').update({
+                    tecnico: item.tecnico, data_hora_pedido: item.data_hora_pedido, requerente: item.requerente,
+                    empresa: item.empresa, importancia: item.importancia, via: item.via, local_obra: item.local_obra,
+                    numero_obra: item.numero_obra, concelho: item.concelho, servico: item.servico, observacao: item.observacao,
+                    tipo_trabalho: item.tipo_trabalho, frequencia: item.frequencia, data_hora_limite: item.data_hora_limite,
+                    estado: item.estado, data_conclusao: item.data_conclusao
+                }).eq('id', item.id)
+            ));
 
             const algumErro = resultados.find(r => r.error);
             if (algumErro) {
                 console.error("Erro ao guardar:", algumErro.error);
                 alert("Ocorreu um erro ao guardar algumas alterações. Verifique a consola.");
             } else {
-                // Atualiza só as linhas que foram mesmo guardadas, em memória,
-                // sem voltar a pedir todos os pedidos/obras à Supabase.
-                resultados.forEach(r => {
-                    if (r.obra) mapaObrasGlobal[r.obra.id] = r.obra;
-
-                    const linhaTabela = table.getRow(r.id);
-                    if (!linhaTabela) return;
-
-                    const dadosLinha = { ...linhaTabela.getData(), ...r.pedido };
-                    const obra = r.obra || mapaObrasGlobal[dadosLinha.obra_id];
-                    if (obra) {
-                        dadosLinha.numero_obra = obra.numero_obra;
-                        dadosLinha.local_obra = obra.local_obra;
-                        dadosLinha.empresa = obra.empresa;
-                        dadosLinha.concelho = obra.concelho;
-                    }
-                    dadosLinha.atividades_count = (mapaAtividadesPorPedido[r.id] || []).length;
-                    dadosLinha.ocorrencias_count = (mapaOcorrenciasPorPedido[r.id] || []).length;
-
-                    linhaTabela.update(dadosLinha);
-                });
-
                 alert("Guardado com sucesso!");
                 idsAlterados.clear();
-                guardarSnapshot(table.getData());
-                aplicarFiltros();
-                renderizarCalendario(table.getData());
             }
+
+            const { data: novosDados } = await sbClient.from('pedidos').select('*').order('id', { ascending: false });
+            novosDados.forEach(p => {
+                p.atividades_count = (mapaAtividadesPorPedido[p.id] || []).length;
+                p.ocorrencias_count = (mapaOcorrenciasPorPedido[p.id] || []).length;
+            });
+            guardarSnapshot(novosDados);
+            table.replaceData(novosDados);
+            aplicarFiltros();
+            renderizarCalendario(novosDados);
         } finally {
             btn.disabled = false;
             btn.innerText = textoOriginal;
