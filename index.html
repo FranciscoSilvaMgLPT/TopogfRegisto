@@ -155,6 +155,14 @@
             background: #475569;
         }
 
+        /* Destaque para o botão de Obras (primeira linha, centrado) */
+        .menu-card-destaque {
+            grid-column: 1 / -1;
+            justify-self: center;
+            max-width: 220px;
+            width: 100%;
+        }
+
         .menu-icon {
             font-size: 2.8em;
             line-height: 1;
@@ -232,6 +240,10 @@
 
             .menu-card {
                 padding: 16px 8px;
+            }
+
+            .menu-card-destaque {
+                max-width: 100%; /* No mobile, pode ocupar a largura total disponível na grelha de 2 colunas */
             }
 
             .menu-card-export {
@@ -403,10 +415,10 @@
                  REGISTOS
                  ================================================= -->
 
-            <!-- NOVO: REGISTO DE OBRAS -->
+            <!-- NOVO: REGISTO DE OBRAS (Destaque na 1ª linha) -->
             <a
                 href="registo_obras.html"
-                class="menu-card"
+                class="menu-card menu-card-destaque"
             >
                 <span class="menu-icon">🏗️</span>
                 <span class="menu-text">
