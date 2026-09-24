@@ -335,15 +335,10 @@
         </div>
 
         <div class="full">
-          <label>Local / Obra *</label>
-          <input type="text" name="Atividade_Local_Obra" id="inputLocalObra" list="lista-local-obra" autocomplete="off" required>
-          <datalist id="lista-local-obra"></datalist>
-        </div>
-
-        <div>
-          <label>Nº Obra</label>
-          <input type="text" name="numero_obra" id="inputNumeroObra" list="lista-numero-obra" autocomplete="off">
-          <datalist id="lista-numero-obra"></datalist>
+          <label>Obra *</label>
+          <select id="selectObra" required>
+            <option value="">-- Selecionar obra --</option>
+          </select>
         </div>
 
         <div class="full">
@@ -473,7 +468,7 @@
       try {
         const { data: pedidos, error } = await supabaseClient
           .from('pedidos')
-          .select('id, requerente, empresa, servico, local_obra, numero_obra, tipo_trabalho, data_hora_pedido')
+          .select('id, requerente, servico, tipo_trabalho, data_hora_pedido, obra_id, obras(local_obra, empresa)')
           .is('data_conclusao', null)
           .eq('estado', 'Pendente')
           .order('data_hora_pedido', { ascending: false });
@@ -484,13 +479,12 @@
           pedidos.forEach(pedido => {
             const option = document.createElement('option');
             option.value = pedido.id;
-            option.dataset.localObra = pedido.local_obra || '';
-            option.dataset.numeroObra = pedido.numero_obra || '';
+            option.dataset.obraId = pedido.obra_id || '';
             
             const requerente = pedido.requerente || 'Sem requerente';
-            const empresa = pedido.empresa || '';
+            const empresa = (pedido.obras && pedido.obras.empresa) || '';
             const servicoCurto = (pedido.servico || '').substring(0, 40) + ((pedido.servico || '').length > 40 ? '...' : '');
-            const localObra = pedido.local_obra || 'Sem local';
+            const localObra = (pedido.obras && pedido.obras.local_obra) || 'Sem local';
             const tipoTrabalho = pedido.tipo_trabalho || 'Sem tipo';
             
             option.textContent = `${requerente} (${empresa}) - ${servicoCurto} (${localObra}) - ${tipoTrabalho}`;
@@ -509,8 +503,7 @@
       if (selectPedido.value) {
         checkboxConcluido.disabled = false;
         const selectedOption = selectPedido.options[selectPedido.selectedIndex];
-        if (selectedOption.dataset.localObra) document.getElementById('inputLocalObra').value = selectedOption.dataset.localObra;
-        if (selectedOption.dataset.numeroObra) document.getElementById('inputNumeroObra').value = selectedOption.dataset.numeroObra;
+        if (selectedOption.dataset.obraId) document.getElementById('selectObra').value = selectedOption.dataset.obraId;
       } else {
         checkboxConcluido.disabled = true;
         checkboxConcluido.checked = false;
@@ -529,60 +522,30 @@
       }
     }
 
-    let mapaLocalParaObra = {};
-    let mapaObraParaLocal = {};
+    const selectObra = document.getElementById('selectObra');
 
-    async function carregarHistoricoLocais() {
+    async function carregarObras() {
+      selectObra.innerHTML = '<option value="">-- Selecionar obra --</option>';
       try {
-        const [{ data: atividadesData }, { data: pedidosData }] = await Promise.all([
-          supabaseClient.from('atividades').select('local_obra, numero_obra').order('id', { ascending: false }),
-          supabaseClient.from('pedidos').select('local_obra, numero_obra').order('id', { ascending: false })
-        ]);
+        const { data: obras, error } = await supabaseClient
+          .from('obras')
+          .select('id, local_obra, numero_obra, empresa')
+          .order('local_obra', { ascending: true });
 
-        const combos = [...(atividadesData || []), ...(pedidosData || [])];
-        const locaisSet = new Set();
-        const obrasSet = new Set();
+        if (error) throw error;
 
-        combos.forEach(item => {
-          const local = (item.local_obra || '').trim();
-          const obra = (item.numero_obra || '').trim();
-          if (local) {
-            locaisSet.add(local);
-            if (obra && !(local in mapaLocalParaObra)) mapaLocalParaObra[local] = obra;
-          }
-          if (obra) {
-            obrasSet.add(obra);
-            if (local && !(obra in mapaObraParaLocal)) mapaObraParaLocal[obra] = local;
-          }
-        });
-
-        const datalistLocal = document.getElementById('lista-local-obra');
-        locaisSet.forEach(local => {
-          const opt = document.createElement('option');
-          opt.value = local;
-          datalistLocal.appendChild(opt);
-        });
-
-        const datalistObra = document.getElementById('lista-numero-obra');
-        obrasSet.forEach(obra => {
-          const opt = document.createElement('option');
-          opt.value = obra;
-          datalistObra.appendChild(opt);
+        (obras || []).forEach(obra => {
+          const option = document.createElement('option');
+          option.value = obra.id;
+          const numero = obra.numero_obra ? ` — Nº ${obra.numero_obra}` : '';
+          const empresa = obra.empresa ? ` (${obra.empresa})` : '';
+          option.textContent = `${obra.local_obra}${numero}${empresa}`;
+          selectObra.appendChild(option);
         });
       } catch (err) {
-        console.error("Erro ao carregar histórico:", err);
+        console.error("Erro ao carregar obras:", err);
       }
     }
-
-    document.getElementById('inputLocalObra').addEventListener('input', (e) => {
-      const valor = e.target.value.trim();
-      if (mapaLocalParaObra[valor]) document.getElementById('inputNumeroObra').value = mapaLocalParaObra[valor];
-    });
-
-    document.getElementById('inputNumeroObra').addEventListener('input', (e) => {
-      const valor = e.target.value.trim();
-      if (mapaObraParaLocal[valor]) document.getElementById('inputLocalObra').value = mapaObraParaLocal[valor];
-    });
 
     // ===== Utilitários de data e Calendário Personalizado =====
     function pad2(n) { return String(n).padStart(2, '0'); }
@@ -756,6 +719,11 @@
         return;
       }
 
+      if (!selectObra.value) {
+        alert("Por favor, selecione uma Obra.");
+        return;
+      }
+
       btnEnviar.disabled = true;
       btnEnviar.innerText = "A processar...";
 
@@ -783,8 +751,7 @@
         tecnico: tecnicosSelecionados.join(', '),
         data_hora_inicio: document.getElementById("dataHoraInicio").value,
         data_hora_fim: document.getElementById("dataHoraFim").value,
-        local_obra: form.Atividade_Local_Obra.value,
-        numero_obra: form.numero_obra.value,
+        obra_id: parseInt(selectObra.value),
         servico: form.Atividade_Servico.value,
         tipo_trabalho: tiposSelecionados.join(';'),
         anexo: imageUrl
@@ -822,8 +789,6 @@
           .insert([{
             data: document.getElementById("dataHoraInicio").value,
             ocorrencia: textoOcorrencia,
-            local_obra: form.Atividade_Local_Obra.value,
-            numero_obra: form.numero_obra.value,
             atividade_id: novaAtividadeId,
             fotos: fotosBase64
           }])
@@ -865,7 +830,7 @@
       } else {
         document.getElementById('user-display').innerText = user.email;
         definirDatasAtuais();
-        carregarHistoricoLocais();
+        await carregarObras();
         await carregarPedidosPendentes();
         preSelecionarPedidoPorUrl();
       }
