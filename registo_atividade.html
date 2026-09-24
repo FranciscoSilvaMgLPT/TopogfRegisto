@@ -534,12 +534,18 @@
 
         if (error) throw error;
 
-        (obras || []).forEach(obra => {
+           (obras || []).forEach(obra => {
           const option = document.createElement('option');
           option.value = obra.id;
-          const numero = obra.numero_obra ? ` — Nº ${obra.numero_obra}` : '';
-          const empresa = obra.empresa ? ` (${obra.empresa})` : '';
-          option.textContent = `${obra.local_obra}${numero}${empresa}`;
+          
+          // Constrói o texto no formato: "Número Local - Empresa"
+          const numero = obra.numero_obra ? `${obra.numero_obra} ` : '';
+          const local = obra.local_obra || '';
+          const empresa = obra.empresa ? ` - ${obra.empresa}` : '';
+          
+          // Junta tudo e remove espaços extras no início/fim, caso algum campo esteja vazio
+          option.textContent = `${numero}${local}${empresa}`.trim();
+          
           selectObra.appendChild(option);
         });
       } catch (err) {
