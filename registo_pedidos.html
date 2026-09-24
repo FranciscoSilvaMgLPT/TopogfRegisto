@@ -174,20 +174,6 @@
           <input type="hidden" id="dataAgendada" name="data_agendada">
         </div>
         <div><label>Requerente *</label><input type="text" name="requerente" required></div>
-        <div><label>Empresa *</label>
-          <select name="empresa" required>
-            <option value="">Selecionar</option>
-            <option value="CCR ENG&CONST">CCR ENG&CONST</option>
-            <option value="CCR-INVEST">CCR-INVEST</option>
-            <option value="GROWNOR">GROWNOR</option>
-            <option value="WEST-VIEW">WEST-VIEW</option>
-            <option value="GRAU-ON">GRAU-ON</option>
-            <option value="FERCAYO">FERCAYO</option>
-            <option value="DECIBOLT">DECIBOLT</option>
-            <option value="INTERNO">INTERNO</option>
-            <option value="EXTERNO">EXTERNO</option>
-          </select>
-        </div>
         <div><label>Via de Comunicação *</label>
           <select id="viaSelect" name="via" required>
             <option value="Chamada">Chamada</option>
@@ -211,13 +197,13 @@
           </select>
         </div>
 
-        <div><label>Local / Obra *</label><input type="text" name="local_obra" id="inputLocalObra" list="lista-local-obra" autocomplete="off" required>
-          <datalist id="lista-local-obra"></datalist>
+        <div class="full">
+          <label>Obra *</label>
+          <select id="selectObra" name="obra_id" required>
+            <option value="">-- Selecionar obra --</option>
+          </select>
         </div>
-        <div><label>Nº Obra</label><input type="text" name="numero_obra" id="inputNumeroObra" list="lista-numero-obra" autocomplete="off">
-          <datalist id="lista-numero-obra"></datalist>
-        </div>
-        <div><label>Concelho *</label><input type="text" name="concelho" required></div>
+
         <div class="full"><label>Serviço solicitado *</label><textarea name="servico" required></textarea></div>
         <div class="full"><label>Observação</label><textarea name="observacao"></textarea></div>
         
@@ -282,6 +268,7 @@
     const viaSelect = document.getElementById("viaSelect");
     const campoOutroDiv = document.getElementById("campoOutroDiv");
     const inputOutro = document.getElementById("inputOutro");
+    const selectObra = document.getElementById("selectObra");
 
     // ===== Utilitários de data =====
     function pad2(n) { return String(n).padStart(2, '0'); }
@@ -442,72 +429,29 @@
     dataAgendadaDisplay.addEventListener('click', () => openPicker(dataAgendada, dataAgendadaDisplay));
     dataHoraLimiteDisplay.addEventListener('click', () => openPicker(dataHoraLimite, dataHoraLimiteDisplay));
 
-    // Mapas para preenchimento automático cruzado entre Local/Obra e Nº Obra
-    let mapaLocalParaObra = {};
-    let mapaObraParaLocal = {};
-
-    async function carregarHistoricoLocais() {
+    // ===== Carregar lista de Obras a partir da tabela "obras" =====
+    async function carregarObras() {
+      selectObra.innerHTML = '<option value="">-- Selecionar obra --</option>';
       try {
-        const [{ data: atividadesData }, { data: pedidosData }] = await Promise.all([
-          supabaseClient.from('atividades').select('local_obra, numero_obra').order('id', { ascending: false }),
-          supabaseClient.from('pedidos').select('local_obra, numero_obra').order('id', { ascending: false })
-        ]);
+        const { data: obras, error } = await supabaseClient
+          .from('obras')
+          .select('id, local_obra, numero_obra, empresa, concelho')
+          .order('local_obra', { ascending: true });
 
-        const combos = [...(atividadesData || []), ...(pedidosData || [])];
-        const locaisSet = new Set();
-        const obrasSet = new Set();
+        if (error) throw error;
 
-        combos.forEach(item => {
-          const local = (item.local_obra || '').trim();
-          const obra = (item.numero_obra || '').trim();
-
-          if (local) {
-            locaisSet.add(local);
-            if (obra && !(local in mapaLocalParaObra)) {
-              mapaLocalParaObra[local] = obra;
-            }
-          }
-          if (obra) {
-            obrasSet.add(obra);
-            if (local && !(obra in mapaObraParaLocal)) {
-              mapaObraParaLocal[obra] = local;
-            }
-          }
-        });
-
-        const datalistLocal = document.getElementById('lista-local-obra');
-        locaisSet.forEach(local => {
-          const opt = document.createElement('option');
-          opt.value = local;
-          datalistLocal.appendChild(opt);
-        });
-
-        const datalistObra = document.getElementById('lista-numero-obra');
-        obrasSet.forEach(obra => {
-          const opt = document.createElement('option');
-          opt.value = obra;
-          datalistObra.appendChild(opt);
+        (obras || []).forEach(obra => {
+          const option = document.createElement('option');
+          option.value = obra.id;
+          const numero = obra.numero_obra ? ` — Nº ${obra.numero_obra}` : '';
+          const empresa = obra.empresa ? ` (${obra.empresa})` : '';
+          option.textContent = `${obra.local_obra}${numero}${empresa}`;
+          selectObra.appendChild(option);
         });
       } catch (err) {
-        console.error("Erro ao carregar histórico de Local/Obra e Nº Obra:", err);
+        console.error("Erro ao carregar obras:", err);
       }
     }
-
-    // Preenchimento automático Local -> Nº Obra
-    document.getElementById('inputLocalObra').addEventListener('input', (e) => {
-      const valor = e.target.value.trim();
-      if (mapaLocalParaObra[valor]) {
-        document.getElementById('inputNumeroObra').value = mapaLocalParaObra[valor];
-      }
-    });
-
-    // Preenchimento automático Nº Obra -> Local
-    document.getElementById('inputNumeroObra').addEventListener('input', (e) => {
-      const valor = e.target.value.trim();
-      if (mapaObraParaLocal[valor]) {
-        document.getElementById('inputLocalObra').value = mapaObraParaLocal[valor];
-      }
-    });
 
     viaSelect.addEventListener("change", (e) => {
       if (e.target.value === "Outros") {
@@ -526,7 +470,7 @@
       } else {
         document.getElementById('user-display').innerText = data.session.user.email;
         definirDataPedidoAtual();
-        carregarHistoricoLocais();
+        carregarObras();
       }
     });
 
@@ -544,6 +488,13 @@
       if (tiposSelecionados.length === 0) {
         alert("Por favor, selecione pelo menos um Tipo de Trabalho.");
         btn.disabled = false; 
+        btn.innerText = "Enviar Pedido";
+        return;
+      }
+
+      if (!selectObra.value) {
+        alert("Por favor, selecione uma Obra.");
+        btn.disabled = false;
         btn.innerText = "Enviar Pedido";
         return;
       }
@@ -570,6 +521,9 @@
       
       const dbData = { ...supabaseData };
       delete dbData.via_outro;
+
+      // Garantir que obra_id vai como número
+      dbData.obra_id = parseInt(selectObra.value);
 
       if (!dbData.data_conclusao || dbData.data_conclusao.trim() === "") {
         delete dbData.data_conclusao;
