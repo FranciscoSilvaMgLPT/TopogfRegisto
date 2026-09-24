@@ -4,31 +4,96 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Histórico de Pedidos</title>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
+
     <link href="https://unpkg.com/tabulator-tables@6.2.1/dist/css/tabulator_midnight.min.css" rel="stylesheet">
-    <script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.2.1/dist/js/tabulator.min.js"></script>
+    <script src="https://unpkg.com/tabulator-tables@6.2.1/dist/js/tabulator.min.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/locales/pt-br.global.min.js"></script>
 
     <style>
         * { box-sizing: border-box; }
-        body { background-color: #0f172a; color: white; font-family: sans-serif; padding: 20px; }
-        .btn-voltar { background: #3345; color: white; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: bold; }
-        .toolbar-header { flex-wrap: wrap; gap: 10px; }
-        .toolbar-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-        #tabela-pedidos-wrap { margin-top: 20px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        #tabela-pedidos { font-size: 12px; }
-        #filtro-pesquisa { width: 100%; max-width: 300px; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #475569; background: #1e293b; color: white; font-size: 16px; }
-        .linha-concluida, .linha-concluida * { color: #f8fafc !important; text-decoration: line-through !important; opacity: 0.8; }
+
+        body {
+            background-color: #0f172a;
+            color: white;
+            font-family: sans-serif;
+            padding: 20px;
+        }
+
+        .btn-voltar {
+            background: #3345;
+            color: white;
+            text-decoration: none;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .toolbar-header {
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .toolbar-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        #tabela-pedidos-wrap {
+            margin-top: 20px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        #tabela-pedidos {
+            font-size: 12px;
+        }
+
+        #filtro-pesquisa {
+            width: 100%;
+            max-width: 300px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #475569;
+            background: #1e293b;
+            color: white;
+            font-size: 16px;
+        }
+
+        .linha-concluida,
+        .linha-concluida * {
+            color: #f8fafc !important;
+            text-decoration: line-through !important;
+            opacity: 0.8;
+        }
+
+        /*
+         * Campos provenientes da tabela obras.
+         * São apenas informativos e não devem ser editados
+         * directamente nesta tabela.
+         */
+        .campo-obra-auto {
+            background: rgba(14, 165, 233, 0.08);
+        }
+
         #calendario-pedidos {
             background: #1e293b;
             border-radius: 10px;
             padding: 15px;
             margin-top: 10px;
         }
+
         .fc {
             --fc-border-color: #334155;
             --fc-page-bg-color: #1e293b;
@@ -36,14 +101,45 @@
             --fc-list-event-hover-bg-color: #334155;
             --fc-today-bg-color: rgba(14,165,233,0.15);
         }
-        .fc .fc-toolbar-title { color: white; font-size: 1.1em; }
-        .fc .fc-button { background: #334155; border: none; color: white; box-shadow: none; text-transform: capitalize; }
-        .fc .fc-button:hover { background: #475569; }
+
+        .fc .fc-toolbar-title {
+            color: white;
+            font-size: 1.1em;
+        }
+
+        .fc .fc-button {
+            background: #334155;
+            border: none;
+            color: white;
+            box-shadow: none;
+            text-transform: capitalize;
+        }
+
+        .fc .fc-button:hover {
+            background: #475569;
+        }
+
         .fc .fc-button-primary:not(:disabled).fc-button-active,
-        .fc .fc-button-primary:not(:disabled):active { background: #0ea5e9; }
-        .fc .fc-col-header-cell-cushion, .fc .fc-daygrid-day-number { color: #cbd5e1; text-decoration: none; }
-        .fc-event { cursor: pointer; border: none; font-size: 12px; }
-        .fc-event.evento-concluido { opacity: 0.5; text-decoration: line-through; }
+        .fc .fc-button-primary:not(:disabled):active {
+            background: #0ea5e9;
+        }
+
+        .fc .fc-col-header-cell-cushion,
+        .fc .fc-daygrid-day-number {
+            color: #cbd5e1;
+            text-decoration: none;
+        }
+
+        .fc-event {
+            cursor: pointer;
+            border: none;
+            font-size: 12px;
+        }
+
+        .fc-event.evento-concluido {
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
 
         .modal-evento-overlay {
             display: none;
@@ -55,7 +151,11 @@
             justify-content: center;
             padding: 20px;
         }
-        .modal-evento-overlay.aberta { display: flex; }
+
+        .modal-evento-overlay.aberta {
+            display: flex;
+        }
+
         .modal-evento-conteudo {
             position: relative;
             background: #1e293b;
@@ -67,8 +167,15 @@
             max-height: 85vh;
             overflow-y: auto;
         }
-        .modal-evento-conteudo p { margin: 6px 0; }
-        .modal-evento-conteudo strong { color: #60a5fa; }
+
+        .modal-evento-conteudo p {
+            margin: 6px 0;
+        }
+
+        .modal-evento-conteudo strong {
+            color: #60a5fa;
+        }
+
         .modal-evento-fechar {
             position: absolute;
             top: -14px;
@@ -82,509 +189,2488 @@
             font-size: 16px;
             cursor: pointer;
         }
-        .link-anexo { color: #60a5fa; text-decoration: none; }
-        .sem-registo { color: #64748b; }
 
-        /* Ajuste para dispositivos móveis */
+        .link-anexo {
+            color: #60a5fa;
+            text-decoration: none;
+        }
+
+        .sem-registo {
+            color: #64748b;
+        }
+
         @media (max-width: 640px) {
-            body { padding: 12px; }
-            .toolbar-actions button, .toolbar-actions a { flex: 1 1 auto; text-align: center; margin-right: 0; }
+            body {
+                padding: 12px;
+            }
+
+            .toolbar-actions button,
+            .toolbar-actions a {
+                flex: 1 1 auto;
+                text-align: center;
+                margin-right: 0;
+            }
         }
     </style>
 </head>
+
 <body>
 
-<div>Utilizador: <strong id="utilizador-info" style="font-weight: bold; color: #60a5fa;">A verificar...</strong></div>
+<div>
+    Utilizador:
+    <strong id="utilizador-info" style="font-weight: bold; color: #60a5fa;">
+        A verificar...
+    </strong>
+</div>
 
-<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;" class="toolbar-header">
-    <h1 style="margin: 0;">Histórico de Pedidos <span id="contador-pedidos" style="color: #64748b; font-size: 0.8em;"></span></h1>
+<div
+    style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;"
+    class="toolbar-header"
+>
+    <h1 style="margin: 0;">
+        Histórico de Pedidos
+        <span
+            id="contador-pedidos"
+            style="color: #64748b; font-size: 0.8em;"
+        ></span>
+    </h1>
+
     <div class="toolbar-actions">
-        <button onclick="window.location.href='https://franciscosilvamglpt.github.io/TopogfRegisto/registo_pedidos.html'" style="background: #3b82f6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">➕ Adicionar Pedido</button>
-        <button id="btn-filtro-concluidos" onclick="toggleConcluidos()" style="background: #64748b; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">👁️ Mostrar Concluídos</button>
-        <button id="btn-guardar" onclick="guardarAlteracoes()" style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">💾 Guardar Alterações</button>
-        <a href="index.html" class="btn-voltar">⬅ Voltar</a>
+
+        <button
+            onclick="window.location.href='https://franciscosilvamglpt.github.io/TopogfRegisto/registo_pedidos.html'"
+            style="background: #3b82f6; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;"
+        >
+            ➕ Adicionar Pedido
+        </button>
+
+        <button
+            id="btn-filtro-concluidos"
+            onclick="toggleConcluidos()"
+            style="background: #64748b; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;"
+        >
+            👁️ Mostrar Concluídos
+        </button>
+
+        <button
+            id="btn-guardar"
+            onclick="guardarAlteracoes()"
+            style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;"
+        >
+            💾 Guardar Alterações
+        </button>
+
+        <a href="index.html" class="btn-voltar">
+            ⬅ Voltar
+        </a>
+
     </div>
 </div>
 
-<input type="text" id="filtro-pesquisa" placeholder="🔍 Pesquisar">
+<input
+    type="text"
+    id="filtro-pesquisa"
+    placeholder="🔍 Pesquisar"
+>
+
 <div id="tabela-pedidos-wrap">
     <div id="tabela-pedidos"></div>
 </div>
 
 <div style="margin-top: 30px;">
-    <h2 style="margin: 0 0 10px 0;">📅 Calendário de Pedidos</h2>
+
+    <h2 style="margin: 0 0 10px 0;">
+        📅 Calendário de Pedidos
+    </h2>
+
     <div id="calendario-pedidos"></div>
+
 </div>
 
-<div id="modal-evento" class="modal-evento-overlay" onclick="fecharModalEventoSeBackdrop(event)">
-    <div class="modal-evento-conteudo" onclick="event.stopPropagation()">
-        <button type="button" class="modal-evento-fechar" onclick="fecharModalEvento()" aria-label="Fechar">✕</button>
-        <h3 id="modal-evento-titulo" style="margin-top:0;"></h3>
+
+<!-- ========================================================= -->
+<!-- MODAL EVENTO -->
+<!-- ========================================================= -->
+
+<div
+    id="modal-evento"
+    class="modal-evento-overlay"
+    onclick="fecharModalEventoSeBackdrop(event)"
+>
+    <div
+        class="modal-evento-conteudo"
+        onclick="event.stopPropagation()"
+    >
+
+        <button
+            type="button"
+            class="modal-evento-fechar"
+            onclick="fecharModalEvento()"
+            aria-label="Fechar"
+        >
+            ✕
+        </button>
+
+        <h3
+            id="modal-evento-titulo"
+            style="margin-top:0;"
+        ></h3>
+
         <div id="modal-evento-corpo"></div>
+
     </div>
 </div>
 
-<!-- Modal de atividades do pedido -->
-<div id="modal-atividades" class="modal-evento-overlay" onclick="fecharModalAtividadesSeBackdrop(event)">
-    <div class="modal-evento-conteudo" onclick="event.stopPropagation()">
-        <button type="button" class="modal-evento-fechar" onclick="fecharModalAtividades()" aria-label="Fechar">✕</button>
-        <h3 id="modal-atividades-titulo" style="margin-top:0;"></h3>
+
+<!-- ========================================================= -->
+<!-- MODAL ATIVIDADES -->
+<!-- ========================================================= -->
+
+<div
+    id="modal-atividades"
+    class="modal-evento-overlay"
+    onclick="fecharModalAtividadesSeBackdrop(event)"
+>
+    <div
+        class="modal-evento-conteudo"
+        onclick="event.stopPropagation()"
+    >
+
+        <button
+            type="button"
+            class="modal-evento-fechar"
+            onclick="fecharModalAtividades()"
+            aria-label="Fechar"
+        >
+            ✕
+        </button>
+
+        <h3
+            id="modal-atividades-titulo"
+            style="margin-top:0;"
+        ></h3>
+
         <div id="modal-atividades-corpo"></div>
+
     </div>
 </div>
 
-<!-- Modal de ocorrências do pedido -->
-<div id="modal-ocorrencias" class="modal-evento-overlay" onclick="fecharModalOcorrenciasSeBackdrop(event)">
-    <div class="modal-evento-conteudo" onclick="event.stopPropagation()">
-        <button type="button" class="modal-evento-fechar" onclick="fecharModalOcorrencias()" aria-label="Fechar">✕</button>
-        <h3 id="modal-ocorrencias-titulo" style="margin-top:0;"></h3>
+
+<!-- ========================================================= -->
+<!-- MODAL OCORRÊNCIAS -->
+<!-- ========================================================= -->
+
+<div
+    id="modal-ocorrencias"
+    class="modal-evento-overlay"
+    onclick="fecharModalOcorrenciasSeBackdrop(event)"
+>
+    <div
+        class="modal-evento-conteudo"
+        onclick="event.stopPropagation()"
+    >
+
+        <button
+            type="button"
+            class="modal-evento-fechar"
+            onclick="fecharModalOcorrencias()"
+            aria-label="Fechar"
+        >
+            ✕
+        </button>
+
+        <h3
+            id="modal-ocorrencias-titulo"
+            style="margin-top:0;"
+        ></h3>
+
         <div id="modal-ocorrencias-corpo"></div>
+
     </div>
 </div>
+
 
 <script>
-    const supabaseUrl = 'https://dunondjiqawovisnwavg.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
-    const sbClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+    /* =========================================================
+       SUPABASE
+    ========================================================= */
+
+    const supabaseUrl =
+        'https://dunondjiqawovisnwavg.supabase.co';
+
+    const supabaseKey =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
+
+    const sbClient =
+        supabase.createClient(supabaseUrl, supabaseKey);
+
+
+    /* =========================================================
+       VARIÁVEIS
+    ========================================================= */
 
     let table;
-    let mostrandoConcluidos = false; 
-    let mapaAtividadesPorPedido = {};
-    let mapaOcorrenciasPorPedido = {};
 
-    // ===== Otimização: rastrear apenas as linhas realmente alteradas =====
-    // idsAlterados é só um "hint" rápido; a deteção real e fiável é feita
-    // comparando o estado atual da tabela com dadosOriginais (snapshot).
-    let idsAlterados = new Set();
-    let dadosOriginais = {};
-    const CAMPOS_GUARDAVEIS = [
-        "tecnico", "data_hora_pedido", "requerente", "empresa", "importancia",
-        "via", "local_obra", "numero_obra", "concelho", "servico", "observacao",
-        "tipo_trabalho", "frequencia", "data_hora_limite", "estado", "data_conclusao"
-    ];
-
-    function guardarSnapshot(dados) {
-        dadosOriginais = {};
-        dados.forEach(item => {
-            const copia = {};
-            CAMPOS_GUARDAVEIS.forEach(campo => { copia[campo] = item[campo] ?? null; });
-            dadosOriginais[item.id] = copia;
-        });
-    }
-
-    function linhaFoiAlterada(item) {
-        const original = dadosOriginais[item.id];
-        if (!original) return true; // linha nova, sem snapshot -> guarda por segurança
-        return CAMPOS_GUARDAVEIS.some(campo => (item[campo] ?? null) !== (original[campo] ?? null));
-    }
-
-    function atualizarContador() {
-        if(table) {
-            const contagem = table.getRows("active").length;
-            document.getElementById("contador-pedidos").innerText = "(" + contagem + ")";
-        }
-    }
-
-    const dataFormatter = (cell) => {
-        const val = cell.getValue();
-        if (!val) return "";
-        const data = new Date(val);
-        return ("0" + data.getDate()).slice(-2) + "/" + ("0"+(data.getMonth()+1)).slice(-2) + "/" + data.getFullYear() + " " + 
-               ("0" + data.getHours()).slice(-2) + ":" + ("0" + data.getMinutes()).slice(-2);
-    };
-
-    const dateEditor = function(cell, onRendered, success, cancel) {
-        const input = document.createElement("input");
-        input.style.width = "100%";
-        input.value = cell.getValue();
-        onRendered(function() {
-            input.focus();
-            flatpickr(input, { enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, locale: "pt", onClose: (sd, ds) => success(ds) });
-        });
-        return input;
-    };
+    let mostrandoConcluidos = false;
 
     let calendario = null;
 
-    function corPorImportancia(row) {
-        if (row.estado === "Concluido") return "#64748b";
-        if (row.importancia === "Alta") return "#ef4444";
-        if (row.importancia === "Média") return "#eab308";
-        if (row.importancia === "Baixa") return "#22c55e";
-        return "#0ea5e9";
+    let mapaAtividadesPorPedido = {};
+
+    let mapaOcorrenciasPorPedido = {};
+
+    /*
+     * Mapa das obras.
+     *
+     * Exemplo:
+     *
+     * mapaObras["1234"] = {
+     *      id: 5,
+     *      local_obra: "...",
+     *      numero_obra: "1234",
+     *      empresa: "...",
+     *      concelho: "..."
+     * }
+     */
+    let mapaObras = {};
+
+    let listaObras = [];
+
+    let idsAlterados = new Set();
+
+    let dadosOriginais = {};
+
+
+    /*
+     * IMPORTANTE:
+     *
+     * empresa, local_obra, numero_obra e concelho
+     * vêm agora da tabela "obras".
+     *
+     * Apenas numero_obra é necessário guardar em "pedidos".
+     */
+    const CAMPOS_GUARDAVEIS = [
+        "tecnico",
+        "data_hora_pedido",
+        "requerente",
+        "importancia",
+        "via",
+        "numero_obra",
+        "servico",
+        "observacao",
+        "tipo_trabalho",
+        "frequencia",
+        "data_hora_limite",
+        "estado",
+        "data_conclusao"
+    ];
+
+
+    /* =========================================================
+       SNAPSHOT
+    ========================================================= */
+
+    function guardarSnapshot(dados) {
+
+        dadosOriginais = {};
+
+        dados.forEach(item => {
+
+            const copia = {};
+
+            CAMPOS_GUARDAVEIS.forEach(campo => {
+
+                copia[campo] =
+                    item[campo] ?? null;
+
+            });
+
+            dadosOriginais[item.id] = copia;
+
+        });
     }
 
-    // ===== Modals de atividades e ocorrências =====
-    function abrirModalAtividades(pedidoId) {
-        const atividades = mapaAtividadesPorPedido[pedidoId] || [];
-        document.getElementById('modal-atividades-titulo').innerText = '📊 Atividades — Pedido #' + pedidoId;
-        document.getElementById('modal-atividades-corpo').innerHTML = atividades.map(function (a) {
-            const dataTexto = a.data_hora_inicio ? dataFormatter({getValue: () => a.data_hora_inicio}) : 'Sem data';
-            return '<p style="margin-left:6px; border-left:3px solid #0ea5e9; padding-left:8px; margin-bottom:8px;">' +
-                   '<strong>' + dataTexto + '</strong><br>' +
-                   (a.tecnico || 'Sem técnico') + ' — ' + (a.servico || '') +
-                   '</p>';
-        }).join('');
-        document.getElementById('modal-atividades').classList.add('aberta');
-        document.body.style.overflow = 'hidden';
+
+    function linhaFoiAlterada(item) {
+
+        const original =
+            dadosOriginais[item.id];
+
+        if (!original) return true;
+
+        return CAMPOS_GUARDAVEIS.some(campo => {
+
+            return (
+                (item[campo] ?? null) !==
+                (original[campo] ?? null)
+            );
+
+        });
     }
+
+
+    /* =========================================================
+       CONTADOR
+    ========================================================= */
+
+    function atualizarContador() {
+
+        if (table) {
+
+            const contagem =
+                table.getRows("active").length;
+
+            document.getElementById(
+                "contador-pedidos"
+            ).innerText =
+                "(" + contagem + ")";
+
+        }
+
+    }
+
+
+    /* =========================================================
+       DATAS
+    ========================================================= */
+
+    const dataFormatter = (cell) => {
+
+        const val =
+            cell.getValue();
+
+        if (!val) return "";
+
+        const data =
+            new Date(val);
+
+        return (
+            ("0" + data.getDate()).slice(-2)
+            + "/"
+            + ("0" + (data.getMonth() + 1)).slice(-2)
+            + "/"
+            + data.getFullYear()
+            + " "
+            + ("0" + data.getHours()).slice(-2)
+            + ":"
+            + ("0" + data.getMinutes()).slice(-2)
+        );
+
+    };
+
+
+    const dateEditor = function(
+        cell,
+        onRendered,
+        success,
+        cancel
+    ) {
+
+        const input =
+            document.createElement("input");
+
+        input.style.width = "100%";
+
+        input.value =
+            cell.getValue() || "";
+
+        onRendered(function() {
+
+            input.focus();
+
+            flatpickr(input, {
+
+                enableTime: true,
+
+                dateFormat: "Y-m-d H:i",
+
+                time_24hr: true,
+
+                locale: "pt",
+
+                onClose: function(
+                    selectedDates,
+                    dateStr
+                ) {
+
+                    success(dateStr);
+
+                }
+
+            });
+
+        });
+
+        return input;
+    };
+
+
+    /* =========================================================
+       OBRAS
+    ========================================================= */
+
+    async function carregarObras() {
+
+        const {
+            data,
+            error
+        } = await sbClient
+            .from('obras')
+            .select(
+                'id, local_obra, numero_obra, empresa, concelho'
+            )
+            .order('numero_obra', {
+                ascending: true
+            });
+
+
+        if (error) {
+
+            console.error(
+                "Erro ao carregar obras:",
+                error
+            );
+
+            alert(
+                "Não foi possível carregar a tabela de obras."
+            );
+
+            return;
+
+        }
+
+
+        listaObras =
+            data || [];
+
+        mapaObras = {};
+
+
+        listaObras.forEach(obra => {
+
+            /*
+             * numero_obra é UNIQUE na tabela obras,
+             * portanto pode ser usado como chave.
+             */
+            mapaObras[
+                String(obra.numero_obra)
+            ] = obra;
+
+        });
+
+
+        console.log(
+            "Obras carregadas:",
+            listaObras.length
+        );
+
+    }
+
+
+    /*
+     * Obtém os dados da obra através do número da obra.
+     */
+    function obterDadosObra(numeroObra) {
+
+        if (
+            numeroObra === null ||
+            numeroObra === undefined ||
+            numeroObra === ""
+        ) {
+
+            return {
+                local_obra: "",
+                numero_obra: "",
+                empresa: "",
+                concelho: ""
+            };
+
+        }
+
+
+        const obra =
+            mapaObras[String(numeroObra)];
+
+
+        if (!obra) {
+
+            return {
+                local_obra: "",
+                numero_obra: numeroObra,
+                empresa: "",
+                concelho: ""
+            };
+
+        }
+
+
+        return {
+
+            local_obra:
+                obra.local_obra || "",
+
+            numero_obra:
+                obra.numero_obra || "",
+
+            empresa:
+                obra.empresa || "",
+
+            concelho:
+                obra.concelho || ""
+
+        };
+
+    }
+
+
+    /*
+     * Quando o numero_obra é alterado na tabela,
+     * actualizar imediatamente os restantes campos
+     * provenientes de "obras".
+     */
+    function atualizarDadosDaObraNaLinha(row) {
+
+        const dados =
+            row.getData();
+
+        const obra =
+            obterDadosObra(
+                dados.numero_obra
+            );
+
+
+        /*
+         * Os valores ficam dentro da linha para:
+         *
+         * - pesquisa
+         * - calendário
+         * - modal
+         * - visualização
+         *
+         * mas não são campos independentes da BD.
+         */
+        row.update({
+
+            numero_obra:
+                obra.numero_obra,
+
+            local_obra:
+                obra.local_obra,
+
+            empresa:
+                obra.empresa,
+
+            concelho:
+                obra.concelho
+
+        });
+
+    }
+
+
+    /* =========================================================
+       IMPORTÂNCIA / CORES
+    ========================================================= */
+
+    function corPorImportancia(row) {
+
+        if (row.estado === "Concluido")
+            return "#64748b";
+
+        if (row.importancia === "Alta")
+            return "#ef4444";
+
+        if (row.importancia === "Média")
+            return "#eab308";
+
+        if (row.importancia === "Baixa")
+            return "#22c55e";
+
+        return "#0ea5e9";
+
+    }
+
+
+    /* =========================================================
+       MODAL ATIVIDADES
+    ========================================================= */
+
+    function abrirModalAtividades(pedidoId) {
+
+        const atividades =
+            mapaAtividadesPorPedido[pedidoId] || [];
+
+
+        document.getElementById(
+            'modal-atividades-titulo'
+        ).innerText =
+            '📊 Atividades — Pedido #' +
+            pedidoId;
+
+
+        document.getElementById(
+            'modal-atividades-corpo'
+        ).innerHTML =
+
+            atividades.map(function(a) {
+
+                const dataTexto =
+                    a.data_hora_inicio
+                        ? dataFormatter({
+                            getValue: () =>
+                                a.data_hora_inicio
+                        })
+                        : 'Sem data';
+
+
+                return `
+                    <p
+                        style="
+                            margin-left:6px;
+                            border-left:3px solid #0ea5e9;
+                            padding-left:8px;
+                            margin-bottom:8px;
+                        "
+                    >
+                        <strong>${dataTexto}</strong><br>
+                        ${a.tecnico || 'Sem técnico'}
+                        —
+                        ${a.servico || ''}
+                    </p>
+                `;
+
+            }).join('');
+
+
+        document.getElementById(
+            'modal-atividades'
+        ).classList.add('aberta');
+
+        document.body.style.overflow =
+            'hidden';
+
+    }
+
 
     function fecharModalAtividades() {
-        document.getElementById('modal-atividades').classList.remove('aberta');
+
+        document.getElementById(
+            'modal-atividades'
+        ).classList.remove('aberta');
+
         document.body.style.overflow = '';
+
     }
+
 
     function fecharModalAtividadesSeBackdrop(e) {
-        if (e.target.id === 'modal-atividades') fecharModalAtividades();
+
+        if (
+            e.target.id ===
+            'modal-atividades'
+        ) {
+
+            fecharModalAtividades();
+
+        }
+
     }
+
+
+    /* =========================================================
+       MODAL OCORRÊNCIAS
+    ========================================================= */
 
     function abrirModalOcorrencias(pedidoId) {
-        const ocorrencias = mapaOcorrenciasPorPedido[pedidoId] || [];
-        document.getElementById('modal-ocorrencias-titulo').innerText = '🚨 Ocorrências — Pedido #' + pedidoId;
-        document.getElementById('modal-ocorrencias-corpo').innerHTML = ocorrencias.map(function (o) {
-            const dataTexto = o.data ? dataFormatter({getValue: () => o.data}) : 'Sem data';
-            return '<p style="margin-left:6px; border-left:3px solid #a855f7; padding-left:8px; margin-bottom:8px;">' +
-                   '<strong>' + dataTexto + ':</strong> ' + (o.ocorrencia || '') +
-                   '</p>';
-        }).join('');
-        document.getElementById('modal-ocorrencias').classList.add('aberta');
-        document.body.style.overflow = 'hidden';
+
+        const ocorrencias =
+            mapaOcorrenciasPorPedido[pedidoId] || [];
+
+
+        document.getElementById(
+            'modal-ocorrencias-titulo'
+        ).innerText =
+            '🚨 Ocorrências — Pedido #' +
+            pedidoId;
+
+
+        document.getElementById(
+            'modal-ocorrencias-corpo'
+        ).innerHTML =
+
+            ocorrencias.map(function(o) {
+
+                const dataTexto =
+                    o.data
+                        ? dataFormatter({
+                            getValue: () =>
+                                o.data
+                        })
+                        : 'Sem data';
+
+
+                return `
+                    <p
+                        style="
+                            margin-left:6px;
+                            border-left:3px solid #a855f7;
+                            padding-left:8px;
+                            margin-bottom:8px;
+                        "
+                    >
+                        <strong>${dataTexto}:</strong>
+                        ${o.ocorrencia || ''}
+                    </p>
+                `;
+
+            }).join('');
+
+
+        document.getElementById(
+            'modal-ocorrencias'
+        ).classList.add('aberta');
+
+        document.body.style.overflow =
+            'hidden';
+
     }
+
 
     function fecharModalOcorrencias() {
-        document.getElementById('modal-ocorrencias').classList.remove('aberta');
+
+        document.getElementById(
+            'modal-ocorrencias'
+        ).classList.remove('aberta');
+
         document.body.style.overflow = '';
+
     }
+
 
     function fecharModalOcorrenciasSeBackdrop(e) {
-        if (e.target.id === 'modal-ocorrencias') fecharModalOcorrencias();
+
+        if (
+            e.target.id ===
+            'modal-ocorrencias'
+        ) {
+
+            fecharModalOcorrencias();
+
+        }
+
     }
+
+
+    /* =========================================================
+       CALENDÁRIO
+    ========================================================= */
 
     function renderizarCalendario(dados) {
-        const eventos = dados
-            .filter(row => row.data_hora_pedido)
-            .map(row => ({
-                id: row.id,
-                title: (row.tecnico || 'Sem técnico') + (row.local_obra ? ' — ' + row.local_obra : ''),
-                start: row.data_hora_pedido,
-                end: row.data_hora_limite || row.data_hora_pedido,
-                backgroundColor: corPorImportancia(row),
-                borderColor: corPorImportancia(row),
-                classNames: row.estado === "Concluido" ? ["evento-concluido"] : [],
-                extendedProps: row
-            }));
+
+        const eventos =
+
+            dados
+
+                .filter(row =>
+                    row.data_hora_pedido
+                )
+
+                .map(row => ({
+
+                    id: row.id,
+
+                    title:
+                        (row.tecnico || 'Sem técnico')
+                        +
+                        (
+                            row.local_obra
+                                ? ' — ' +
+                                  row.local_obra
+                                : ''
+                        ),
+
+                    start:
+                        row.data_hora_pedido,
+
+                    end:
+                        row.data_hora_limite ||
+                        row.data_hora_pedido,
+
+                    backgroundColor:
+                        corPorImportancia(row),
+
+                    borderColor:
+                        corPorImportancia(row),
+
+                    classNames:
+                        row.estado === "Concluido"
+                            ? ["evento-concluido"]
+                            : [],
+
+                    extendedProps:
+                        row
+
+                }));
+
 
         if (calendario) {
+
             calendario.removeAllEventSources();
-            calendario.addEventSource(eventos);
+
+            calendario.addEventSource(
+                eventos
+            );
+
             return;
+
         }
 
-        calendario = new FullCalendar.Calendar(document.getElementById('calendario-pedidos'), {
-            locale: 'pt-br',
-            initialView: 'dayGridMonth',
-            displayEventTime: true,
-            eventTimeFormat: {
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: false,
-            },
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,timeGridWeek,listMonth'
-            },
-            datesSet: function(info) {
-                if (info.view.type.startsWith('list')) {
-                    setTimeout(() => {
-                        const tbody = document.querySelector('.fc-list-table tbody');
-                        if (!tbody) return;
-                        Array.from(tbody.children).reverse().forEach(el => tbody.appendChild(el));
-                    }, 0);
-                }
-            },
-            eventDidMount: function(info) {
-                const hora = info.el.querySelector(".fc-event-time");
-                if (!hora) return;
 
-                let texto = hora.textContent.trim();
-                if (texto.endsWith(":00")) {
-                    texto = texto.slice(0, -3) + "h";
-                } else {
-                    texto = texto.replace(":", "h");
+        calendario =
+            new FullCalendar.Calendar(
+
+                document.getElementById(
+                    'calendario-pedidos'
+                ),
+
+                {
+
+                    locale: 'pt-br',
+
+                    initialView:
+                        'dayGridMonth',
+
+                    displayEventTime: true,
+
+                    eventTimeFormat: {
+
+                        hour: 'numeric',
+
+                        minute: '2-digit',
+
+                        hour12: false
+
+                    },
+
+                    headerToolbar: {
+
+                        left:
+                            'prev,next today',
+
+                        center:
+                            'title',
+
+                        right:
+                            'dayGridMonth,timeGridWeek,listMonth'
+
+                    },
+
+
+                    datesSet: function(info) {
+
+                        if (
+                            info.view.type
+                                .startsWith('list')
+                        ) {
+
+                            setTimeout(() => {
+
+                                const tbody =
+                                    document.querySelector(
+                                        '.fc-list-table tbody'
+                                    );
+
+                                if (!tbody)
+                                    return;
+
+
+                                Array.from(
+                                    tbody.children
+                                )
+                                .reverse()
+                                .forEach(el =>
+                                    tbody.appendChild(el)
+                                );
+
+                            }, 0);
+
+                        }
+
+                    },
+
+
+                    eventDidMount:
+                        function(info) {
+
+                            const hora =
+                                info.el.querySelector(
+                                    ".fc-event-time"
+                                );
+
+                            if (!hora)
+                                return;
+
+
+                            let texto =
+                                hora.textContent.trim();
+
+
+                            if (
+                                texto.endsWith(":00")
+                            ) {
+
+                                texto =
+                                    texto.slice(
+                                        0,
+                                        -3
+                                    ) + "h";
+
+                            } else {
+
+                                texto =
+                                    texto.replace(
+                                        ":",
+                                        "h"
+                                    );
+
+                            }
+
+
+                            hora.textContent =
+                                texto;
+
+                        },
+
+
+                    height: 'auto',
+
+                    events: eventos,
+
+
+                    eventClick:
+                        function(info) {
+
+                            const row =
+                                info.event.extendedProps;
+
+
+                            document.getElementById(
+                                'modal-evento-titulo'
+                            ).innerText =
+                                row.tecnico ||
+                                'Pedido';
+
+
+                            document.getElementById(
+                                'modal-evento-corpo'
+                            ).innerHTML = `
+
+                                <p>
+                                    <strong>Estado:</strong>
+                                    ${row.estado || '—'}
+                                </p>
+
+                                <p>
+                                    <strong>Importância:</strong>
+                                    ${row.importancia || '—'}
+                                </p>
+
+                                <p>
+                                    <strong>Data Pedido:</strong>
+                                    ${dataFormatter({
+                                        getValue: () =>
+                                            row.data_hora_pedido
+                                    })}
+                                </p>
+
+                                <p>
+                                    <strong>Limite:</strong>
+                                    ${dataFormatter({
+                                        getValue: () =>
+                                            row.data_hora_limite
+                                    })}
+                                </p>
+
+                                <p>
+                                    <strong>Requerente:</strong>
+                                    ${row.requerente || '—'}
+                                </p>
+
+                                <p>
+                                    <strong>Empresa:</strong>
+                                    ${row.empresa || '—'}
+                                </p>
+
+                                <p>
+                                    <strong>Via:</strong>
+                                    ${row.via || '—'}
+                                </p>
+
+                                <p>
+                                    <strong>Local/Obra:</strong>
+                                    ${row.local_obra || '—'}
+                                </p>
+
+                                <p>
+                                    <strong>Nº Obra:</strong>
+                                    ${row.numero_obra || '—'}
+                                </p>
+
+                                <p>
+                                    <strong>Concelho:</strong>
+                                    ${row.concelho || '—'}
+                                </p>
+
+                                <p>
+                                    <strong>Serviço:</strong>
+                                    ${row.servico || '—'}
+                                </p>
+
+                                <p>
+                                    <strong>Tipo:</strong>
+                                    ${row.tipo_trabalho || '—'}
+                                </p>
+
+                                <p>
+                                    <strong>Freq:</strong>
+                                    ${row.frequencia || '—'}
+                                </p>
+
+                                ${
+                                    row.observacao
+                                        ? `
+                                            <p>
+                                                <strong>Obs:</strong>
+                                                ${row.observacao}
+                                            </p>
+                                          `
+                                        : ''
+                                }
+
+                                <p>
+                                    <a
+                                        class="link-anexo"
+                                        href="registo_atividade.html?pedido=${row.id}"
+                                    >
+                                        ➕ Criar atividade associada a este pedido
+                                    </a>
+                                </p>
+
+                            `;
+
+
+                            document.getElementById(
+                                'modal-evento'
+                            ).classList.add('aberta');
+
+                            document.body.style.overflow =
+                                'hidden';
+
+                        }
+
                 }
-                hora.textContent = texto;
-            },
-            height: 'auto',
-            events: eventos,
-            eventClick: function(info) {
-                const row = info.event.extendedProps;
-                document.getElementById('modal-evento-titulo').innerText = row.tecnico || 'Pedido';
-                document.getElementById('modal-evento-corpo').innerHTML =
-                    '<p><strong>Estado:</strong> ' + (row.estado || '—') + '</p>' +
-                    '<p><strong>Importância:</strong> ' + (row.importancia || '—') + '</p>' +
-                    '<p><strong>Data Pedido:</strong> ' + dataFormatter({getValue: () => row.data_hora_pedido}) + '</p>' +
-                    '<p><strong>Limite:</strong> ' + dataFormatter({getValue: () => row.data_hora_limite}) + '</p>' +
-                    '<p><strong>Requerente:</strong> ' + (row.requerente || '—') + '</p>' +
-                    '<p><strong>Empresa:</strong> ' + (row.empresa || '—') + '</p>' +
-                    '<p><strong>Via:</strong> ' + (row.via || '—') + '</p>' +
-                    '<p><strong>Local/Obra:</strong> ' + (row.local_obra || '—') + '</p>' +
-                    '<p><strong>Nº Obra:</strong> ' + (row.numero_obra || '—') + '</p>' +
-                    '<p><strong>Concelho:</strong> ' + (row.concelho || '—') + '</p>' +
-                    '<p><strong>Serviço:</strong> ' + (row.servico || '—') + '</p>' +
-                    '<p><strong>Tipo:</strong> ' + (row.tipo_trabalho || '—') + '</p>' +
-                    '<p><strong>Freq:</strong> ' + (row.frequencia || '—') + '</p>' +
-                    (row.observacao ? '<p><strong>Obs:</strong> ' + row.observacao + '</p>' : '') +
-                    '<p><a class="link-anexo" href="registo_atividade.html?pedido=' + row.id + '">➕ Criar atividade associada a este pedido</a></p>';
-                document.getElementById('modal-evento').classList.add('aberta');
-                document.body.style.overflow = 'hidden';
-            }
-        });
+
+            );
+
+
         calendario.render();
+
     }
+
+
+    /* =========================================================
+       MODAL EVENTO
+    ========================================================= */
 
     function fecharModalEvento() {
-        document.getElementById('modal-evento').classList.remove('aberta');
+
+        document.getElementById(
+            'modal-evento'
+        ).classList.remove('aberta');
+
         document.body.style.overflow = '';
+
     }
+
 
     function fecharModalEventoSeBackdrop(e) {
-        if (e.target.id === 'modal-evento') fecharModalEvento();
+
+        if (
+            e.target.id ===
+            'modal-evento'
+        ) {
+
+            fecharModalEvento();
+
+        }
+
     }
 
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            fecharModalEvento();
-            fecharModalAtividades();
-            fecharModalOcorrencias();
+
+    document.addEventListener(
+        'keydown',
+        function(e) {
+
+            if (e.key === 'Escape') {
+
+                fecharModalEvento();
+
+                fecharModalAtividades();
+
+                fecharModalOcorrencias();
+
+            }
+
         }
-    });
+    );
+
+
+    /* =========================================================
+       CARREGAR DADOS
+    ========================================================= */
 
     async function carregarDados() {
-        const { data: { session } } = await sbClient.auth.getSession();
-        if (!session) { window.location.href = 'login.html'; return; }
-        document.getElementById('utilizador-info').innerText = session.user.email;
 
-        const { data } = await sbClient.from('pedidos').select('*').order('id', { ascending: false });
-
-        // ===== Carregar atividades associadas aos pedidos =====
-        const pedidosIds = data.map(p => p.id);
-        mapaAtividadesPorPedido = {};
-        mapaOcorrenciasPorPedido = {};
-
-        if (pedidosIds.length > 0) {
-            const { data: atividadesData, error: errAtividades } = await sbClient
-                .from('atividades')
-                .select('id, tecnico, servico, data_hora_inicio, pedido_id')
-                .in('pedido_id', pedidosIds);
-
-            if (errAtividades) {
-                console.error("Erro ao carregar atividades:", errAtividades);
-            } else {
-                (atividadesData || []).forEach(a => {
-                    if (!mapaAtividadesPorPedido[a.pedido_id]) mapaAtividadesPorPedido[a.pedido_id] = [];
-                    mapaAtividadesPorPedido[a.pedido_id].push(a);
-                });
-
-                // Carregar ocorrências das atividades desses pedidos
-                const atividadesIds = atividadesData.map(a => a.id);
-                if (atividadesIds.length > 0) {
-                    const { data: ocorrenciasData, error: errOcorrencias } = await sbClient
-                        .from('ocorrencias')
-                        .select('id, data, ocorrencia, atividade_id')
-                        .in('atividade_id', atividadesIds);
-
-                    if (errOcorrencias) {
-                        console.error("Erro ao carregar ocorrências:", errOcorrencias);
-                    } else {
-                        // Mapear atividade_id -> pedido_id
-                        const atividadeParaPedido = {};
-                        atividadesData.forEach(a => { atividadeParaPedido[a.id] = a.pedido_id; });
-
-                        (ocorrenciasData || []).forEach(o => {
-                            const pedidoId = atividadeParaPedido[o.atividade_id];
-                            if (pedidoId) {
-                                if (!mapaOcorrenciasPorPedido[pedidoId]) mapaOcorrenciasPorPedido[pedidoId] = [];
-                                mapaOcorrenciasPorPedido[pedidoId].push(o);
-                            }
-                        });
-                    }
-                }
+        /*
+         * Primeiro verifica sessão.
+         */
+        const {
+            data: {
+                session
             }
+        } =
+            await sbClient.auth.getSession();
+
+
+        if (!session) {
+
+            window.location.href =
+                'login.html';
+
+            return;
+
         }
 
-        // Adicionar contadores aos dados
-        data.forEach(p => {
-            p.atividades_count = (mapaAtividadesPorPedido[p.id] || []).length;
-            p.ocorrencias_count = (mapaOcorrenciasPorPedido[p.id] || []).length;
+
+        document.getElementById(
+            'utilizador-info'
+        ).innerText =
+            session.user.email;
+
+
+        /*
+         * Primeiro carregamos as obras.
+         *
+         * É importante fazê-lo ANTES dos pedidos,
+         * porque os pedidos vão buscar os dados da obra.
+         */
+        await carregarObras();
+
+
+        /*
+         * Carregar pedidos.
+         */
+        const {
+            data,
+            error
+        } =
+            await sbClient
+                .from('pedidos')
+                .select('*')
+                .order('id', {
+                    ascending: false
+                });
+
+
+        if (error) {
+
+            console.error(
+                "Erro ao carregar pedidos:",
+                error
+            );
+
+            alert(
+                "Erro ao carregar os pedidos."
+            );
+
+            return;
+
+        }
+
+
+        /*
+         * Substituir os dados de obra pelos dados
+         * actuais da tabela "obras".
+         *
+         * Isto garante que mesmo que pedidos tenha
+         * informação antiga nesses campos, a interface
+         * apresenta sempre a informação actual de "obras".
+         */
+        data.forEach(pedido => {
+
+            const obra =
+                obterDadosObra(
+                    pedido.numero_obra
+                );
+
+
+            pedido.local_obra =
+                obra.local_obra;
+
+            pedido.empresa =
+                obra.empresa;
+
+            pedido.concelho =
+                obra.concelho;
+
+            pedido.numero_obra =
+                obra.numero_obra ||
+                pedido.numero_obra;
+
         });
+
+
+        /* =====================================================
+           ATIVIDADES
+        ===================================================== */
+
+        const pedidosIds =
+            data.map(p => p.id);
+
+
+        mapaAtividadesPorPedido = {};
+
+        mapaOcorrenciasPorPedido = {};
+
+
+        if (pedidosIds.length > 0) {
+
+            const {
+                data: atividadesData,
+                error: errAtividades
+            } =
+                await sbClient
+                    .from('atividades')
+                    .select(
+                        'id, tecnico, servico, data_hora_inicio, pedido_id'
+                    )
+                    .in(
+                        'pedido_id',
+                        pedidosIds
+                    );
+
+
+            if (errAtividades) {
+
+                console.error(
+                    "Erro ao carregar atividades:",
+                    errAtividades
+                );
+
+            } else {
+
+                (atividadesData || [])
+                    .forEach(a => {
+
+                        if (
+                            !mapaAtividadesPorPedido[
+                                a.pedido_id
+                            ]
+                        ) {
+
+                            mapaAtividadesPorPedido[
+                                a.pedido_id
+                            ] = [];
+
+                        }
+
+
+                        mapaAtividadesPorPedido[
+                            a.pedido_id
+                        ].push(a);
+
+                    });
+
+
+                /*
+                 * Ocorrências
+                 */
+                const atividadesIds =
+                    atividadesData.map(
+                        a => a.id
+                    );
+
+
+                if (atividadesIds.length > 0) {
+
+                    const {
+                        data: ocorrenciasData,
+                        error: errOcorrencias
+                    } =
+                        await sbClient
+                            .from('ocorrencias')
+                            .select(
+                                'id, data, ocorrencia, atividade_id'
+                            )
+                            .in(
+                                'atividade_id',
+                                atividadesIds
+                            );
+
+
+                    if (errOcorrencias) {
+
+                        console.error(
+                            "Erro ao carregar ocorrências:",
+                            errOcorrencias
+                        );
+
+                    } else {
+
+                        const atividadeParaPedido = {};
+
+
+                        atividadesData.forEach(a => {
+
+                            atividadeParaPedido[
+                                a.id
+                            ] =
+                                a.pedido_id;
+
+                        });
+
+
+                        (ocorrenciasData || [])
+                            .forEach(o => {
+
+                                const pedidoId =
+                                    atividadeParaPedido[
+                                        o.atividade_id
+                                    ];
+
+
+                                if (pedidoId) {
+
+                                    if (
+                                        !mapaOcorrenciasPorPedido[
+                                            pedidoId
+                                        ]
+                                    ) {
+
+                                        mapaOcorrenciasPorPedido[
+                                            pedidoId
+                                        ] = [];
+
+                                    }
+
+
+                                    mapaOcorrenciasPorPedido[
+                                        pedidoId
+                                    ].push(o);
+
+                                }
+
+                            });
+
+                    }
+
+                }
+
+            }
+
+        }
+
+
+        /* =====================================================
+           CONTADORES
+        ===================================================== */
+
+        data.forEach(p => {
+
+            p.atividades_count =
+                (
+                    mapaAtividadesPorPedido[p.id] ||
+                    []
+                ).length;
+
+
+            p.ocorrencias_count =
+                (
+                    mapaOcorrenciasPorPedido[p.id] ||
+                    []
+                ).length;
+
+        });
+
 
         guardarSnapshot(data);
 
-        table = new Tabulator("#tabela-pedidos", {
-            data: data,
-            layout: "fitData",
-            pagination: "local",
-            paginationSize: 50,
-            paginationSizeSelector: [15, 50, 100],
-            cellEdited: function(cell) {
-                // Marca a linha como alterada para a otimização do guardar
-                idsAlterados.add(cell.getRow().getData().id);
-                aplicarFiltros();
-                renderizarCalendario(table.getData());
-            },
-            rowFormatter: function(row) {
-                const data = row.getData();
-                const el = row.getElement();
-                el.classList.remove("linha-concluida");
-                el.style.backgroundColor = "";
-                if (data.estado === "Concluido") {
-                    el.classList.add("linha-concluida");
-                    el.style.backgroundColor = "#334155";
-                } else if (data.importancia === "Alta") el.style.backgroundColor = "rgba(239, 68, 68, 0.2)";
-                else if (data.importancia === "Média") el.style.backgroundColor = "rgba(234, 179, 8, 0.2)";
-                else if (data.importancia === "Baixa") el.style.backgroundColor = "rgba(34, 197, 94, 0.2)";
-            },
-            columns: [
-                {title: "Técnico", field: "tecnico", minWidth: 120, editor: "input"},
-                {title: "Data Pedido", field: "data_hora_pedido", minWidth: 150, editor: dateEditor, formatter: dataFormatter},
-                {title: "Requerente", field: "requerente", minWidth: 140, editor: "input"},
-                {title: "Empresa", field: "empresa", minWidth: 150, editor: "list", editorParams: {values: ["", "CCR ENG&CONST", "CCR-INVEST", "GROWNOR", "WEST-VIEW", "GRAU-ON", "FERCAYO", "DECIBOLT", "INTERNO", "EXTERNO"]}},
-                {title: "Importância❗", field: "importancia", minWidth: 100, editor: "list", editorParams: {values: ["Baixa", "Média", "Alta"]}},
-                {title: "Via", field: "via", minWidth: 120, editor: "list", editorParams: {values: ["Chamada", "Email", "Whatsapp", "Presencial", "Outros"]}},
-                {title: "Local / Obra", field: "local_obra", minWidth: 180, editor: "input"},
-                {title: "Nº Obra", field: "numero_obra", minWidth: 100, editor: "input"},
-                {title: "Concelho", field: "concelho", minWidth: 140, editor: "input"},
-                {title: "Serviço", field: "servico", minWidth: 220, editor: "input"},
-                {title: "Obs", field: "observacao", minWidth: 180, editor: "input"},
-                {title: "Tipo", field: "tipo_trabalho", minWidth: 160, editor: "list", editorParams: {values: ["Lev. Topográfico", "Monitorização", "Implantação", "Gabinete / Estudos"]}},
-                {title: "Freq", field: "frequencia", minWidth: 120, editor: "list", editorParams: {values: ["Única", "Contínua", "Diária", "Semanal", "Mensal", "Trimestral"]}},
-                {title: "Limite", field: "data_hora_limite", minWidth: 150, editor: dateEditor, formatter: dataFormatter},
-                {title: "Estado", field: "estado", minWidth: 120, editor: "list", editorParams: {values: ["Pendente", "Concluido"]}},
-                {title: "Data Conclusão", field: "data_conclusao", minWidth: 150, editor: dateEditor, formatter: dataFormatter},
-                {title: "Atividades", field: "atividades_count", formatter: function(cell) {
-                    const count = cell.getValue() || 0;
-                    if (count === 0) return "<span class='sem-registo'>—</span>";
-                    return "<a class='link-anexo' href='javascript:void(0)'>📊 " + count + "</a>";
-                }, width: 100, hozAlign: "center", cellClick: function(e, cell) {
-                    const pedidoId = cell.getRow().getData().id;
-                    if ((mapaAtividadesPorPedido[pedidoId] || []).length > 0) abrirModalAtividades(pedidoId);
-                }},
-                {title: "Ocorrências", field: "ocorrencias_count", formatter: function(cell) {
-                    const count = cell.getValue() || 0;
-                    if (count === 0) return "<span class='sem-registo'>—</span>";
-                    return "<a class='link-anexo' href='javascript:void(0)'>🚨 " + count + "</a>";
-                }, width: 110, hozAlign: "center", cellClick: function(e, cell) {
-                    const pedidoId = cell.getRow().getData().id;
-                    if ((mapaOcorrenciasPorPedido[pedidoId] || []).length > 0) abrirModalOcorrencias(pedidoId);
-                }},
-                {title: "Ações", formatter: function(cell) {
-                    const data = cell.getRow().getData();
-                    return "<button class='btn-atividade' data-id='" + data.id + "' style='background:#0ea5e9; color:white; border:none; padding:4px 8px; border-radius:3px; margin-right:4px; cursor:pointer; font-size:11px;'>➕ Atividade</button>" +
-                           "<button class='btn-apagar' style='background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer; font-size:11px;'>❌</button>";
-                }, width: 140, hozAlign: "center", cellClick: function(e, cell) {
-                    if (e.target.classList.contains('btn-apagar')) {
-                        if(confirm("Apagar?")) { 
-                            const id = cell.getRow().getData().id; 
-                            sbClient.from('pedidos').delete().eq('id', id).then(() => { 
-                                idsAlterados.delete(id);
-                                cell.getRow().delete(); 
-                                aplicarFiltros(); 
-                                renderizarCalendario(table.getData()); 
-                            }); 
+
+        /* =====================================================
+           TABULATOR
+        ===================================================== */
+
+        table =
+            new Tabulator(
+                "#tabela-pedidos",
+                {
+
+                    data: data,
+
+                    layout: "fitData",
+
+                    pagination: "local",
+
+                    paginationSize: 50,
+
+                    paginationSizeSelector:
+                        [15, 50, 100],
+
+
+                    cellEdited:
+                        function(cell) {
+
+                            const row =
+                                cell.getRow();
+
+                            const field =
+                                cell.getField();
+
+
+                            /*
+                             * Se o utilizador alterar o
+                             * N.º Obra, buscar imediatamente
+                             * os restantes dados à tabela obras.
+                             */
+                            if (
+                                field ===
+                                "numero_obra"
+                            ) {
+
+                                atualizarDadosDaObraNaLinha(
+                                    row
+                                );
+
+                            }
+
+
+                            idsAlterados.add(
+                                row.getData().id
+                            );
+
+
+                            aplicarFiltros();
+
+                            renderizarCalendario(
+                                table.getData()
+                            );
+
+                        },
+
+
+                    rowFormatter:
+                        function(row) {
+
+                            const data =
+                                row.getData();
+
+                            const el =
+                                row.getElement();
+
+
+                            el.classList.remove(
+                                "linha-concluida"
+                            );
+
+                            el.style.backgroundColor =
+                                "";
+
+
+                            if (
+                                data.estado ===
+                                "Concluido"
+                            ) {
+
+                                el.classList.add(
+                                    "linha-concluida"
+                                );
+
+                                el.style.backgroundColor =
+                                    "#334155";
+
+                            }
+
+                            else if (
+                                data.importancia ===
+                                "Alta"
+                            ) {
+
+                                el.style.backgroundColor =
+                                    "rgba(239, 68, 68, 0.2)";
+
+                            }
+
+                            else if (
+                                data.importancia ===
+                                "Média"
+                            ) {
+
+                                el.style.backgroundColor =
+                                    "rgba(234, 179, 8, 0.2)";
+
+                            }
+
+                            else if (
+                                data.importancia ===
+                                "Baixa"
+                            ) {
+
+                                el.style.backgroundColor =
+                                    "rgba(34, 197, 94, 0.2)";
+
+                            }
+
+                        },
+
+
+                    columns: [
+
+                        {
+                            title: "Técnico",
+                            field: "tecnico",
+                            minWidth: 120,
+                            editor: "input"
+                        },
+
+
+                        {
+                            title: "Data Pedido",
+                            field: "data_hora_pedido",
+                            minWidth: 150,
+                            editor: dateEditor,
+                            formatter: dataFormatter
+                        },
+
+
+                        {
+                            title: "Requerente",
+                            field: "requerente",
+                            minWidth: 140,
+                            editor: "input"
+                        },
+
+
+                        /*
+                         * =================================================
+                         * EMPRESA
+                         * Vem da tabela OBRAS.
+                         * Não é editável aqui.
+                         * =================================================
+                         */
+                        {
+                            title: "Empresa",
+                            field: "empresa",
+                            minWidth: 150,
+                            cssClass:
+                                "campo-obra-auto"
+                        },
+
+
+                        {
+                            title: "Importância❗",
+                            field: "importancia",
+                            minWidth: 100,
+                            editor: "list",
+                            editorParams: {
+                                values: [
+                                    "Baixa",
+                                    "Média",
+                                    "Alta"
+                                ]
+                            }
+                        },
+
+
+                        {
+                            title: "Via",
+                            field: "via",
+                            minWidth: 120,
+                            editor: "list",
+                            editorParams: {
+                                values: [
+                                    "Chamada",
+                                    "Email",
+                                    "Whatsapp",
+                                    "Presencial",
+                                    "Outros"
+                                ]
+                            }
+                        },
+
+
+                        /*
+                         * =================================================
+                         * LOCAL / OBRA
+                         * Vem da tabela OBRAS.
+                         * Não é editável aqui.
+                         * =================================================
+                         */
+                        {
+                            title: "Local / Obra",
+                            field: "local_obra",
+                            minWidth: 180,
+                            cssClass:
+                                "campo-obra-auto"
+                        },
+
+
+                        /*
+                         * =================================================
+                         * NÚMERO OBRA
+                         *
+                         * Este é o único campo da obra que o utilizador
+                         * altera no histórico.
+                         *
+                         * Ao escolher outro número:
+                         * Empresa
+                         * Local
+                         * Concelho
+                         * são actualizados automaticamente.
+                         * =================================================
+                         */
+                        {
+                            title: "Nº Obra",
+                            field: "numero_obra",
+                            minWidth: 120,
+                            editor: "list",
+
+                            editorParams: function() {
+
+                                const valores = {};
+
+                                listaObras.forEach(
+                                    obra => {
+
+                                        valores[
+                                            obra.numero_obra
+                                        ] =
+                                            obra.numero_obra
+                                            +
+                                            (
+                                                obra.local_obra
+                                                    ? " — " +
+                                                      obra.local_obra
+                                                    : ""
+                                            );
+
+                                    }
+                                );
+
+                                return {
+                                    values: valores,
+                                    autocomplete: true,
+                                    listOnEmpty: true
+                                };
+
+                            },
+
+                            cssClass:
+                                "campo-obra-auto"
+                        },
+
+
+                        /*
+                         * =================================================
+                         * CONCELHO
+                         * Vem da tabela OBRAS.
+                         * =================================================
+                         */
+                        {
+                            title: "Concelho",
+                            field: "concelho",
+                            minWidth: 140,
+                            cssClass:
+                                "campo-obra-auto"
+                        },
+
+
+                        {
+                            title: "Serviço",
+                            field: "servico",
+                            minWidth: 220,
+                            editor: "input"
+                        },
+
+
+                        {
+                            title: "Obs",
+                            field: "observacao",
+                            minWidth: 180,
+                            editor: "input"
+                        },
+
+
+                        {
+                            title: "Tipo",
+                            field: "tipo_trabalho",
+                            minWidth: 160,
+                            editor: "list",
+                            editorParams: {
+                                values: [
+                                    "Lev. Topográfico",
+                                    "Monitorização",
+                                    "Implantação",
+                                    "Gabinete / Estudos"
+                                ]
+                            }
+                        },
+
+
+                        {
+                            title: "Freq",
+                            field: "frequencia",
+                            minWidth: 120,
+                            editor: "list",
+                            editorParams: {
+                                values: [
+                                    "Única",
+                                    "Contínua",
+                                    "Diária",
+                                    "Semanal",
+                                    "Mensal",
+                                    "Trimestral"
+                                ]
+                            }
+                        },
+
+
+                        {
+                            title: "Limite",
+                            field: "data_hora_limite",
+                            minWidth: 150,
+                            editor: dateEditor,
+                            formatter: dataFormatter
+                        },
+
+
+                        {
+                            title: "Estado",
+                            field: "estado",
+                            minWidth: 120,
+                            editor: "list",
+                            editorParams: {
+                                values: [
+                                    "Pendente",
+                                    "Concluido"
+                                ]
+                            }
+                        },
+
+
+                        {
+                            title: "Data Conclusão",
+                            field: "data_conclusao",
+                            minWidth: 150,
+                            editor: dateEditor,
+                            formatter: dataFormatter
+                        },
+
+
+                        /*
+                         * =================================================
+                         * ATIVIDADES
+                         * =================================================
+                         */
+                        {
+                            title: "Atividades",
+                            field: "atividades_count",
+
+                            formatter:
+                                function(cell) {
+
+                                    const count =
+                                        cell.getValue() || 0;
+
+
+                                    if (count === 0) {
+
+                                        return `
+                                            <span class="sem-registo">
+                                                —
+                                            </span>
+                                        `;
+
+                                    }
+
+
+                                    return `
+                                        <a
+                                            class="link-anexo"
+                                            href="javascript:void(0)"
+                                        >
+                                            📊 ${count}
+                                        </a>
+                                    `;
+
+                                },
+
+                            width: 100,
+
+                            hozAlign: "center",
+
+                            cellClick:
+                                function(e, cell) {
+
+                                    const pedidoId =
+                                        cell
+                                            .getRow()
+                                            .getData()
+                                            .id;
+
+
+                                    if (
+                                        (
+                                            mapaAtividadesPorPedido[
+                                                pedidoId
+                                            ] || []
+                                        ).length > 0
+                                    ) {
+
+                                        abrirModalAtividades(
+                                            pedidoId
+                                        );
+
+                                    }
+
+                                }
+
+                        },
+
+
+                        /*
+                         * =================================================
+                         * OCORRÊNCIAS
+                         * =================================================
+                         */
+                        {
+                            title: "Ocorrências",
+                            field: "ocorrencias_count",
+
+                            formatter:
+                                function(cell) {
+
+                                    const count =
+                                        cell.getValue() || 0;
+
+
+                                    if (count === 0) {
+
+                                        return `
+                                            <span class="sem-registo">
+                                                —
+                                            </span>
+                                        `;
+
+                                    }
+
+
+                                    return `
+                                        <a
+                                            class="link-anexo"
+                                            href="javascript:void(0)"
+                                        >
+                                            🚨 ${count}
+                                        </a>
+                                    `;
+
+                                },
+
+                            width: 110,
+
+                            hozAlign: "center",
+
+                            cellClick:
+                                function(e, cell) {
+
+                                    const pedidoId =
+                                        cell
+                                            .getRow()
+                                            .getData()
+                                            .id;
+
+
+                                    if (
+                                        (
+                                            mapaOcorrenciasPorPedido[
+                                                pedidoId
+                                            ] || []
+                                        ).length > 0
+                                    ) {
+
+                                        abrirModalOcorrencias(
+                                            pedidoId
+                                        );
+
+                                    }
+
+                                }
+
+                        },
+
+
+                        /*
+                         * =================================================
+                         * AÇÕES
+                         * =================================================
+                         */
+                        {
+                            title: "Ações",
+
+                            formatter:
+                                function(cell) {
+
+                                    const data =
+                                        cell
+                                            .getRow()
+                                            .getData();
+
+
+                                    return `
+
+                                        <button
+                                            class="btn-atividade"
+                                            data-id="${data.id}"
+                                            style="
+                                                background:#0ea5e9;
+                                                color:white;
+                                                border:none;
+                                                padding:4px 8px;
+                                                border-radius:3px;
+                                                margin-right:4px;
+                                                cursor:pointer;
+                                                font-size:11px;
+                                            "
+                                        >
+                                            ➕ Atividade
+                                        </button>
+
+                                        <button
+                                            class="btn-apagar"
+                                            style="
+                                                background:#ef4444;
+                                                color:white;
+                                                border:none;
+                                                padding:4px 8px;
+                                                border-radius:3px;
+                                                cursor:pointer;
+                                                font-size:11px;
+                                            "
+                                        >
+                                            ❌
+                                        </button>
+
+                                    `;
+
+                                },
+
+                            width: 140,
+
+                            hozAlign: "center",
+
+                            cellClick:
+                                function(e, cell) {
+
+                                    /*
+                                     * APAGAR
+                                     */
+                                    if (
+                                        e.target.classList.contains(
+                                            'btn-apagar'
+                                        )
+                                    ) {
+
+                                        if (
+                                            confirm(
+                                                "Apagar este pedido?"
+                                            )
+                                        ) {
+
+                                            const id =
+                                                cell
+                                                    .getRow()
+                                                    .getData()
+                                                    .id;
+
+
+                                            sbClient
+                                                .from('pedidos')
+                                                .delete()
+                                                .eq(
+                                                    'id',
+                                                    id
+                                                )
+                                                .then(
+                                                    function(result) {
+
+                                                        if (
+                                                            result.error
+                                                        ) {
+
+                                                            console.error(
+                                                                result.error
+                                                            );
+
+                                                            alert(
+                                                                "Erro ao apagar o pedido."
+                                                            );
+
+                                                            return;
+
+                                                        }
+
+
+                                                        idsAlterados.delete(
+                                                            id
+                                                        );
+
+
+                                                        cell
+                                                            .getRow()
+                                                            .delete();
+
+
+                                                        aplicarFiltros();
+
+                                                        renderizarCalendario(
+                                                            table.getData()
+                                                        );
+
+                                                    }
+                                                );
+
+                                        }
+
+                                    }
+
+
+                                    /*
+                                     * ATIVIDADE
+                                     */
+                                    else if (
+                                        e.target.classList.contains(
+                                            'btn-atividade'
+                                        )
+                                    ) {
+
+                                        const id =
+                                            cell
+                                                .getRow()
+                                                .getData()
+                                                .id;
+
+
+                                        window.location.href =
+                                            'registo_atividade.html?pedido=' +
+                                            id;
+
+                                    }
+
+                                }
+
                         }
-                    } else if (e.target.classList.contains('btn-atividade')) {
-                        const id = cell.getRow().getData().id;
-                        window.location.href = 'registo_atividade.html?pedido=' + id;
-                    }
-                }}
-            ]
-        });
-        
-        table.on("tableBuilt", () => {
-            aplicarFiltros();
-            renderizarCalendario(table.getData());
-        });
-        
-        document.getElementById("filtro-pesquisa").addEventListener("keyup", aplicarFiltros);
+
+                    ]
+
+                }
+            );
+
+
+        table.on(
+            "tableBuilt",
+            function() {
+
+                aplicarFiltros();
+
+                renderizarCalendario(
+                    table.getData()
+                );
+
+            }
+        );
+
+
+        document
+            .getElementById(
+                "filtro-pesquisa"
+            )
+            .addEventListener(
+                "keyup",
+                aplicarFiltros
+            );
+
     }
+
+
+    /* =========================================================
+       FILTROS
+    ========================================================= */
 
     function aplicarFiltros() {
-        const input = document.getElementById("filtro-pesquisa").value.toLowerCase();
-        table.setFilter(function(data) {
-            const matchTexto = Object.values(data).some(val => String(val).toLowerCase().includes(input));
-            const estado = data.estado || "";
-            return matchTexto && (mostrandoConcluidos ? true : estado !== "Concluido");
-        });
-        setTimeout(atualizarContador, 50);
+
+        if (!table) return;
+
+
+        const input =
+            document
+                .getElementById(
+                    "filtro-pesquisa"
+                )
+                .value
+                .toLowerCase();
+
+
+        table.setFilter(
+            function(data) {
+
+                const matchTexto =
+                    Object
+                        .values(data)
+                        .some(
+                            val =>
+                                String(val)
+                                    .toLowerCase()
+                                    .includes(input)
+                        );
+
+
+                const estado =
+                    data.estado || "";
+
+
+                return (
+                    matchTexto &&
+                    (
+                        mostrandoConcluidos
+                            ? true
+                            : estado !== "Concluido"
+                    )
+                );
+
+            }
+        );
+
+
+        setTimeout(
+            atualizarContador,
+            50
+        );
+
     }
+
+
+    /* =========================================================
+       CONCLUÍDOS
+    ========================================================= */
 
     function toggleConcluidos() {
-        mostrandoConcluidos = !mostrandoConcluidos;
-        const btn = document.getElementById("btn-filtro-concluidos");
-        btn.innerText = mostrandoConcluidos ? "✅ Ocultar Concluídos" : "👁️ Mostrar Concluídos";
+
+        mostrandoConcluidos =
+            !mostrandoConcluidos;
+
+
+        const btn =
+            document.getElementById(
+                "btn-filtro-concluidos"
+            );
+
+
+        btn.innerText =
+            mostrandoConcluidos
+                ? "✅ Ocultar Concluídos"
+                : "👁️ Mostrar Concluídos";
+
+
         aplicarFiltros();
+
     }
 
-    // ===== Guardar Alterações — otimizado =====
-    // 1) Deteta as linhas alteradas comparando com o snapshot original
-    //    (mais fiável do que confiar só no evento cellEdited)
-    // 2) Envia todos os updates em paralelo (Promise.all) em vez de um a um
+
+    /* =========================================================
+       GUARDAR ALTERAÇÕES
+    ========================================================= */
+
     async function guardarAlteracoes() {
-        // Força o fecho de qualquer editor de célula ainda aberto (ex: flatpickr),
-        // para garantir que a última alteração feita fica mesmo registada.
-        document.activeElement && document.activeElement.blur();
 
-        const dados = table.getData();
-        // Une o hint do cellEdited com a comparação robusta ao snapshot
-        const linhasParaGuardar = dados.filter(item => idsAlterados.has(item.id) || linhaFoiAlterada(item));
+        /*
+         * Fecha qualquer editor aberto.
+         */
+        if (
+            document.activeElement
+        ) {
 
-        if (linhasParaGuardar.length === 0) {
-            alert("Não há alterações por guardar.");
-            return;
+            document.activeElement.blur();
+
         }
 
-        const btn = document.getElementById('btn-guardar');
-        const textoOriginal = btn.innerText;
+
+        const dados =
+            table.getData();
+
+
+        const linhasParaGuardar =
+            dados.filter(
+                item =>
+                    idsAlterados.has(item.id) ||
+                    linhaFoiAlterada(item)
+            );
+
+
+        if (
+            linhasParaGuardar.length === 0
+        ) {
+
+            alert(
+                "Não há alterações por guardar."
+            );
+
+            return;
+
+        }
+
+
+        const btn =
+            document.getElementById(
+                'btn-guardar'
+            );
+
+
+        const textoOriginal =
+            btn.innerText;
+
+
         btn.disabled = true;
-        btn.innerText = "⏳ A guardar...";
+
+        btn.innerText =
+            "⏳ A guardar...";
+
 
         try {
-            const resultados = await Promise.all(linhasParaGuardar.map(item =>
-                sbClient.from('pedidos').update({
-                    tecnico: item.tecnico, data_hora_pedido: item.data_hora_pedido, requerente: item.requerente,
-                    empresa: item.empresa, importancia: item.importancia, via: item.via, local_obra: item.local_obra,
-                    numero_obra: item.numero_obra, concelho: item.concelho, servico: item.servico, observacao: item.observacao,
-                    tipo_trabalho: item.tipo_trabalho, frequencia: item.frequencia, data_hora_limite: item.data_hora_limite,
-                    estado: item.estado, data_conclusao: item.data_conclusao
-                }).eq('id', item.id)
-            ));
 
-            const algumErro = resultados.find(r => r.error);
+            /*
+             * =====================================================
+             * IMPORTANTE
+             *
+             * Já NÃO enviamos:
+             *
+             * empresa
+             * local_obra
+             * concelho
+             *
+             * para pedidos.
+             *
+             * Esses dados vêm exclusivamente da tabela obras.
+             *
+             * Apenas numero_obra é guardado no pedido.
+             * =====================================================
+             */
+
+            const resultados =
+                await Promise.all(
+
+                    linhasParaGuardar.map(
+                        item =>
+
+                            sbClient
+                                .from('pedidos')
+                                .update({
+
+                                    tecnico:
+                                        item.tecnico,
+
+                                    data_hora_pedido:
+                                        item.data_hora_pedido,
+
+                                    requerente:
+                                        item.requerente,
+
+                                    importancia:
+                                        item.importancia,
+
+                                    via:
+                                        item.via,
+
+                                    numero_obra:
+                                        item.numero_obra,
+
+                                    servico:
+                                        item.servico,
+
+                                    observacao:
+                                        item.observacao,
+
+                                    tipo_trabalho:
+                                        item.tipo_trabalho,
+
+                                    frequencia:
+                                        item.frequencia,
+
+                                    data_hora_limite:
+                                        item.data_hora_limite,
+
+                                    estado:
+                                        item.estado,
+
+                                    data_conclusao:
+                                        item.data_conclusao
+
+                                })
+                                .eq(
+                                    'id',
+                                    item.id
+                                )
+
+                    )
+
+                );
+
+
+            const algumErro =
+                resultados.find(
+                    r => r.error
+                );
+
+
             if (algumErro) {
-                console.error("Erro ao guardar:", algumErro.error);
-                alert("Ocorreu um erro ao guardar algumas alterações. Verifique a consola.");
-            } else {
-                alert("Guardado com sucesso!");
-                idsAlterados.clear();
+
+                console.error(
+                    "Erro ao guardar:",
+                    algumErro.error
+                );
+
+                alert(
+                    "Ocorreu um erro ao guardar algumas alterações. Verifique a consola."
+                );
+
+                return;
+
             }
 
-            const { data: novosDados } = await sbClient.from('pedidos').select('*').order('id', { ascending: false });
-            novosDados.forEach(p => {
-                p.atividades_count = (mapaAtividadesPorPedido[p.id] || []).length;
-                p.ocorrencias_count = (mapaOcorrenciasPorPedido[p.id] || []).length;
+
+            alert(
+                "Guardado com sucesso!"
+            );
+
+
+            idsAlterados.clear();
+
+
+            /*
+             * Recarregar pedidos.
+             */
+            const {
+                data: novosDados,
+                error: erroReload
+            } =
+                await sbClient
+                    .from('pedidos')
+                    .select('*')
+                    .order('id', {
+                        ascending: false
+                    });
+
+
+            if (erroReload) {
+
+                console.error(
+                    erroReload
+                );
+
+                return;
+
+            }
+
+
+            /*
+             * Voltar a aplicar os dados actuais das obras.
+             */
+            novosDados.forEach(pedido => {
+
+                const obra =
+                    obterDadosObra(
+                        pedido.numero_obra
+                    );
+
+
+                pedido.local_obra =
+                    obra.local_obra;
+
+                pedido.empresa =
+                    obra.empresa;
+
+                pedido.concelho =
+                    obra.concelho;
+
+                pedido.numero_obra =
+                    obra.numero_obra ||
+                    pedido.numero_obra;
+
+
+                pedido.atividades_count =
+                    (
+                        mapaAtividadesPorPedido[
+                            pedido.id
+                        ] || []
+                    ).length;
+
+
+                pedido.ocorrencias_count =
+                    (
+                        mapaOcorrenciasPorPedido[
+                            pedido.id
+                        ] || []
+                    ).length;
+
             });
-            guardarSnapshot(novosDados);
-            table.replaceData(novosDados);
+
+
+            guardarSnapshot(
+                novosDados
+            );
+
+
+            await table.replaceData(
+                novosDados
+            );
+
+
             aplicarFiltros();
-            renderizarCalendario(novosDados);
-        } finally {
-            btn.disabled = false;
-            btn.innerText = textoOriginal;
+
+            renderizarCalendario(
+                novosDados
+            );
+
         }
+
+        finally {
+
+            btn.disabled = false;
+
+            btn.innerText =
+                textoOriginal;
+
+        }
+
     }
 
+
+    /* =========================================================
+       INICIAR
+    ========================================================= */
+
     carregarDados();
+
 </script>
+
 </body>
 </html>
