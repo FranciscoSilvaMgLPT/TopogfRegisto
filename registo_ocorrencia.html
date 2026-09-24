@@ -1,720 +1,2005 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>🚨Registo de Ocorrência</title>
-<link rel="icon" type="image/jpeg" href="favicon.png">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #0f172a; font-family: Arial, sans-serif; color: white; padding: 30px; }
-.container { max-width: 900px; margin: auto; background: #1e293b; padding: 35px; border-radius: 18px; box-shadow: 0 0 30px rgba(0,0,0,0.4); }
-.header-area { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
-.user-info { color: #94a3b8; font-size: 0.9em; margin-bottom: 20px; }
-h1 { font-size: 34px; }
-.btn-voltar { background: #334155; color: white; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: bold; }
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-.full { grid-column: 1 / -1; }
-label { display: block; margin-bottom: 8px; font-size: 14px; color: #cbd5e1; }
-input, textarea, select { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #334155; color: white; font-size: 16px; }
-input[readonly] { cursor: pointer; }
-textarea { min-height: 120px; resize: vertical; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-/* ===== Secção de associação de atividade ===== */
-.atividade-association {
-  background: #1e293b;
-  border: 2px solid #3b82f6;
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
-}
-.atividade-association h3 { color: #60a5fa; margin-bottom: 15px; font-size: 18px; }
-.atividade-select { min-height: 50px; cursor: pointer; }
-.atividade-select option { padding: 10px; background: #334155; }
+    <title>🏗️ Registo de Obras</title>
 
-/* ===== Painel com a informação completa da atividade selecionada ===== */
-.atividade-details {
-  display: none;
-  margin-top: 12px;
-  padding: 12px 15px;
-  background: #334155;
-  border-left: 4px solid #3b82f6;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #e2e8f0;
-  line-height: 1.5;
-  word-break: break-word;
-  white-space: pre-wrap;
-}
+    <link rel="icon" type="image/png" href="favicon.png">
 
-/* ===== Input de fotografias direto e limpo ===== */
-.foto-input-direto {
-  width: 100%;
-  padding: 16px;
-  border: 2px dashed #475569;
-  border-radius: 10px;
-  background: #334155;
-  color: #cbd5e1;
-  font-size: 15px;
-  text-align: center;
-  cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
-  display: block;
-  margin-top: 8px;
-}
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-.foto-input-direto:hover { 
-  border-color: #3b82f6; 
-  background: #3b4a63; 
-}
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-/* Estiliza o botão nativo "Escolher ficheiros" para ficar moderno */
-.foto-input-direto::file-selector-button {
-  background: #3b82f6;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
-  margin-right: 12px;
-  cursor: pointer;
-  font-weight: bold;
-  font-size: 14px;
-  transition: background 0.2s;
-}
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #0f172a;
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
 
-.foto-input-direto::file-selector-button:hover {
-  background: #2563eb;
-}
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
 
-.foto-preview-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 10px;
-  margin-top: 14px;
-}
-.foto-thumb {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: 10px;
-  overflow: hidden;
-  background: #0f172a;
-  border: 1px solid #475569;
-}
-.foto-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.foto-remove {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: rgba(15, 23, 42, 0.85);
-  color: #f87171;
-  border: none;
-  font-size: 14px;
-  font-weight: bold;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  margin-top: 0;
-}
-.foto-upload-status {
-  margin-top: 8px;
-  font-size: 13px;
-  color: #94a3b8;
-}
+        /* =========================
+           CABEÇALHO
+        ========================= */
 
-button { width: 100%; margin-top: 25px; padding: 16px; border: none; border-radius: 10px; background: #2563eb; color: white; font-size: 16px; font-weight: bold; cursor: pointer; }
-button:disabled { background: #475569; cursor: not-allowed; }
-.success { display: none; margin-top: 20px; background: #065f46; padding: 15px; border-radius: 10px; text-align: center; }
+        .header {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 18px;
+            padding: 20px 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
 
-/* Ajuste para dispositivos móveis */
-@media (max-width: 640px) {
-  body { padding: 15px; }
-  .container { padding: 20px; border-radius: 14px; }
-  h1 { font-size: 24px; }
-  .grid { grid-template-columns: 1fr; gap: 12px; }
-  .atividade-association { padding: 15px; }
-  
-  .foto-input-direto {
-    text-align: center;
-    padding: 20px 10px;
-  }
-  .foto-input-direto::file-selector-button {
-    display: block;
-    width: 100%;
-    margin-right: 0;
-    margin-bottom: 10px;
-  }
-}
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
 
-/* ===== Custom Date/Time Picker ===== */
-.dt-picker-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.55);
-  z-index: 1000;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  padding-bottom: max(16px, env(safe-area-inset-bottom));
-}
-.dt-picker-overlay.open { display: flex; }
-.dt-picker {
-  background: #1e293b;
-  border-radius: 16px;
-  padding: 18px;
-  width: 100%;
-  max-width: 340px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-}
-.dt-picker-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-.dt-picker-header span {
-  font-weight: bold;
-  font-size: 17px;
-  text-transform: capitalize;
-}
-.dt-nav {
-  width: 38px;
-  margin-top: 0;
-  padding: 8px 0;
-  background: #334155;
-  border-radius: 8px;
-  font-size: 18px;
-  line-height: 1;
-  border: none;
-  color: white;
-  cursor: pointer;
-}
-.dt-weekdays {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  text-align: center;
-  font-size: 12px;
-  color: #93c5fd;
-  font-weight: bold;
-  margin-bottom: 6px;
-}
-.dt-days {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-}
-.dt-day {
-  aspect-ratio: 1 / 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-  background: transparent;
-  color: white;
-}
-.dt-day:hover { background: #334155; }
-.dt-day.dt-empty { cursor: default; }
-.dt-day.dt-empty:hover { background: transparent; }
-.dt-day.dt-today { border: 1px solid #60a5fa; }
-.dt-day.dt-selected { background: #2563eb; font-weight: bold; }
-.dt-time {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 16px;
-}
-.dt-time label { margin-bottom: 0; white-space: nowrap; }
-.dt-time input {
-  width: 60px;
-  padding: 10px;
-  text-align: center;
-  font-size: 15px;
-}
-/* Esconder setas de número no Chrome/Safari mobile */
-.dt-time input[type="number"]::-webkit-inner-spin-button, 
-.dt-time input[type="number"]::-webkit-outer-spin-button { 
-  -webkit-appearance: none; 
-  margin: 0; 
-}
-.dt-time input[type="number"] {
-  -moz-appearance: textfield; /* Firefox */
-}
-.dt-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 18px;
-}
-.dt-actions button {
-  margin-top: 0;
-  flex: 1;
-  padding: 12px;
-  font-size: 14px;
-}
-#dtCancel { background: #334155; }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
 
-@media (max-width: 400px) {
-  .dt-picker {
-    padding: 14px;
-    max-width: 100%;
-  }
-  .dt-day {
-    font-size: 13px;
-  }
-  .dt-time input {
-    width: 50px;
-    padding: 8px;
-  }
-  .dt-actions button {
-    padding: 14px;
-  }
-}
-</style>
+        .header-icon {
+            font-size: 42px;
+        }
+
+        .header-title h1 {
+            font-size: 25px;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .header-title p {
+            font-size: 14px;
+            color: #94a3b8;
+        }
+
+        .user-box {
+            background: #334155;
+            border-radius: 12px;
+            padding: 10px 15px;
+            text-align: right;
+        }
+
+        .user-label {
+            font-size: 11px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+
+        #user-email {
+            font-size: 14px;
+            font-weight: bold;
+            color: #60a5fa;
+        }
+
+        /* =========================
+           BOTÕES
+        ========================= */
+
+        .top-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 9px;
+            padding: 11px 18px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-voltar {
+            background: #334155;
+            color: white;
+        }
+
+        .btn-voltar:hover {
+            background: #475569;
+        }
+
+        .btn-nova {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-nova:hover {
+            background: #2563eb;
+        }
+
+        .btn-guardar {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-guardar:hover {
+            background: #2563eb;
+        }
+
+        .btn-cancelar {
+            background: #64748b;
+            color: white;
+        }
+
+        .btn-cancelar:hover {
+            background: #475569;
+        }
+
+        /* =========================
+           FORMULÁRIO
+        ========================= */
+
+        .form-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 18px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        .form-card h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 7px;
+            color: #cbd5e1;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 13px;
+            border: 1px solid #475569;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: 0.2s;
+
+            background: #0f172a;
+            color: #fff;
+        }
+
+        input::placeholder {
+            color: #64748b;
+        }
+
+        input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* =========================
+           LISTAGEM
+        ========================= */
+
+        .list-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 18px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .list-header h2 {
+            font-size: 20px;
+            color: #fff;
+        }
+
+        .contador {
+            font-size: 13px;
+            color: #94a3b8;
+            margin-top: 4px;
+        }
+
+        .search-box {
+            width: 300px;
+        }
+
+        .search-box input {
+            background: #0f172a;
+        }
+
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            border: 1px solid #334155;
+            border-radius: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 750px;
+        }
+
+        thead {
+            background: #334155;
+        }
+
+        th {
+            padding: 13px 12px;
+            text-align: left;
+            font-size: 12px;
+            color: #cbd5e1;
+            text-transform: uppercase;
+            border-bottom: 2px solid #475569;
+        }
+
+        td {
+            padding: 13px 12px;
+            border-bottom: 1px solid #334155;
+            font-size: 14px;
+            vertical-align: middle;
+            color: #fff;
+        }
+
+        tbody tr {
+            background: #1e293b;
+            transition: 0.15s;
+        }
+
+        tbody tr:hover {
+            background: #334155;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .numero-obra {
+            font-weight: bold;
+            color: #60a5fa;
+        }
+
+        .acoes {
+            display: flex;
+            gap: 7px;
+        }
+
+        .btn-editar {
+            background: #334155;
+            color: #60a5fa;
+            border: 1px solid #475569;
+            padding: 7px 10px;
+            font-size: 12px;
+        }
+
+        .btn-editar:hover {
+            background: #475569;
+        }
+
+        .btn-apagar {
+            background: #ef4444;
+            color: white;
+            padding: 7px 10px;
+            font-size: 12px;
+        }
+
+        .btn-apagar:hover {
+            background: #dc2626;
+        }
+
+        .loading,
+        .sem-resultados {
+            text-align: center;
+            padding: 35px !important;
+            color: #94a3b8;
+        }
+
+        /* =========================
+           MENSAGENS
+        ========================= */
+
+        #mensagens {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+
+            max-width: 400px;
+        }
+
+        .mensagem {
+            padding: 14px 18px;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.25);
+            animation: aparecer 0.2s ease;
+        }
+
+        .mensagem.sucesso {
+            background: #3b82f6;
+        }
+
+        .mensagem.erro {
+            background: #ef4444;
+        }
+
+        .mensagem.info {
+            background: #3b82f6;
+        }
+
+        @keyframes aparecer {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* =========================
+           RESPONSIVO
+        ========================= */
+
+        @media (max-width: 700px) {
+
+            body {
+                padding: 10px;
+            }
+
+            .header {
+                padding: 18px;
+            }
+
+            .header-left {
+                width: 100%;
+            }
+
+            .user-box {
+                width: 100%;
+                text-align: left;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .search-box {
+                width: 100%;
+            }
+
+            .list-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .form-actions {
+                flex-direction: column;
+            }
+
+            .form-actions .btn {
+                width: 100%;
+            }
+
+            .top-buttons {
+                flex-direction: column;
+            }
+
+            .top-buttons .btn {
+                width: 100%;
+            }
+
+            .acoes {
+                flex-direction: column;
+            }
+
+            #mensagens {
+                left: 10px;
+                right: 10px;
+                max-width: none;
+            }
+        }
+    </style>
 </head>
+
 <body>
+
+<div id="mensagens"></div>
+
 <div class="container">
-  <div class="header-area">
-    <h1>Registo de Ocorrência</h1>
-    <a href="index.html" class="btn-voltar">⬅ Voltar</a>
-  </div>
 
-  <div class="user-info">
-    Utilizador: <span id="user-display" style="color: #60a5fa;">A carregar...</span>
-  </div>
+    <div class="header">
 
-  <!-- ===== Associação de atividade (opcional) ===== -->
-  <div class="atividade-association">
-    <h3>📊 Associar a Atividade (opcional)</h3>
-    <label>Selecionar Atividade</label>
-    <select id="selectAtividade" class="atividade-select">
-      <option value="">-- Nenhuma atividade associada --</option>
-    </select>
-    <div id="detalhesAtividade" class="atividade-details"></div>
-  </div>
+        <div class="header-left">
 
-  <form id="formularioOcorrencia">
-    <div class="grid">
+            <div class="header-icon">
+                🏗️
+            </div>
 
-      <div class="full">
-        <label>Data *</label>
-        <input type="text" id="dataOcorrenciaDisplay" placeholder="Selecionar data e hora" readonly required autocomplete="off">
-        <input type="hidden" id="dataOcorrencia" name="data">
-      </div>
+            <div class="header-title">
+                <h1>Registo de Obras</h1>
+                <p>Gestão das obras de topografia</p>
+            </div>
 
-      <div class="full">
-        <label>Ocorrência *</label>
-        <textarea name="ocorrencia" placeholder="Se algo correu mal ou houve imprevisto, descreve aqui... " required></textarea>
-      </div>
+        </div>
 
-      <!-- ===== Fotografias associadas à ocorrência (opcional) ===== -->
-      <div class="full">
-        <label>📷 Fotografias (opcional)</label>
-        <input type="file" id="inputFotos" class="foto-input-direto" accept="image/*" multiple>
-        <div id="previewFotos" class="foto-preview-grid"></div>
-        <div id="fotoUploadStatus" class="foto-upload-status"></div>
-      </div>
+        <div class="user-box">
+
+            <div class="user-label">
+                Utilizador
+            </div>
+
+            <div id="user-email">
+                A carregar...
+            </div>
+
+        </div>
 
     </div>
 
-    <button type="submit" id="btnEnviar">Gravar Ocorrência</button>
-  </form>
 
-  <div class="success" id="successMessage">✅ Ocorrência guardada com sucesso!</div>
+    <div class="top-buttons">
+
+        <button
+            type="button"
+            class="btn btn-voltar"
+            onclick="voltarInicio()">
+            ← Voltar
+        </button>
+
+        <button
+            type="button"
+            class="btn btn-nova"
+            onclick="novaObra()">
+            ➕ Nova Obra
+        </button>
+
+    </div>
+
+
+    <div class="form-card">
+
+        <h2 id="titulo-formulario">
+            ➕ Registar Nova Obra
+        </h2>
+
+        <form id="form-obra">
+
+            <div class="form-grid">
+
+                <div class="form-group">
+
+                    <label for="numero_obra">
+                        Número da Obra *
+                    </label>
+
+                    <input
+                        type="text"
+                        id="numero_obra"
+                        placeholder="Ex.: 2026-001"
+                        required
+                        autocomplete="off">
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="local_obra">
+                        Local da Obra *
+                    </label>
+
+                    <input
+                        type="text"
+                        id="local_obra"
+                        placeholder="Ex.: Rua Principal, Vila do Conde"
+                        required
+                        autocomplete="off">
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="empresa">
+                        Empresa
+                    </label>
+
+                    <input
+                        type="text"
+                        id="empresa"
+                        placeholder="Nome da empresa"
+                        autocomplete="off">
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="concelho">
+                        Concelho
+                    </label>
+
+                    <input
+                        type="text"
+                        id="concelho"
+                        placeholder="Ex.: Vila do Conde"
+                        autocomplete="off">
+
+                </div>
+
+            </div>
+
+
+            <div class="form-actions">
+
+                <button
+                    type="submit"
+                    class="btn btn-guardar"
+                    id="btn-guardar">
+                    💾 Guardar Obra
+                </button>
+
+                <button
+                    type="button"
+                    class="btn btn-cancelar"
+                    id="btn-cancelar"
+                    onclick="cancelarEdicao()"
+                    style="display:none;">
+                    ✖ Cancelar
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+
+    <div class="list-card">
+
+        <div class="list-header">
+
+            <div>
+
+                <h2>
+                    📋 Obras Registadas
+                </h2>
+
+                <div
+                    id="contador-obras"
+                    class="contador">
+                    A carregar...
+                </div>
+
+            </div>
+
+            <div class="search-box">
+
+                <input
+                    type="text"
+                    id="pesquisa"
+                    placeholder="🔎 Pesquisar obra..."
+                    autocomplete="off">
+
+            </div>
+
+        </div>
+
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>N.º Obra</th>
+                        <th>Local da Obra</th>
+                        <th>Empresa</th>
+                        <th>Concelho</th>
+                        <th>Ações</th>
+                    </tr>
+
+                </thead>
+
+                <tbody id="tabela-obras">
+
+                    <tr>
+                        <td
+                            colspan="5"
+                            class="loading">
+                            A carregar obras...
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
 </div>
 
-<!-- Popup do calendário personalizado -->
-<div class="dt-picker-overlay" id="dtPickerOverlay">
-  <div class="dt-picker">
-    <div class="dt-picker-header">
-      <button type="button" class="dt-nav" id="dtPrevMonth">‹</button>
-      <span id="dtMonthLabel"></span>
-      <button type="button" class="dt-nav" id="dtNextMonth">›</button>
-    </div>
-    <div class="dt-weekdays">
-      <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
-    </div>
-    <div class="dt-days" id="dtDays"></div>
-    <div class="dt-time">
-      <label>Hora:</label>
-      <input type="number" inputmode="numeric" id="dtHour" min="0" max="23" value="00">
-      <span>:</span>
-      <input type="number" inputmode="numeric" id="dtMinute" min="0" max="59" value="00">
-    </div>
-    <div class="dt-actions">
-      <button type="button" id="dtCancel">Cancelar</button>
-      <button type="button" id="dtConfirm">Confirmar</button>
-    </div>
-  </div>
-</div>
 
 <script>
-const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const selectAtividade = document.getElementById('selectAtividade');
-const detalhesAtividade = document.getElementById('detalhesAtividade');
+    /* =====================================================
+       SUPABASE
+    ===================================================== */
 
-// ===== Fotografias selecionadas para esta ocorrência =====
-const NOME_BUCKET_FOTOS = 'fotos-ocorrencias';
-let ficheirosSelecionados = [];
+    const SUPABASE_URL =
+        'https://dunondjiqawovisnwavg.supabase.co';
 
-const inputFotos = document.getElementById('inputFotos');
-const previewFotos = document.getElementById('previewFotos');
-const fotoUploadStatus = document.getElementById('fotoUploadStatus');
+    const SUPABASE_ANON_KEY =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
 
-inputFotos.addEventListener('change', (e) => {
-    const novosFicheiros = Array.from(e.target.files || []);
-    ficheirosSelecionados = ficheirosSelecionados.concat(novosFicheiros);
-    renderizarPreviewsFotos();
-    e.target.value = '';
-});
+    const supabaseClient =
+        supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_ANON_KEY
+        );
 
-function renderizarPreviewsFotos() {
-    previewFotos.innerHTML = '';
-    ficheirosSelecionados.forEach((file, index) => {
-        const url = URL.createObjectURL(file);
-        const thumb = document.createElement('div');
-        thumb.className = 'foto-thumb';
 
-        const img = document.createElement('img');
-        img.src = url;
-        img.alt = 'Fotografia da ocorrência';
+    /* =====================================================
+       VARIÁVEIS
+    ===================================================== */
 
-        const btnRemover = document.createElement('button');
-        btnRemover.type = 'button';
-        btnRemover.className = 'foto-remove';
-        btnRemover.textContent = '✕';
-        btnRemover.addEventListener('click', () => {
-            ficheirosSelecionados.splice(index, 1);
-            renderizarPreviewsFotos();
+    let obras = [];
+
+    let obraEmEdicao = null;
+
+
+    /* =====================================================
+       INICIALIZAÇÃO
+    ===================================================== */
+
+    window.addEventListener(
+        'DOMContentLoaded',
+        inicializar
+    );
+
+
+    async function obterSessaoComRetry() {
+
+        let ultimaResposta = {
+            data: {
+                session: null
+            },
+            error: null
+        };
+
+        for (
+            let tentativa = 1;
+            tentativa <= 8;
+            tentativa++
+        ) {
+
+            try {
+
+                const resposta =
+                    await supabaseClient.auth.getSession();
+
+                ultimaResposta =
+                    resposta;
+
+                console.log(
+                    `Tentativa de sessão ${tentativa}/8:`,
+                    resposta.data?.session
+                        ? 'sessão encontrada'
+                        : 'sem sessão'
+                );
+
+
+                if (
+                    resposta.data?.session?.user
+                ) {
+
+                    return resposta;
+
+                }
+
+            } catch (erro) {
+
+                ultimaResposta = {
+                    data: {
+                        session: null
+                    },
+                    error: erro
+                };
+
+                console.error(
+                    `Erro na tentativa de sessão ${tentativa}:`,
+                    erro
+                );
+
+            }
+
+
+            await new Promise(
+                resolve =>
+                    setTimeout(
+                        resolve,
+                        300
+                    )
+            );
+
+        }
+
+
+        return ultimaResposta;
+
+    }
+
+
+    async function inicializar() {
+
+        console.log(
+            '================================='
+        );
+
+        console.log(
+            'INICIALIZAÇÃO REGISTO DE OBRAS'
+        );
+
+        console.log(
+            '================================='
+        );
+
+
+        try {
+
+            const {
+                data: sessionData,
+                error: sessionError
+            } =
+                await obterSessaoComRetry();
+
+
+            const user =
+                sessionData?.session?.user ||
+                null;
+
+
+            console.log(
+                'Sessão obtida:',
+                sessionData
+            );
+
+            console.log(
+                'Erro sessão:',
+                sessionError
+            );
+
+
+            const error =
+                sessionError;
+
+
+            if (error) {
+
+                console.error(
+                    'Erro ao obter sessão:',
+                    error
+                );
+
+                mostrarMensagem(
+                    'Erro ao verificar o utilizador: ' +
+                    error.message,
+                    'erro'
+                );
+
+                return;
+
+            }
+
+
+            if (!user) {
+
+                console.warn(
+                    'Não existe utilizador autenticado.'
+                );
+
+                mostrarMensagem(
+                    'Não foi possível confirmar a sessão. A página vai permanecer aberta para diagnóstico.',
+                    'erro'
+                );
+
+                return;
+
+            }
+
+
+            console.log(
+                'UTILIZADOR AUTENTICADO:',
+                user
+            );
+
+
+            mostrarUtilizador(
+                user
+            );
+
+
+            await carregarObras();
+
+
+        } catch (erro) {
+
+            console.error(
+                'Erro inesperado:',
+                erro
+            );
+
+            mostrarMensagem(
+                'Ocorreu um erro ao iniciar a página.',
+                'erro'
+            );
+
+        }
+
+    }
+
+
+    /* =====================================================
+       MOSTRAR UTILIZADOR
+    ===================================================== */
+
+    function mostrarUtilizador(user) {
+
+        const elemento =
+            document.getElementById(
+                'user-email'
+            );
+
+
+        if (!elemento) {
+            return;
+        }
+
+
+        const metadata =
+            user.user_metadata || {};
+
+
+        const nome =
+            metadata.full_name ||
+            metadata.name ||
+            metadata.nome ||
+            metadata.username ||
+            metadata.user_name;
+
+
+        const texto =
+            nome ||
+            user.email ||
+            'Utilizador';
+
+
+        elemento.textContent =
+            texto;
+
+
+        console.log(
+            'Nome apresentado:',
+            texto
+        );
+
+    }
+
+
+    /* =====================================================
+       CARREGAR OBRAS
+    ===================================================== */
+
+    async function carregarObras() {
+
+        const tabela =
+            document.getElementById(
+                'tabela-obras'
+            );
+
+        const contador =
+            document.getElementById(
+                'contador-obras'
+            );
+
+
+        tabela.innerHTML = `
+            <tr>
+                <td
+                    colspan="5"
+                    class="loading">
+                    ⏳ A carregar obras...
+                </td>
+            </tr>
+        `;
+
+
+        contador.textContent =
+            'A consultar a base de dados...';
+
+
+        console.log(
+            'A consultar public.obras...'
+        );
+
+
+        const {
+            data,
+            error,
+            status
+        } =
+            await supabaseClient
+                .from('obras')
+                .select(
+                    'id, local_obra, numero_obra, empresa, concelho'
+                )
+                .order(
+                    'id',
+                    {
+                        ascending: false
+                    }
+                );
+
+
+        console.log(
+            'Status Supabase:',
+            status
+        );
+
+        console.log(
+            'Dados recebidos:',
+            data
+        );
+
+        console.log(
+            'Erro:',
+            error
+        );
+
+
+        if (error) {
+
+            console.error(
+                'ERRO AO CARREGAR OBRAS:',
+                error
+            );
+
+
+            tabela.innerHTML = `
+                <tr>
+                    <td
+                        colspan="5"
+                        class="sem-resultados">
+                        ❌ Erro ao carregar as obras.<br><br>
+                        <small>
+                            ${escaparHTML(
+                                error.message
+                            )}
+                        </small>
+                    </td>
+                </tr>
+            `;
+
+
+            contador.textContent =
+                'Erro ao consultar a tabela obras.';
+
+
+            mostrarMensagem(
+                'Erro ao carregar obras: ' +
+                error.message,
+                'erro'
+            );
+
+
+            return;
+
+        }
+
+
+        obras =
+            data || [];
+
+
+        console.log(
+            'Número de obras:',
+            obras.length
+        );
+
+
+        mostrarObras(
+            obras
+        );
+
+    }
+
+
+    /* =====================================================
+       MOSTRAR OBRAS
+    ===================================================== */
+
+    function mostrarObras(lista) {
+
+        const tabela =
+            document.getElementById(
+                'tabela-obras'
+            );
+
+        const contador =
+            document.getElementById(
+                'contador-obras'
+            );
+
+
+        contador.textContent =
+            lista.length === 1
+                ? '1 obra registada'
+                : `${lista.length} obras registadas`;
+
+
+        if (!lista.length) {
+
+            tabela.innerHTML = `
+                <tr>
+                    <td
+                        colspan="5"
+                        class="sem-resultados">
+                        📭 Não existem obras registadas.
+                    </td>
+                </tr>
+            `;
+
+            return;
+
+        }
+
+
+        tabela.innerHTML =
+            lista
+                .map(
+                    obra => `
+
+                        <tr>
+
+                            <td class="numero-obra">
+                                ${escaparHTML(
+                                    obra.numero_obra
+                                )}
+                            </td>
+
+                            <td>
+                                ${escaparHTML(
+                                    obra.local_obra
+                                )}
+                            </td>
+
+                            <td>
+                                ${escaparHTML(
+                                    obra.empresa ||
+                                    '-'
+                                )}
+                            </td>
+
+                            <td>
+                                ${escaparHTML(
+                                    obra.concelho ||
+                                    '-'
+                                )}
+                            </td>
+
+                            <td>
+
+                                <div class="acoes">
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-editar"
+                                        onclick="editarObra(${obra.id})">
+                                        ✏️ Editar
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-apagar"
+                                        onclick="apagarObra(${obra.id})">
+                                        🗑️ Apagar
+                                    </button>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                    `
+                )
+                .join('');
+
+    }
+
+
+    /* =====================================================
+       PESQUISA
+    ===================================================== */
+
+    document
+        .getElementById('pesquisa')
+        .addEventListener(
+            'input',
+            function () {
+
+                const termo =
+                    this.value
+                        .trim()
+                        .toLowerCase();
+
+
+                if (!termo) {
+
+                    mostrarObras(
+                        obras
+                    );
+
+                    return;
+
+                }
+
+
+                const filtradas =
+                    obras.filter(
+                        obra => {
+
+                            return (
+
+                                String(
+                                    obra.numero_obra ||
+                                    ''
+                                )
+                                .toLowerCase()
+                                .includes(
+                                    termo
+                                )
+
+                                ||
+
+                                String(
+                                    obra.local_obra ||
+                                    ''
+                                )
+                                .toLowerCase()
+                                .includes(
+                                    termo
+                                )
+
+                                ||
+
+                                String(
+                                    obra.empresa ||
+                                    ''
+                                )
+                                .toLowerCase()
+                                .includes(
+                                    termo
+                                )
+
+                                ||
+
+                                String(
+                                    obra.concelho ||
+                                    ''
+                                )
+                                .toLowerCase()
+                                .includes(
+                                    termo
+                                )
+
+                            );
+
+                        }
+                    );
+
+
+                mostrarObras(
+                    filtradas
+                );
+
+            }
+        );
+
+
+    /* =====================================================
+       SUBMETER FORMULÁRIO
+    ===================================================== */
+
+    document
+        .getElementById('form-obra')
+        .addEventListener(
+            'submit',
+            async function (event) {
+
+                event.preventDefault();
+
+
+                const numeroObra =
+                    document
+                        .getElementById(
+                            'numero_obra'
+                        )
+                        .value
+                        .trim();
+
+
+                const localObra =
+                    document
+                        .getElementById(
+                            'local_obra'
+                        )
+                        .value
+                        .trim();
+
+
+                const empresa =
+                    document
+                        .getElementById(
+                            'empresa'
+                        )
+                        .value
+                        .trim();
+
+
+                const concelho =
+                    document
+                        .getElementById(
+                            'concelho'
+                        )
+                        .value
+                        .trim();
+
+
+                if (!numeroObra) {
+
+                    mostrarMensagem(
+                        'Introduza o número da obra.',
+                        'erro'
+                    );
+
+                    return;
+
+                }
+
+
+                if (!localObra) {
+
+                    mostrarMensagem(
+                        'Introduza o local da obra.',
+                        'erro'
+                    );
+
+                    return;
+
+                }
+
+
+                const botao =
+                    document.getElementById(
+                        'btn-guardar'
+                    );
+
+
+                botao.disabled =
+                    true;
+
+
+                botao.textContent =
+                    '⏳ A guardar...';
+
+
+                try {
+
+                    if (obraEmEdicao) {
+
+                        await atualizarObra(
+                            obraEmEdicao,
+                            numeroObra,
+                            localObra,
+                            empresa,
+                            concelho
+                        );
+
+                    } else {
+
+                        await inserirObra(
+                            numeroObra,
+                            localObra,
+                            empresa,
+                            concelho
+                        );
+
+                    }
+
+                } finally {
+
+                    botao.disabled =
+                        false;
+
+                    botao.textContent =
+                        obraEmEdicao
+                            ? '💾 Guardar Alterações'
+                            : '💾 Guardar Obra';
+
+                }
+
+            }
+        );
+
+
+    /* =====================================================
+       INSERIR OBRA
+    ===================================================== */
+
+    async function inserirObra(
+        numeroObra,
+        localObra,
+        empresa,
+        concelho
+    ) {
+
+        console.log(
+            'A inserir obra...'
+        );
+
+
+        const {
+            data,
+            error
+        } =
+            await supabaseClient
+                .from('obras')
+                .insert([
+                    {
+                        numero_obra:
+                            numeroObra,
+
+                        local_obra:
+                            localObra,
+
+                        empresa:
+                            empresa || null,
+
+                        concelho:
+                            concelho || null
+                    }
+                ])
+                .select()
+                .single();
+
+
+        console.log(
+            'Insert data:',
+            data
+        );
+
+        console.log(
+            'Insert error:',
+            error
+        );
+
+
+        if (error) {
+
+            console.error(
+                'Erro INSERT:',
+                error
+            );
+
+
+            if (
+                error.code ===
+                '23505'
+            ) {
+
+                mostrarMensagem(
+                    'Já existe uma obra com esse número.',
+                    'erro'
+                );
+
+            } else {
+
+                mostrarMensagem(
+                    'Erro ao guardar obra: ' +
+                    error.message,
+                    'erro'
+                );
+
+            }
+
+            return;
+
+        }
+
+
+        mostrarMensagem(
+            'Obra registada com sucesso! ✅',
+            'sucesso'
+        );
+
+
+        limparFormulario();
+
+
+        await carregarObras();
+
+    }
+
+
+    /* =====================================================
+       EDITAR OBRA
+    ===================================================== */
+
+    function editarObra(id) {
+
+        const obra =
+            obras.find(
+                item =>
+                    Number(item.id) ===
+                    Number(id)
+            );
+
+
+        if (!obra) {
+
+            mostrarMensagem(
+                'Não foi possível encontrar a obra.',
+                'erro'
+            );
+
+            return;
+
+        }
+
+
+        obraEmEdicao =
+            obra.id;
+
+
+        document.getElementById(
+            'numero_obra'
+        ).value =
+            obra.numero_obra || '';
+
+
+        document.getElementById(
+            'local_obra'
+        ).value =
+            obra.local_obra || '';
+
+
+        document.getElementById(
+            'empresa'
+        ).value =
+            obra.empresa || '';
+
+
+        document.getElementById(
+            'concelho'
+        ).value =
+            obra.concelho || '';
+
+
+        document.getElementById(
+            'titulo-formulario'
+        ).textContent =
+            '✏️ Editar Obra';
+
+
+        document.getElementById(
+            'btn-guardar'
+        ).textContent =
+            '💾 Guardar Alterações';
+
+
+        document.getElementById(
+            'btn-cancelar'
+        ).style.display =
+            'inline-block';
+
+
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
         });
 
-        thumb.appendChild(img);
-        thumb.appendChild(btnRemover);
-        previewFotos.appendChild(thumb);
-    });
-}
-
-async function carregarFotosParaStorage(ocorrenciaId) {
-    const urls = [];
-    for (let i = 0; i < ficheirosSelecionados.length; i++) {
-        const file = ficheirosSelecionados[i];
-        fotoUploadStatus.textContent = `A carregar fotografia ${i + 1} de ${ficheirosSelecionados.length}...`;
-
-        const extensao = (file.name.split('.').pop() || 'jpg').toLowerCase();
-        const nomeFicheiro = `${ocorrenciaId}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${extensao}`;
-        const caminho = `ocorrencias/${ocorrenciaId}/${nomeFicheiro}`;
-
-        const { error: uploadError } = await supabaseClient.storage
-            .from(NOME_BUCKET_FOTOS)
-            .upload(caminho, file, { cacheControl: '3600', upsert: false });
-
-        if (uploadError) {
-            console.error('Erro ao carregar fotografia:', uploadError);
-            continue;
-        }
-
-        const { data: urlData } = supabaseClient.storage
-            .from(NOME_BUCKET_FOTOS)
-            .getPublicUrl(caminho);
-
-        if (urlData && urlData.publicUrl) {
-            urls.push(urlData.publicUrl);
-        }
-    }
-    fotoUploadStatus.textContent = '';
-    return urls;
-}
-
-async function carregarAtividades() {
-    selectAtividade.innerHTML = '<option value="">-- Nenhuma atividade associada --</option>';
-    try {
-        const { data: atividades, error } = await supabaseClient
-            .from('atividades')
-            .select('id, tecnico, servico, data_hora_inicio, obras(local_obra, numero_obra)')
-            .order('data_hora_inicio', { ascending: false });
-
-        if (error) throw error;
-
-        if (atividades && atividades.length > 0) {
-            atividades.forEach(atividade => {
-                const option = document.createElement('option');
-                option.value = atividade.id;
-
-                const tecnico = atividade.tecnico || 'Sem técnico';
-                const localObra = (atividade.obras && atividade.obras.local_obra) || 'Sem local';
-                const servico = atividade.servico || '';
-
-                option.dataset.textoCompleto = `${tecnico} - ${localObra} (${servico})`;
-
-                const servicoCurto = servico.substring(0, 40) + (servico.length > 40 ? '...' : '');
-                option.textContent = `${tecnico} - ${localObra} (${servicoCurto})`;
-
-                selectAtividade.appendChild(option);
-            });
-        }
-    } catch (err) {
-        console.error("Erro ao carregar atividades:", err);
-        const option = document.createElement('option');
-        option.value = "";
-        option.textContent = "Erro ao carregar atividades";
-        option.disabled = true;
-        selectAtividade.appendChild(option);
-    }
-}
-
-selectAtividade.addEventListener('change', () => {
-    if (selectAtividade.value) {
-        const selectedOption = selectAtividade.options[selectAtividade.selectedIndex];
-        detalhesAtividade.textContent = '📄 ' + selectedOption.dataset.textoCompleto;
-        detalhesAtividade.style.display = 'block';
-    } else {
-        detalhesAtividade.style.display = 'none';
-    }
-});
-
-// ===== Utilitários de data e Calendário Personalizado =====
-function pad2(n) { return String(n).padStart(2, '0'); }
-
-function toIsoLocal(date) {
-  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}T${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
-}
-
-const nomesDiaSemana = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
-function toDisplayFormat(date) {
-  const diaSemana = nomesDiaSemana[date.getDay()];
-  return `${diaSemana}, ${pad2(date.getDate())}/${pad2(date.getMonth() + 1)}/${date.getFullYear()} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
-}
-
-function definirDataAtual() {
-  const now = new Date();
-  document.getElementById("dataOcorrencia").value = toIsoLocal(now);
-  document.getElementById("dataOcorrenciaDisplay").value = toDisplayFormat(now);
-}
-
-const overlay = document.getElementById('dtPickerOverlay');
-const monthLabel = document.getElementById('dtMonthLabel');
-const daysGrid = document.getElementById('dtDays');
-const hourInput = document.getElementById('dtHour');
-const minuteInput = document.getElementById('dtMinute');
-const btnPrevMonth = document.getElementById('dtPrevMonth');
-const btnNextMonth = document.getElementById('dtNextMonth');
-const btnCancel = document.getElementById('dtCancel');
-const btnConfirm = document.getElementById('dtConfirm');
-
-const nomesMes = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-
-let activeHiddenInput = null;
-let activeDisplayInput = null;
-let viewYear, viewMonth;
-let selectedDate = null;
-
-function parseCurrentValue(hiddenInput) {
-  const val = hiddenInput.value;
-  if (!val) return null;
-  const [datePart, timePart] = val.split('T');
-  const [y, m, d] = datePart.split('-').map(Number);
-  const [hh, mm] = (timePart || '00:00').split(':').map(Number);
-  return new Date(y, m - 1, d, hh, mm);
-}
-
-function renderCalendar() {
-  monthLabel.textContent = `${nomesMes[viewMonth]} de ${viewYear}`;
-  daysGrid.innerHTML = '';
-
-  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
-  const totalDays = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const today = new Date();
-
-  for (let i = 0; i < firstDay; i++) {
-    const empty = document.createElement('div');
-    empty.className = 'dt-day dt-empty';
-    daysGrid.appendChild(empty);
-  }
-
-  for (let d = 1; d <= totalDays; d++) {
-    const cell = document.createElement('div');
-    cell.className = 'dt-day';
-    cell.textContent = d;
-
-    const isToday = today.getFullYear() === viewYear && today.getMonth() === viewMonth && today.getDate() === d;
-    if (isToday) cell.classList.add('dt-today');
-
-    if (selectedDate && selectedDate.getFullYear() === viewYear && selectedDate.getMonth() === viewMonth && selectedDate.getDate() === d) {
-      cell.classList.add('dt-selected');
     }
 
-    cell.addEventListener('click', () => {
-      selectedDate = new Date(viewYear, viewMonth, d, Number(hourInput.value) || 0, Number(minuteInput.value) || 0);
-      renderCalendar();
-    });
 
-    daysGrid.appendChild(cell);
-  }
-}
+    /* =====================================================
+       ATUALIZAR OBRA
+    ===================================================== */
 
-function openPicker(hiddenInput, displayInput) {
-  activeHiddenInput = hiddenInput;
-  activeDisplayInput = displayInput;
+    async function atualizarObra(
+        id,
+        numeroObra,
+        localObra,
+        empresa,
+        concelho
+    ) {
 
-  const current = parseCurrentValue(hiddenInput) || new Date();
-  selectedDate = parseCurrentValue(hiddenInput);
-  viewYear = current.getFullYear();
-  viewMonth = current.getMonth();
-  hourInput.value = pad2(current.getHours());
-  minuteInput.value = pad2(current.getMinutes());
+        console.log(
+            'A atualizar obra:',
+            id
+        );
 
-  renderCalendar();
-  overlay.classList.add('open');
-}
 
-function closePicker() {
-  overlay.classList.remove('open');
-  activeHiddenInput = null;
-  activeDisplayInput = null;
-}
+        const {
+            error
+        } =
+            await supabaseClient
+                .from('obras')
+                .update({
 
-btnPrevMonth.addEventListener('click', () => {
-  viewMonth--;
-  if (viewMonth < 0) { viewMonth = 11; viewYear--; }
-  renderCalendar();
-});
+                    numero_obra:
+                        numeroObra,
 
-btnNextMonth.addEventListener('click', () => {
-  viewMonth++;
-  if (viewMonth > 11) { viewMonth = 0; viewYear++; }
-  renderCalendar();
-});
+                    local_obra:
+                        localObra,
 
-[hourInput, minuteInput].forEach(inp => {
-  inp.addEventListener('change', () => {
-    let val = Number(inp.value);
-    const max = inp === hourInput ? 23 : 59;
-    if (isNaN(val) || val < 0) val = 0;
-    if (val > max) val = max;
-    inp.value = pad2(val);
-  });
-});
+                    empresa:
+                        empresa || null,
 
-btnCancel.addEventListener('click', closePicker);
+                    concelho:
+                        concelho || null
 
-overlay.addEventListener('click', (e) => {
-  if (e.target === overlay) closePicker();
-});
+                })
+                .eq(
+                    'id',
+                    id
+                );
 
-btnConfirm.addEventListener('click', () => {
-  if (!activeHiddenInput) { closePicker(); return; }
 
-  const baseDate = selectedDate || new Date(viewYear, viewMonth, 1);
-  const finalDate = new Date(
-    baseDate.getFullYear(),
-    baseDate.getMonth(),
-    baseDate.getDate(),
-    Number(hourInput.value) || 0,
-    Number(minuteInput.value) || 0
-  );
+        if (error) {
 
-  activeHiddenInput.value = toIsoLocal(finalDate);
-  activeDisplayInput.value = toDisplayFormat(finalDate);
-  closePicker();
-});
+            console.error(
+                'Erro UPDATE:',
+                error
+            );
 
-const dataOcorrenciaDisplay = document.getElementById('dataOcorrenciaDisplay');
-const dataOcorrencia = document.getElementById('dataOcorrencia');
 
-dataOcorrenciaDisplay.addEventListener('click', () => openPicker(dataOcorrencia, dataOcorrenciaDisplay));
+            if (
+                error.code ===
+                '23505'
+            ) {
 
-// ===== Submissão do Formulário =====
-window.onload = async () => {
-    const { data: { user }, error } = await supabaseClient.auth.getUser();
-    if (error || !user) {
-        window.location.href = 'index.html';
-    } else {
-        document.getElementById('user-display').innerText = user.email;
-        definirDataAtual();
-        carregarAtividades();
-    }
-};
+                mostrarMensagem(
+                    'Já existe outra obra com esse número.',
+                    'erro'
+                );
 
-const form = document.getElementById("formularioOcorrencia");
-const btnEnviar = document.getElementById("btnEnviar");
+            } else {
 
-form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    btnEnviar.disabled = true;
-    btnEnviar.innerText = "A gravar...";
+                mostrarMensagem(
+                    'Erro ao atualizar obra: ' +
+                    error.message,
+                    'erro'
+                );
 
-    const dadosParaEnviar = {
-        data: document.getElementById("dataOcorrencia").value, // Lê do campo hidden
-        ocorrencia: form.ocorrencia.value
-    };
-
-    const atividadeId = selectAtividade.value;
-    if (atividadeId) {
-        dadosParaEnviar.atividade_id = parseInt(atividadeId);
-    }
-
-    const { data, error } = await supabaseClient
-        .from('ocorrencias')
-        .insert([dadosParaEnviar])
-        .select();
-
-    if (error) {
-        console.error("Erro detalhado do Supabase:", error);
-        alert("Erro ao gravar no Supabase: " + error.message);
-        btnEnviar.disabled = false;
-        btnEnviar.innerText = "Gravar Ocorrência";
-        return;
-    }
-
-    const ocorrenciaInserida = data && data[0];
-
-    if (ocorrenciaInserida && ficheirosSelecionados.length > 0) {
-        btnEnviar.innerText = "A carregar fotografias...";
-        try {
-            const urlsFotos = await carregarFotosParaStorage(ocorrenciaInserida.id);
-            if (urlsFotos.length > 0) {
-                const { error: updateError } = await supabaseClient
-                    .from('ocorrencias')
-                    .update({ fotos: urlsFotos })
-                    .eq('id', ocorrenciaInserida.id);
-
-                if (updateError) {
-                    console.error("Erro ao associar fotografias à ocorrência:", updateError);
-                    alert("Ocorrência gravada, mas houve um erro ao associar as fotografias: " + updateError.message);
-                }
             }
-        } catch (err) {
-            console.error("Erro inesperado ao carregar fotografias:", err);
-            alert("Ocorrência gravada, mas houve um erro ao carregar as fotografias.");
+
+            return;
+
         }
+
+
+        mostrarMensagem(
+            'Obra atualizada com sucesso! ✅',
+            'sucesso'
+        );
+
+
+        cancelarEdicao();
+
+
+        await carregarObras();
+
     }
 
-    document.getElementById("successMessage").style.display = "block";
-    form.reset();
-    selectAtividade.value = "";
-    detalhesAtividade.style.display = "none";
-    ficheirosSelecionados = [];
-    renderizarPreviewsFotos();
-    fotoUploadStatus.textContent = '';
-    definirDataAtual();
 
-    setTimeout(() => {
-        document.getElementById("successMessage").style.display = "none";
-    }, 5000);
+    /* =====================================================
+       APAGAR OBRA
+    ===================================================== */
 
-    btnEnviar.disabled = false;
-    btnEnviar.innerText = "Gravar Ocorrência";
-});
+    async function apagarObra(id) {
+
+        const obra =
+            obras.find(
+                item =>
+                    Number(item.id) ===
+                    Number(id)
+            );
+
+
+        if (!obra) {
+
+            mostrarMensagem(
+                'Obra não encontrada.',
+                'erro'
+            );
+
+            return;
+
+        }
+
+
+        const confirmar =
+            confirm(
+                `Tem a certeza que pretende apagar a obra "${obra.numero_obra}"?`
+            );
+
+
+        if (!confirmar) {
+            return;
+        }
+
+
+        console.log(
+            'A apagar obra:',
+            id
+        );
+
+
+        const {
+            error
+        } =
+            await supabaseClient
+                .from('obras')
+                .delete()
+                .eq(
+                    'id',
+                    id
+                );
+
+
+        if (error) {
+
+            console.error(
+                'Erro DELETE:',
+                error
+            );
+
+
+            mostrarMensagem(
+                'Erro ao apagar obra: ' +
+                error.message,
+                'erro'
+            );
+
+            return;
+
+        }
+
+
+        mostrarMensagem(
+            'Obra apagada com sucesso. 🗑️',
+            'sucesso'
+        );
+
+
+        await carregarObras();
+
+    }
+
+
+    /* =====================================================
+       NOVA OBRA
+    ===================================================== */
+
+    function novaObra() {
+
+        obraEmEdicao =
+            null;
+
+
+        limparFormulario();
+
+
+        document.getElementById(
+            'titulo-formulario'
+        ).textContent =
+            '➕ Registar Nova Obra';
+
+
+        document.getElementById(
+            'btn-guardar'
+        ).textContent =
+            '💾 Guardar Obra';
+
+
+        document.getElementById(
+            'btn-cancelar'
+        ).style.display =
+            'none';
+
+
+        document
+            .getElementById(
+                'numero_obra'
+            )
+            .focus();
+
+    }
+
+
+    /* =====================================================
+       CANCELAR EDIÇÃO
+    ===================================================== */
+
+    function cancelarEdicao() {
+
+        obraEmEdicao =
+            null;
+
+
+        limparFormulario();
+
+
+        document.getElementById(
+            'titulo-formulario'
+        ).textContent =
+            '➕ Registar Nova Obra';
+
+
+        document.getElementById(
+            'btn-guardar'
+        ).textContent =
+            '💾 Guardar Obra';
+
+
+        document.getElementById(
+            'btn-cancelar'
+        ).style.display =
+            'none';
+
+    }
+
+
+    /* =====================================================
+       LIMPAR FORMULÁRIO
+    ===================================================== */
+
+    function limparFormulario() {
+
+        document
+            .getElementById(
+                'form-obra'
+            )
+            .reset();
+
+    }
+
+
+    /* =====================================================
+       VOLTAR
+    ===================================================== */
+
+    function voltarInicio() {
+
+        window.location.href =
+            'index.html';
+
+    }
+
+
+    /* =====================================================
+       ESCAPAR HTML
+    ===================================================== */
+
+    function escaparHTML(valor) {
+
+        if (
+            valor === null ||
+            valor === undefined
+        ) {
+
+            return '';
+
+        }
+
+
+        return String(valor)
+            .replace(
+                /&/g,
+                '&amp;'
+            )
+            .replace(
+                /</g,
+                '&lt;'
+            )
+            .replace(
+                />/g,
+                '&gt;'
+            )
+            .replace(
+                /"/g,
+                '&quot;'
+            )
+            .replace(
+                /'/g,
+                '&#039;'
+            );
+
+    }
+
+
+    /* =====================================================
+       MENSAGENS
+    ===================================================== */
+
+    function mostrarMensagem(
+        texto,
+        tipo = 'info'
+    ) {
+
+        const container =
+            document.getElementById(
+                'mensagens'
+            );
+
+
+        const mensagem =
+            document.createElement(
+                'div'
+            );
+
+
+        mensagem.className =
+            `mensagem ${tipo}`;
+
+
+        mensagem.textContent =
+            texto;
+
+
+        container.appendChild(
+            mensagem
+        );
+
+
+        setTimeout(
+            () => {
+
+                mensagem.style.opacity =
+                    '0';
+
+                mensagem.style.transform =
+                    'translateX(20px)';
+
+                setTimeout(
+                    () => {
+                        mensagem.remove();
+                    },
+                    250
+                );
+
+            },
+            4000
+        );
+
+    }
+
+
+    /* =====================================================
+       MONITORIZAÇÃO DA AUTENTICAÇÃO
+    ===================================================== */
+
+    supabaseClient.auth.onAuthStateChange(
+        function (
+            event,
+            session
+        ) {
+
+            console.log(
+                'Auth event:',
+                event
+            );
+
+            console.log(
+                'Auth session:',
+                session
+            );
+
+
+            if (
+                session &&
+                session.user
+            ) {
+
+                mostrarUtilizador(
+                    session.user
+                );
+
+            }
+
+
+            /*
+             * IMPORTANTE:
+             *
+             * Esta página NÃO redireciona
+             * para index.html através
+             * do listener de autenticação.
+             *
+             * A sessão pode estar a ser
+             * restaurada pelo Supabase
+             * enquanto a página é carregada.
+             */
+
+        }
+    );
+
 </script>
+
 </body>
 </html>
