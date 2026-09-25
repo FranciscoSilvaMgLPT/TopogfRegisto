@@ -241,40 +241,58 @@
             return d.toISOString().slice(0, 16);
         }
 
-        // ===== 1. Carregar Atividades do Supabase =====
-        async function carregarAtividadesNoSelect() {
-            showLoading(true);
-            selectAtividade.innerHTML = '<option value="">-- A carregar... --</option>';
+  // ===== 1. Carregar Atividades do Supabase (Versão Resiliente) =====
+async function carregarAtividadesNoSelect() {
+    showLoading(true);
+    const selectEl = document.getElementById('selectAtividade');
+    selectEl.innerHTML = '<option value="">-- A carregar atividades... --</option>';
 
-            const { data: atividades, error } = await sbClient
-                .from('atividades')
-                .select('id, numero_obra, servico, local_obra')
-                .order('id', { ascending: false });
+    // Usamos '*' para evitar erros caso uma coluna específica não exista com esse nome exato
+    const { data: atividades, error } = await sbClient
+        .from('atividades')
+        .select('*') 
+        .order('id', { ascending: false });
 
-            showLoading(false);
+    showLoading(false);
 
-            if (error) {
-                console.error("Erro ao carregar atividades:", error);
-                selectAtividade.innerHTML = '<option value="">-- Erro ao carregar dados --</option>';
-                return;
-            }
+    // 1. Verificar se houve erro de permissão (RLS) ou de coluna
+    if (error) {
+        console.error("ERRO SUPABASE ao carregar atividades:", error);
+        selectEl.innerHTML = '<option value="">-- Erro ao carregar (ver F12) --</option>';
+        alert("ERRO AO CARREGAR ATIVIDADES:\n\n" + error.message + "\n\nVerifica se a tabela 'atividades' existe e se tem uma política de RLS que permita SELECT.");
+        return;
+    }
 
-            selectAtividade.innerHTML = '<option value="">-- Nenhuma atividade associada --</option>';
+    // 2. Verificar se a tabela está vazia
+    if (!atividades || atividades.length === 0) {
+        console.warn("AVISO: A tabela 'atividades' está vazia ou devolveu 0 registos.");
+        selectEl.innerHTML = '<option value="">-- Nenhuma atividade encontrada na base de dados --</option>';
+        return;
+    }
 
-            atividades.forEach(ativ => {
-                const option = document.createElement('option');
-                option.value = ativ.id;
-                // Guardamos o numero_obra no dataset para fazer o match depois
-                option.dataset.numeroObra = ativ.numero_obra || ''; 
-                option.dataset.localObra = ativ.local_obra || '';
-                
-                const textoServico = ativ.servico ? ativ.servico : 'Sem serviço';
-                const textoObra = ativ.numero_obra ? `(${ativ.numero_obra})` : '';
-                option.textContent = `#${ativ.id} - ${textoServico} ${textoObra}`;
-                
-                selectAtividade.appendChild(option);
-            });
-        }
+    // 3. Preencher o select com sucesso
+    selectEl.innerHTML = '<option value="">-- Nenhuma atividade associada --</option>';
+
+    atividades.forEach(ativ => {
+        const option = document.createElement('option');
+        option.value = ativ.id;
+        
+        // Usamos '||' como fallback caso a coluna se chame apenas 'numero' ou 'local' em vez de 'numero_obra'
+        option.dataset.numeroObra = ativ.numero_obra || ativ.numero || ''; 
+        option.dataset.localObra = ativ.local_obra || ativ.local || '';
+        
+        const textoServico = ativ.servico || ativ.descricao || 'Atividade';
+        const textoObra = ativ.numero_obra || ativ.numero || '';
+        const textoObraFormatado = textoObra ? `(${textoObra})` : '';
+        
+        // Cria um texto limpo para a opção
+        option.textContent = `#${ativ.id} - ${textoServico} ${textoObraFormatado}`.trim();
+        
+        selectEl.appendChild(option);
+    });
+    
+    console.log("✅ Sucesso:", atividades.length, "atividades carregadas.");
+}
 
         // ===== 2. Lógica de Auto-Preenchimento da Obra =====
         function configurarAutoPreenchimentoObra() {
