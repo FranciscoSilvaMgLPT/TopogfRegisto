@@ -151,23 +151,30 @@
     let mostrandoConcluidos = false; 
     let mapaAtividadesPorPedido = {};
     let mapaOcorrenciasPorPedido = {};
+    let mapaObrasGlobal = {};
 
     // ===== Otimização: rastrear apenas as linhas realmente alteradas =====
     // idsAlterados é só um "hint" rápido; a deteção real e fiável é feita
     // comparando o estado atual da tabela com dadosOriginais (snapshot).
     let idsAlterados = new Set();
     let dadosOriginais = {};
+
+    // Campos próprios do pedido (guardados na tabela "pedidos")
     const CAMPOS_GUARDAVEIS = [
-        "tecnico", "data_hora_pedido", "requerente", "empresa", "importancia",
-        "via", "local_obra", "numero_obra", "concelho", "servico", "observacao",
+        "tecnico", "data_hora_pedido", "requerente", "importancia",
+        "via", "servico", "observacao",
         "tipo_trabalho", "frequencia", "data_hora_limite", "estado", "data_conclusao"
     ];
+    // Campos que agora pertencem à obra (guardados na tabela "obras")
+    const CAMPOS_OBRA_GUARDAVEIS = ["empresa", "numero_obra", "concelho", "local_obra"];
+    // União dos dois, usada para deteção de alterações (snapshot/comparação)
+    const CAMPOS_DETECAO = CAMPOS_GUARDAVEIS.concat(CAMPOS_OBRA_GUARDAVEIS);
 
     function guardarSnapshot(dados) {
         dadosOriginais = {};
         dados.forEach(item => {
             const copia = {};
-            CAMPOS_GUARDAVEIS.forEach(campo => { copia[campo] = item[campo] ?? null; });
+            CAMPOS_DETECAO.forEach(campo => { copia[campo] = item[campo] ?? null; });
             dadosOriginais[item.id] = copia;
         });
     }
@@ -175,7 +182,22 @@
     function linhaFoiAlterada(item) {
         const original = dadosOriginais[item.id];
         if (!original) return true; // linha nova, sem snapshot -> guarda por segurança
-        return CAMPOS_GUARDAVEIS.some(campo => (item[campo] ?? null) !== (original[campo] ?? null));
+        return CAMPOS_DETECAO.some(campo => (item[campo] ?? null) !== (original[campo] ?? null));
+    }
+
+    // Aplica os dados da tabela "obras" (empresa, numero_obra, concelho, local_obra)
+    // a cada pedido, sobrepondo os campos que agora vêm de lá.
+    function aplicarObrasAosPedidos(dados) {
+        dados.forEach(p => {
+            const obra = mapaObrasGlobal[p.obra_id];
+            p.obra_info = obra || null;
+            if (obra) {
+                p.numero_obra = obra.numero_obra;
+                p.local_obra = obra.local_obra;
+                p.empresa = obra.empresa;
+                p.concelho = obra.concelho;
+            }
+        });
     }
 
     function atualizarContador() {
@@ -367,6 +389,19 @@
 
         const { data } = await sbClient.from('pedidos').select('*').order('id', { ascending: false });
 
+        // ===== Carregar dados centrais da obra (empresa, numero_obra, concelho, local_obra) =====
+        const { data: obrasData, error: errObras } = await sbClient
+            .from('obras')
+            .select('id, numero_obra, local_obra, empresa, concelho')
+            .order('numero_obra', { ascending: true });
+
+        if (errObras) {
+            console.error("Erro ao carregar obras:", errObras);
+        }
+        mapaObrasGlobal = {};
+        (obrasData || []).forEach(o => { mapaObrasGlobal[o.id] = o; });
+        aplicarObrasAosPedidos(data);
+
         // ===== Carregar atividades associadas aos pedidos =====
         const pedidosIds = data.map(p => p.id);
         mapaAtividadesPorPedido = {};
@@ -530,6 +565,8 @@
     // 1) Deteta as linhas alteradas comparando com o snapshot original
     //    (mais fiável do que confiar só no evento cellEdited)
     // 2) Envia todos os updates em paralelo (Promise.all) em vez de um a um
+    //    - Campos próprios do pedido -> tabela "pedidos"
+    //    - Campos da obra (empresa, numero_obra, concelho, local_obra) -> tabela "obras"
     async function guardarAlteracoes() {
         // Força o fecho de qualquer editor de célula ainda aberto (ex: flatpickr),
         // para garantir que a última alteração feita fica mesmo registada.
@@ -550,15 +587,30 @@
         btn.innerText = "⏳ A guardar...";
 
         try {
-            const resultados = await Promise.all(linhasParaGuardar.map(item =>
-                sbClient.from('pedidos').update({
+            const resultados = await Promise.all(linhasParaGuardar.map(item => (async () => {
+                const { error: erroPedido } = await sbClient.from('pedidos').update({
                     tecnico: item.tecnico, data_hora_pedido: item.data_hora_pedido, requerente: item.requerente,
-                    empresa: item.empresa, importancia: item.importancia, via: item.via, local_obra: item.local_obra,
-                    numero_obra: item.numero_obra, concelho: item.concelho, servico: item.servico, observacao: item.observacao,
+                    importancia: item.importancia, via: item.via, servico: item.servico, observacao: item.observacao,
                     tipo_trabalho: item.tipo_trabalho, frequencia: item.frequencia, data_hora_limite: item.data_hora_limite,
                     estado: item.estado, data_conclusao: item.data_conclusao
-                }).eq('id', item.id)
-            ));
+                }).eq('id', item.id);
+
+                if (erroPedido) return { id: item.id, error: erroPedido };
+
+                // Os dados da obra são guardados exclusivamente na tabela "obras".
+                if (item.obra_id) {
+                    const { error: erroObra } = await sbClient.from('obras').update({
+                        numero_obra: item.numero_obra,
+                        local_obra: item.local_obra,
+                        empresa: item.empresa || null,
+                        concelho: item.concelho || null
+                    }).eq('id', item.obra_id);
+
+                    if (erroObra) return { id: item.id, error: erroObra };
+                }
+
+                return { id: item.id, error: null };
+            })()));
 
             const algumErro = resultados.find(r => r.error);
             if (algumErro) {
@@ -570,6 +622,15 @@
             }
 
             const { data: novosDados } = await sbClient.from('pedidos').select('*').order('id', { ascending: false });
+
+            const { data: obrasData } = await sbClient
+                .from('obras')
+                .select('id, numero_obra, local_obra, empresa, concelho')
+                .order('numero_obra', { ascending: true });
+            mapaObrasGlobal = {};
+            (obrasData || []).forEach(o => { mapaObrasGlobal[o.id] = o; });
+            aplicarObrasAosPedidos(novosDados);
+
             novosDados.forEach(p => {
                 p.atividades_count = (mapaAtividadesPorPedido[p.id] || []).length;
                 p.ocorrencias_count = (mapaOcorrenciasPorPedido[p.id] || []).length;
