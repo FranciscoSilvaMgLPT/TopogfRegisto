@@ -237,80 +237,95 @@
             return horaLimpa ? `${dia}/${mes}/${ano} ${horaLimpa}` : `${dia}/${mes}/${ano}`;
         }
 
-        // ===== CARREGAR ATIVIDADES COM JOIN À TABELA OBRAS =====
-        async function carregarAtividadesNoSelect() {
-            selectAtividade.innerHTML = '<option value="">-- A carregar... --</option>';
+  // ===== CARREGAR ATIVIDADES COM DADOS DA OBRA =====
+async function carregarAtividadesNoSelect() {
+    selectAtividade.innerHTML = '<option value="">-- A carregar atividades... --</option>';
 
-            // JOIN: buscar atividades + dados da obra associada
-            const { data: atividades, error } = await sbClient
-                .from('atividades')
-                .select(`
-                    id,
-                    tecnico,
-                    data_hora_inicio,
-                    servico,
-                    obra_id,
-                    obras (
-                        id,
-                        numero_obra,
-                        local_obra,
-                        empresa,
-                        concelho
-                    )
-                `)
-                .order('id', { ascending: false });
+    const { data: atividades, error } = await sbClient
+        .from('atividades')
+        .select(`
+            id,
+            tecnico,
+            data_hora_inicio,
+            servico,
+            obra_id,
+            obras (
+                numero_obra,
+                local_obra,
+                empresa,
+                concelho
+            )
+        `)
+        .order('data_hora_inicio', { ascending: false });
 
-            if (error) {
-                console.error("ERRO:", error);
-                selectAtividade.innerHTML = '<option value="">-- Erro ao carregar --</option>';
-                alert("Erro: " + error.message + "\n\nVerifica se existe uma foreign key de atividades.obra_id para obras.id");
-                return;
-            }
+    if (error) {
+        console.error('Erro ao carregar atividades:', error);
 
-            if (!atividades || atividades.length === 0) {
-                selectAtividade.innerHTML = '<option value="">-- Nenhuma atividade encontrada --</option>';
-                return;
-            }
+        selectAtividade.innerHTML =
+            '<option value="">-- Erro ao carregar atividades --</option>';
 
-            selectAtividade.innerHTML = '<option value="">-- Nenhuma atividade associada --</option>';
+        alert(
+            'Erro ao carregar atividades:\n\n' +
+            error.message +
+            '\n\n' +
+            'Confirma se existe uma relação entre atividades.obra_id e obras.id.'
+        );
 
-            atividades.forEach(ativ => {
-                const option = document.createElement('option');
-                option.value = ativ.id;
+        return;
+    }
 
-                // Guardar o obra_id para auto-preenchimento
-                option.dataset.obraId = ativ.obra_id || '';
+    if (!atividades || atividades.length === 0) {
+        selectAtividade.innerHTML =
+            '<option value="">-- Nenhuma atividade encontrada --</option>';
+        return;
+    }
 
-                // Dados da obra (do JOIN)
-                const obra = ativ.obras || {};
-                const numeroObra = obra.numero_obra || '';
-                const localObra = obra.local_obra || '';
-                const empresa = obra.empresa || '';
-                const concelho = obra.concelho || '';
+    selectAtividade.innerHTML =
+        '<option value="">-- Nenhuma atividade associada --</option>';
 
-                // Dados da atividade
-                const tecnico = ativ.tecnico || '';
-                const dataInicio = formatarDataTexto(ativ.data_hora_inicio);
-                const servico = ativ.servico || '';
+    atividades.forEach(atividade => {
 
-                // Formatar texto da opção
-                // Exemplo: "#123 - João Silva | 15/01/2024 09:00 | CCR-INVEST | Lapa | CCR ENG&CONST | Instalação Elétrica"
-                let texto = `#${ativ.id}`;
-                
-                if (tecnico) texto += ` - ${tecnico}`;
-                if (dataInicio) texto += ` | ${dataInicio}`;
-                if (numeroObra) texto += ` | ${numeroObra}`;
-                if (localObra) texto += ` | ${localObra}`;
-                if (empresa) texto += ` | ${empresa}`;
-                if (servico) texto += ` | ${servico}`;
+        const option = document.createElement('option');
 
-                option.textContent = texto;
-                selectAtividade.appendChild(option);
-            });
+        // O ID da atividade fica como value
+        option.value = atividade.id;
 
-            console.log("✅", atividades.length, "atividades carregadas com dados das obras");
-        }
+        // Guardamos o obra_id para preencher automaticamente a obra
+        option.dataset.obraId = atividade.obra_id || '';
 
+        const obra = atividade.obras || {};
+
+        const tecnico = atividade.tecnico || '';
+
+        const dataHora = atividade.data_hora_inicio
+            ? formatarDataTexto(atividade.data_hora_inicio)
+            : '';
+
+        const numeroObra = obra.numero_obra || '';
+        const localObra = obra.local_obra || '';
+        const empresa = obra.empresa || '';
+        const servico = atividade.servico || '';
+
+        // Formato:
+        // Técnico | Data/Hora | Nº Obra | Local | Empresa | Serviço
+        const partes = [
+            tecnico,
+            dataHora,
+            numeroObra,
+            localObra,
+            empresa,
+            servico
+        ].filter(valor => valor !== '');
+
+        option.textContent = partes.join(' | ');
+
+        selectAtividade.appendChild(option);
+    });
+
+    console.log(
+        `✅ ${atividades.length} atividades carregadas com dados das obras`
+    );
+}
         // ===== AUTO-PREENCHER OBRA PELO obra_id =====
         function configurarAutoPreenchimentoObra() {
             selectAtividade.addEventListener('change', function () {
