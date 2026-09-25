@@ -7,7 +7,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
-        /* ===== Base e Reset ===== */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { 
             background-color: #0f172a; 
@@ -17,7 +16,6 @@
             line-height: 1.5;
         }
 
-        /* ===== Layout Responsivo ===== */
         .container {
             max-width: 800px;
             margin: 0 auto;
@@ -40,7 +38,6 @@
         .user-info { font-size: 0.9rem; color: #94a3b8; }
         .user-info strong { color: #60a5fa; }
 
-        /* ===== Formulário e Inputs (Interativos e Suaves) ===== */
         .form-group { margin-bottom: 20px; }
         .form-label { 
             display: block; 
@@ -60,7 +57,7 @@
             color: #f8fafc;
             font-size: 15px;
             outline: none;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); /* Animação suave */
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .form-control:focus {
@@ -74,7 +71,6 @@
             resize: vertical;
         }
 
-        /* Efeito visual quando a obra é auto-preenchida */
         .auto-filled {
             border-color: #22c55e !important;
             box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25) !important;
@@ -87,7 +83,6 @@
             100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
         }
 
-        /* ===== Botões (Mobile-friendly e com animação) ===== */
         .btn {
             display: inline-flex;
             align-items: center;
@@ -101,15 +96,15 @@
             border: none;
             cursor: pointer;
             transition: all 0.2s ease;
-            touch-action: manipulation; /* Melhora resposta no mobile */
+            touch-action: manipulation;
         }
         .btn:active { transform: scale(0.97); }
 
         .btn-primary { background: #0ea5e9; color: white; }
-        .btn-primary:hover { background: #0284c7; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3); }
+        .btn-primary:hover { background: #0284c7; }
 
         .btn-success { background: #22c55e; color: white; }
-        .btn-success:hover { background: #16a34a; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3); }
+        .btn-success:hover { background: #16a34a; }
 
         .btn-secondary { background: #334155; color: white; }
         .btn-secondary:hover { background: #475569; }
@@ -122,7 +117,6 @@
         }
         .actions .btn { flex: 1; min-width: 140px; }
 
-        /* ===== Loading State ===== */
         .loading-overlay {
             position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8);
             display: flex; align-items: center; justify-content: center;
@@ -135,7 +129,6 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ===== Mobile Adjustments ===== */
         @media (max-width: 640px) {
             body { padding: 12px; }
             .container { padding: 16px; border-radius: 12px; }
@@ -147,7 +140,6 @@
 </head>
 <body>
 
-    <!-- Loading Indicator -->
     <div id="loading" class="loading-overlay" style="display: none;">
         <div class="spinner"></div>
     </div>
@@ -174,15 +166,13 @@
                 <textarea id="ocorrencia" name="ocorrencia" class="form-control" placeholder="Descreva os detalhes da ocorrência..." required></textarea>
             </div>
 
-            <!-- SELECT DE ATIVIDADES (Carregado via Supabase) -->
             <div class="form-group">
                 <label class="form-label" for="selectAtividade">Atividade Associada</label>
                 <select id="selectAtividade" name="atividade_id" class="form-control">
-                    <option value="">-- Carregando atividades... --</option>
+                    <option value="">-- A carregar atividades... --</option>
                 </select>
             </div>
 
-            <!-- SELECT DE OBRAS (Hardcoded com data attributes para matching) -->
             <div class="form-group">
                 <label class="form-label" for="selectObra">Obra</label>
                 <select id="selectObra" name="obra_id" class="form-control">
@@ -218,18 +208,15 @@
     </div>
 
     <script>
-        // ===== Configuração Supabase =====
         const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
         const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // ===== Elementos do DOM =====
         const form = document.getElementById('form-ocorrencia');
         const selectAtividade = document.getElementById('selectAtividade');
         const selectObra = document.getElementById('selectObra');
         const loading = document.getElementById('loading');
 
-        // ===== Funções de Utilidade =====
         function showLoading(show) {
             loading.style.display = show ? 'flex' : 'none';
         }
@@ -241,97 +228,116 @@
             return d.toISOString().slice(0, 16);
         }
 
-  // ===== 1. Carregar Atividades do Supabase (Versão Resiliente) =====
-async function carregarAtividadesNoSelect() {
-    showLoading(true);
-    const selectEl = document.getElementById('selectAtividade');
-    selectEl.innerHTML = '<option value="">-- A carregar atividades... --</option>';
+        function formatarDataTexto(valor) {
+            if (!valor) return '';
+            const [data, hora] = valor.split('T');
+            if (!data) return valor;
+            const [ano, mes, dia] = data.split('-');
+            const horaLimpa = hora ? hora.substring(0, 5) : '';
+            return horaLimpa ? `${dia}/${mes}/${ano} ${horaLimpa}` : `${dia}/${mes}/${ano}`;
+        }
 
-    // Usamos '*' para evitar erros caso uma coluna específica não exista com esse nome exato
-    const { data: atividades, error } = await sbClient
-        .from('atividades')
-        .select('*') 
-        .order('id', { ascending: false });
+        // ===== CARREGAR ATIVIDADES COM JOIN À TABELA OBRAS =====
+        async function carregarAtividadesNoSelect() {
+            selectAtividade.innerHTML = '<option value="">-- A carregar... --</option>';
 
-    showLoading(false);
+            // JOIN: buscar atividades + dados da obra associada
+            const { data: atividades, error } = await sbClient
+                .from('atividades')
+                .select(`
+                    id,
+                    tecnico,
+                    data_hora_inicio,
+                    servico,
+                    obra_id,
+                    obras (
+                        id,
+                        numero_obra,
+                        local_obra,
+                        empresa,
+                        concelho
+                    )
+                `)
+                .order('id', { ascending: false });
 
-    // 1. Verificar se houve erro de permissão (RLS) ou de coluna
-    if (error) {
-        console.error("ERRO SUPABASE ao carregar atividades:", error);
-        selectEl.innerHTML = '<option value="">-- Erro ao carregar (ver F12) --</option>';
-        alert("ERRO AO CARREGAR ATIVIDADES:\n\n" + error.message + "\n\nVerifica se a tabela 'atividades' existe e se tem uma política de RLS que permita SELECT.");
-        return;
-    }
+            if (error) {
+                console.error("ERRO:", error);
+                selectAtividade.innerHTML = '<option value="">-- Erro ao carregar --</option>';
+                alert("Erro: " + error.message + "\n\nVerifica se existe uma foreign key de atividades.obra_id para obras.id");
+                return;
+            }
 
-    // 2. Verificar se a tabela está vazia
-    if (!atividades || atividades.length === 0) {
-        console.warn("AVISO: A tabela 'atividades' está vazia ou devolveu 0 registos.");
-        selectEl.innerHTML = '<option value="">-- Nenhuma atividade encontrada na base de dados --</option>';
-        return;
-    }
+            if (!atividades || atividades.length === 0) {
+                selectAtividade.innerHTML = '<option value="">-- Nenhuma atividade encontrada --</option>';
+                return;
+            }
 
-    // 3. Preencher o select com sucesso
-    selectEl.innerHTML = '<option value="">-- Nenhuma atividade associada --</option>';
+            selectAtividade.innerHTML = '<option value="">-- Nenhuma atividade associada --</option>';
 
-    atividades.forEach(ativ => {
-        const option = document.createElement('option');
-        option.value = ativ.id;
-        
-        // Usamos '||' como fallback caso a coluna se chame apenas 'numero' ou 'local' em vez de 'numero_obra'
-        option.dataset.numeroObra = ativ.numero_obra || ativ.numero || ''; 
-        option.dataset.localObra = ativ.local_obra || ativ.local || '';
-        
-        const textoServico = ativ.servico || ativ.descricao || 'Atividade';
-        const textoObra = ativ.numero_obra || ativ.numero || '';
-        const textoObraFormatado = textoObra ? `(${textoObra})` : '';
-        
-        // Cria um texto limpo para a opção
-        option.textContent = `#${ativ.id} - ${textoServico} ${textoObraFormatado}`.trim();
-        
-        selectEl.appendChild(option);
-    });
-    
-    console.log("✅ Sucesso:", atividades.length, "atividades carregadas.");
-}
+            atividades.forEach(ativ => {
+                const option = document.createElement('option');
+                option.value = ativ.id;
 
-        // ===== 2. Lógica de Auto-Preenchimento da Obra =====
+                // Guardar o obra_id para auto-preenchimento
+                option.dataset.obraId = ativ.obra_id || '';
+
+                // Dados da obra (do JOIN)
+                const obra = ativ.obras || {};
+                const numeroObra = obra.numero_obra || '';
+                const localObra = obra.local_obra || '';
+                const empresa = obra.empresa || '';
+                const concelho = obra.concelho || '';
+
+                // Dados da atividade
+                const tecnico = ativ.tecnico || '';
+                const dataInicio = formatarDataTexto(ativ.data_hora_inicio);
+                const servico = ativ.servico || '';
+
+                // Formatar texto da opção
+                // Exemplo: "#123 - João Silva | 15/01/2024 09:00 | CCR-INVEST | Lapa | CCR ENG&CONST | Instalação Elétrica"
+                let texto = `#${ativ.id}`;
+                
+                if (tecnico) texto += ` - ${tecnico}`;
+                if (dataInicio) texto += ` | ${dataInicio}`;
+                if (numeroObra) texto += ` | ${numeroObra}`;
+                if (localObra) texto += ` | ${localObra}`;
+                if (empresa) texto += ` | ${empresa}`;
+                if (servico) texto += ` | ${servico}`;
+
+                option.textContent = texto;
+                selectAtividade.appendChild(option);
+            });
+
+            console.log("✅", atividades.length, "atividades carregadas com dados das obras");
+        }
+
+        // ===== AUTO-PREENCHER OBRA PELO obra_id =====
         function configurarAutoPreenchimentoObra() {
-            selectAtividade.addEventListener('change', function() {
+            selectAtividade.addEventListener('change', function () {
                 const selectedOption = this.options[this.selectedIndex];
-                const numeroObraAtividade = selectedOption.dataset.numeroObra;
+                const obraId = selectedOption.dataset.obraId;
 
-                // Remover efeito visual anterior
                 selectObra.classList.remove('auto-filled');
 
-                if (numeroObraAtividade) {
-                    let obraEncontrada = false;
-                    
+                if (obraId) {
                     for (let i = 0; i < selectObra.options.length; i++) {
-                        const opt = selectObra.options[i];
-                        // Compara o data-numero da obra com o numero_obra da atividade
-                        if (opt.dataset.numero === numeroObraAtividade) {
+                        if (selectObra.options[i].value === obraId) {
                             selectObra.selectedIndex = i;
-                            
-                            // Adicionar efeito visual de sucesso
                             selectObra.classList.add('auto-filled');
                             setTimeout(() => selectObra.classList.remove('auto-filled'), 1500);
-                            
-                            obraEncontrada = true;
-                            break;
+                            console.log("✅ Obra auto-preenchida: ID", obraId);
+                            return;
                         }
                     }
-
-                    if (!obraEncontrada) {
-                        selectObra.value = ""; 
-                        console.warn(`Nenhuma obra encontrada com numero_obra: "${numeroObraAtividade}"`);
-                    }
+                    console.warn("⚠️ Obra com ID", obraId, "não encontrada no select");
+                    selectObra.value = "";
                 } else {
-                    selectObra.value = ""; // Resetar se "Nenhuma atividade" for selecionada
+                    selectObra.value = "";
                 }
             });
         }
 
-        // ===== 3. Carregar Dados para Edição (Se existir ID na URL) =====
+        // ===== CARREGAR PARA EDIÇÃO =====
         async function carregarParaEdicao(id) {
             showLoading(true);
             document.getElementById('page-title').innerText = 'Editar Ocorrência';
@@ -351,25 +357,21 @@ async function carregarAtividadesNoSelect() {
                 return;
             }
 
-            // Preencher campos
             document.getElementById('ocorrencia-id').value = data.id;
             document.getElementById('data').value = formatarDataParaInput(data.data);
             document.getElementById('ocorrencia').value = data.ocorrencia || '';
             
-            // Preencher atividade (isto vai disparar o evento 'change' e preencher a obra automaticamente)
             if (data.atividade_id) {
                 selectAtividade.value = data.atividade_id;
-                // Forçar o evento change para acionar o auto-preenchimento da obra
                 selectAtividade.dispatchEvent(new Event('change'));
             }
 
-            // Se a obra já tiver um valor guardado que não foi auto-preenchido, garante que fica selecionado
             if (data.obra_id) {
                 selectObra.value = data.obra_id;
             }
         }
 
-        // ===== 4. Guardar (Insert ou Update) =====
+        // ===== GUARDAR =====
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
             showLoading(true);
@@ -384,10 +386,8 @@ async function carregarAtividadesNoSelect() {
 
             let result;
             if (id) {
-                // Atualizar existente
                 result = await sbClient.from('ocorrencias').update(payload).eq('id', id);
             } else {
-                // Criar nova
                 result = await sbClient.from('ocorrencias').insert(payload);
             }
 
@@ -402,9 +402,8 @@ async function carregarAtividadesNoSelect() {
             }
         });
 
-        // ===== Inicialização =====
+        // ===== INICIALIZAÇÃO =====
         document.addEventListener('DOMContentLoaded', async () => {
-            // 1. Verificar Sessão
             const { data: { session } } = await sbClient.auth.getSession();
             if (!session) { 
                 window.location.href = 'index.html'; 
@@ -412,17 +411,14 @@ async function carregarAtividadesNoSelect() {
             }
             document.getElementById('utilizador-info').innerText = session.user.email;
 
-            // 2. Configurar lógica dos selects
             await carregarAtividadesNoSelect();
             configurarAutoPreenchimentoObra();
 
-            // 3. Verificar se é modo de edição
             const urlParams = new URLSearchParams(window.location.search);
             const editId = urlParams.get('id');
             if (editId) {
                 await carregarParaEdicao(editId);
             } else {
-                // Definir data atual como padrão para novas ocorrências
                 document.getElementById('data').value = formatarDataParaInput(new Date().toISOString());
             }
         });
