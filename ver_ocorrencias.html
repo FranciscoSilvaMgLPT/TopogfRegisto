@@ -237,9 +237,11 @@
             return horaLimpa ? `${dia}/${mes}/${ano} ${horaLimpa}` : `${dia}/${mes}/${ano}`;
         }
 
-  // ===== CARREGAR ATIVIDADES COM DADOS DA OBRA =====
+// ===== CARREGAR ATIVIDADES + DADOS DA OBRA =====
 async function carregarAtividadesNoSelect() {
-    selectAtividade.innerHTML = '<option value="">-- A carregar atividades... --</option>';
+
+    selectAtividade.innerHTML =
+        '<option value="">-- A carregar atividades... --</option>';
 
     const { data: atividades, error } = await sbClient
         .from('atividades')
@@ -249,7 +251,8 @@ async function carregarAtividadesNoSelect() {
             data_hora_inicio,
             servico,
             obra_id,
-            obras (
+            obras!inner (
+                id,
                 numero_obra,
                 local_obra,
                 empresa,
@@ -259,6 +262,7 @@ async function carregarAtividadesNoSelect() {
         .order('data_hora_inicio', { ascending: false });
 
     if (error) {
+
         console.error('Erro ao carregar atividades:', error);
 
         selectAtividade.innerHTML =
@@ -266,17 +270,17 @@ async function carregarAtividadesNoSelect() {
 
         alert(
             'Erro ao carregar atividades:\n\n' +
-            error.message +
-            '\n\n' +
-            'Confirma se existe uma relação entre atividades.obra_id e obras.id.'
+            error.message
         );
 
         return;
     }
 
     if (!atividades || atividades.length === 0) {
+
         selectAtividade.innerHTML =
             '<option value="">-- Nenhuma atividade encontrada --</option>';
+
         return;
     }
 
@@ -287,27 +291,36 @@ async function carregarAtividadesNoSelect() {
 
         const option = document.createElement('option');
 
-        // O ID da atividade fica como value
+        // ID da atividade
         option.value = atividade.id;
 
-        // Guardamos o obra_id para preencher automaticamente a obra
+        // Guardar o obra_id para preencher automaticamente a obra
         option.dataset.obraId = atividade.obra_id || '';
 
-        const obra = atividade.obras || {};
-
+        // ================================
+        // DADOS DA ATIVIDADE
+        // ================================
         const tecnico = atividade.tecnico || '';
 
         const dataHora = atividade.data_hora_inicio
             ? formatarDataTexto(atividade.data_hora_inicio)
             : '';
 
-        const numeroObra = obra.numero_obra || '';
-        const localObra = obra.local_obra || '';
-        const empresa = obra.empresa || '';
         const servico = atividade.servico || '';
 
-        // Formato:
-        // Técnico | Data/Hora | Nº Obra | Local | Empresa | Serviço
+        // ================================
+        // DADOS DA OBRA
+        // ================================
+        const obra = atividade.obras;
+
+        const numeroObra = obra?.numero_obra || '';
+        const localObra = obra?.local_obra || '';
+        const empresa = obra?.empresa || '';
+        const concelho = obra?.concelho || '';
+
+        // ================================
+        // TEXTO DO SELECT
+        // ================================
         const partes = [
             tecnico,
             dataHora,
@@ -319,13 +332,16 @@ async function carregarAtividadesNoSelect() {
 
         option.textContent = partes.join(' | ');
 
+        // Adicionar ao select
         selectAtividade.appendChild(option);
     });
 
     console.log(
-        `✅ ${atividades.length} atividades carregadas com dados das obras`
+        'Atividades carregadas:',
+        atividades.length
     );
 }
+        
         // ===== AUTO-PREENCHER OBRA PELO obra_id =====
         function configurarAutoPreenchimentoObra() {
             selectAtividade.addEventListener('change', function () {
