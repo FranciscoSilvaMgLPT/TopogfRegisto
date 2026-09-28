@@ -74,7 +74,7 @@
       margin-top: 8px;
     }
     .foto-input-direto:hover { border-color: #a855f7; background: #3b4a63; }
-    
+
     .foto-input-direto::file-selector-button {
       background: #a855f7;
       color: white;
@@ -235,14 +235,13 @@
       text-align: center;
       font-size: 15px;
     }
-    /* Esconder setas de número no Chrome/Safari mobile */
-    .dt-time input[type="number"]::-webkit-inner-spin-button, 
-    .dt-time input[type="number"]::-webkit-outer-spin-button { 
-      -webkit-appearance: none; 
-      margin: 0; 
+    .dt-time input[type="number"]::-webkit-inner-spin-button,
+    .dt-time input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
     }
     .dt-time input[type="number"] {
-      -moz-appearance: textfield; /* Firefox */
+      -moz-appearance: textfield;
     }
     .dt-actions {
       display: flex;
@@ -306,7 +305,7 @@
         <h3>🚨 Ocorrência (opcional)</h3>
         <label>Descrição da ocorrência</label>
         <textarea id="ocorrenciaTexto" placeholder="Se algo correu mal ou houve imprevisto, descreve aqui. A ocorrência fica associada a esta atividade."></textarea>
-        
+
         <label style="margin-top: 15px;">📷 Fotografias da Ocorrência (opcional)</label>
         <input type="file" id="inputFotosOcorrencia" class="foto-input-direto" accept="image/*" multiple>
         <div id="previewFotosOcorrencia" class="foto-preview-grid"></div>
@@ -407,7 +406,7 @@
       const novosFicheiros = Array.from(e.target.files || []);
       ficheirosOcorrencia = ficheirosOcorrencia.concat(novosFicheiros);
       renderizarPreviewsOcorrencia();
-      e.target.value = ''; 
+      e.target.value = '';
     });
 
     function renderizarPreviewsOcorrencia() {
@@ -461,6 +460,9 @@
       return base64Array;
     }
 
+    // ===== Carregar pedidos pendentes =====
+    // A tabela "pedidos" não tem empresa/local_obra/numero_obra; tem obra_id.
+    // Os dados da obra vêm da relação com a tabela "obras".
     async function carregarPedidosPendentes() {
       const selectPedido = document.getElementById('selectPedido');
       selectPedido.innerHTML = '<option value="">-- Nenhum pedido associado --</option>';
@@ -468,31 +470,36 @@
       try {
         const { data: pedidos, error } = await supabaseClient
           .from('pedidos')
-          .select('id, requerente, servico, tipo_trabalho, data_hora_pedido, obra_id, obras(local_obra, empresa)')
+          .select('id, requerente, servico, tipo_trabalho, data_hora_pedido, estado, data_conclusao, obra_id, obras(local_obra, numero_obra, empresa)')
           .is('data_conclusao', null)
-          .eq('estado', 'Pendente')
           .order('data_hora_pedido', { ascending: false });
 
         if (error) throw error;
 
-        if (pedidos && pedidos.length > 0) {
-          pedidos.forEach(pedido => {
-            const option = document.createElement('option');
-            option.value = pedido.id;
-            option.dataset.obraId = pedido.obra_id || '';
-            
-            const requerente = pedido.requerente || 'Sem requerente';
-            const empresa = (pedido.obras && pedido.obras.empresa) || '';
-            const servicoCurto = (pedido.servico || '').substring(0, 40) + ((pedido.servico || '').length > 40 ? '...' : '');
-            const localObra = (pedido.obras && pedido.obras.local_obra) || 'Sem local';
-            const tipoTrabalho = pedido.tipo_trabalho || 'Sem tipo';
-            
-            option.textContent = `${requerente} (${empresa}) - ${servicoCurto} (${localObra}) - ${tipoTrabalho}`;
-            selectPedido.appendChild(option);
-          });
-        }
+        // Exclui os que já estão marcados como concluídos (qualquer grafia)
+        const pendentes = (pedidos || []).filter(p => !/conclu/i.test(p.estado || ''));
+
+        pendentes.forEach(pedido => {
+          const obra = Array.isArray(pedido.obras) ? pedido.obras[0] : pedido.obras;
+
+          const option = document.createElement('option');
+          option.value = pedido.id;
+          option.dataset.obraId = pedido.obra_id || '';
+
+          const requerente = pedido.requerente || 'Sem requerente';
+          const empresa = (obra && obra.empresa) || '';
+          const servico = pedido.servico || '';
+          const servicoCurto = servico.substring(0, 40) + (servico.length > 40 ? '...' : '');
+          const numeroObra = obra && obra.numero_obra ? obra.numero_obra + ' ' : '';
+          const localObra = (obra && obra.local_obra) || 'Sem local';
+          const tipoTrabalho = pedido.tipo_trabalho || 'Sem tipo';
+
+          option.textContent = `#${pedido.id} ${requerente}${empresa ? ' (' + empresa + ')' : ''} - ${servicoCurto} (${numeroObra}${localObra}) - ${tipoTrabalho}`;
+          selectPedido.appendChild(option);
+        });
       } catch (err) {
         console.error("Erro ao carregar pedidos:", err);
+        alert("Erro ao carregar pedidos: " + (err.message || err));
       }
     }
 
@@ -534,18 +541,17 @@
 
         if (error) throw error;
 
-           (obras || []).forEach(obra => {
+        (obras || []).forEach(obra => {
           const option = document.createElement('option');
           option.value = obra.id;
-          
+
           // Constrói o texto no formato: "Número Local - Empresa"
           const numero = obra.numero_obra ? `${obra.numero_obra} ` : '';
           const local = obra.local_obra || '';
           const empresa = obra.empresa ? ` - ${obra.empresa}` : '';
-          
-          // Junta tudo e remove espaços extras no início/fim, caso algum campo esteja vazio
+
           option.textContent = `${numero}${local}${empresa}`.trim();
-          
+
           selectObra.appendChild(option);
         });
       } catch (err) {
@@ -569,10 +575,10 @@
     function definirDatasAtuais() {
       const now = new Date();
       const fim = new Date(now.getTime() + 60 * 60 * 1000); // +1 hora para o fim por defeito
-      
+
       document.getElementById("dataHoraInicio").value = toIsoLocal(now);
       document.getElementById("dataHoraInicioDisplay").value = toDisplayFormat(now);
-      
+
       document.getElementById("dataHoraFim").value = toIsoLocal(fim);
       document.getElementById("dataHoraFimDisplay").value = toDisplayFormat(fim);
     }
@@ -718,7 +724,7 @@
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      
+
       const tiposSelecionados = Array.from(document.querySelectorAll('.tipoTrabalhoCheck:checked')).map(cb => cb.value);
       if (tiposSelecionados.length === 0) {
         alert("Por favor, selecione pelo menos um Tipo de Trabalho.");
@@ -739,7 +745,7 @@
         const file = fileInput.files[0];
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-        
+
         const { error: uploadError } = await supabaseClient.storage.from('anexos').upload(fileName, file);
         if (uploadError) {
           alert("Erro ao carregar a imagem da atividade: " + uploadError.message);
@@ -752,7 +758,7 @@
       }
 
       const tecnicosSelecionados = Array.from(document.querySelectorAll('.tecnicoCheck:checked')).map(cb => cb.value);
-      
+
       const dadosParaEnviar = {
         tecnico: tecnicosSelecionados.join(', '),
         data_hora_inicio: document.getElementById("dataHoraInicio").value,
@@ -777,7 +783,14 @@
       const novaAtividadeId = dataInserida && dataInserida[0] ? dataInserida[0].id : null;
 
       if (pedidoId && checkboxConcluido.checked) {
-        await supabaseClient.from('pedidos').update({ data_conclusao: new Date().toISOString(), estado: 'Concluido' }).eq('id', pedidoId);
+        const { error: errConcluir } = await supabaseClient
+          .from('pedidos')
+          .update({ data_conclusao: new Date().toISOString(), estado: 'Concluido' })
+          .eq('id', pedidoId);
+        if (errConcluir) {
+          console.error("Erro ao concluir pedido:", errConcluir);
+          alert("Atividade gravada, mas não foi possível marcar o pedido como concluído: " + errConcluir.message);
+        }
       }
 
       const textoOcorrencia = document.getElementById('ocorrenciaTexto').value.trim();
@@ -813,11 +826,11 @@
       selectPedido.value = "";
       checkboxConcluido.checked = false;
       checkboxConcluido.disabled = true;
-      
+
       ficheirosOcorrencia = [];
       renderizarPreviewsOcorrencia();
       fotoOcorrenciaStatus.textContent = '';
-      
+
       definirDatasAtuais();
       carregarPedidosPendentes();
 
