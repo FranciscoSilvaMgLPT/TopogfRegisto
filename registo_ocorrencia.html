@@ -135,7 +135,7 @@ button:disabled { background: #475569; cursor: not-allowed; }
 .dt-time input {
   width: 60px; padding: 10px; text-align: center; font-size: 15px;
 }
-.dt-time input[type="number"]::-webkit-inner-spin-button, 
+.dt-time input[type="number"]::-webkit-inner-spin-button,
 .dt-time input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .dt-time input[type="number"] { -moz-appearance: textfield; }
 .dt-actions { display: flex; gap: 10px; margin-top: 18px; }
@@ -319,37 +319,53 @@ async function carregarFotosParaStorage(ocorrenciaId) {
 }
 
 // ===== Carregar Atividades =====
+// A tabela "atividades" não tem local_obra/numero_obra; tem obra_id.
+// Os dados da obra vêm da relação com a tabela "obras".
 async function carregarAtividades() {
     selectAtividade.innerHTML = '<option value="">-- Nenhuma atividade associada --</option>';
     try {
         const { data: atividades, error } = await supabaseClient
             .from('atividades')
-            .select('id, tecnico, local_obra, numero_obra, servico, data_hora_inicio')
+            .select('id, tecnico, servico, tipo_trabalho, data_hora_inicio, obra_id, obras(local_obra, numero_obra, empresa)')
             .order('data_hora_inicio', { ascending: false });
 
         if (error) throw error;
 
         if (atividades && atividades.length > 0) {
             atividades.forEach(atividade => {
-                const option = document.createElement('option');
-                option.value = atividade.id;
-                option.dataset.localObra = atividade.local_obra || '';
-                option.dataset.numeroObra = atividade.numero_obra || '';
+                const obra = Array.isArray(atividade.obras) ? atividade.obras[0] : atividade.obras;
 
                 const tecnico = atividade.tecnico || 'Sem técnico';
-                const localObra = atividade.local_obra || 'Sem local';
+                const numeroObra = obra && obra.numero_obra ? obra.numero_obra + ' ' : '';
+                const localObra = obra && obra.local_obra ? obra.local_obra : 'Sem obra';
                 const servico = atividade.servico || '';
+                const tipo = atividade.tipo_trabalho ? ` [${atividade.tipo_trabalho}]` : '';
 
-                option.dataset.textoCompleto = `${tecnico} - ${localObra} (${servico})`;
+                let dataTxt = '';
+                if (atividade.data_hora_inicio) {
+                    const d = new Date(atividade.data_hora_inicio);
+                    if (!isNaN(d)) {
+                        dataTxt = `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())} · `;
+                    }
+                }
+
+                const option = document.createElement('option');
+                option.value = atividade.id;
+                option.dataset.obraId = atividade.obra_id || '';
+                option.dataset.localObra = obra && obra.local_obra ? obra.local_obra : '';
+                option.dataset.numeroObra = obra && obra.numero_obra ? obra.numero_obra : '';
+                option.dataset.textoCompleto =
+                    `${dataTxt}${tecnico} - ${numeroObra}${localObra}${tipo}` + (servico ? `\n${servico}` : '');
 
                 const servicoCurto = servico.substring(0, 40) + (servico.length > 40 ? '...' : '');
-                option.textContent = `${tecnico} - ${localObra} (${servicoCurto})`;
+                option.textContent = `${dataTxt}${tecnico} - ${numeroObra}${localObra}` + (servicoCurto ? ` (${servicoCurto})` : '');
 
                 selectAtividade.appendChild(option);
             });
         }
     } catch (err) {
         console.error("Erro ao carregar atividades:", err);
+        alert("Erro ao carregar atividades: " + (err.message || err));
     }
 }
 
@@ -369,11 +385,11 @@ async function carregarObras() {
             option.value = obra.id;
             option.dataset.local = obra.local_obra || '';
             option.dataset.numero = obra.numero_obra || '';
-            
+
             const numero = obra.numero_obra ? `${obra.numero_obra} ` : '';
             const local = obra.local_obra || '';
             const empresa = obra.empresa ? ` - ${obra.empresa}` : '';
-            
+
             option.textContent = `${numero}${local}${empresa}`.trim();
             selectObra.appendChild(option);
         });
@@ -385,8 +401,8 @@ async function carregarObras() {
 // Atualizar campos ocultos quando uma obra é selecionada
 selectObra.addEventListener('change', function() {
     const selectedOption = this.options[this.selectedIndex];
-    document.getElementById('hiddenLocalObra').value = selectedOption.dataset.local || '';
-    document.getElementById('hiddenNumeroObra').value = selectedOption.dataset.numero || '';
+    document.getElementById('hiddenLocalObra').value = (selectedOption && selectedOption.dataset.local) || '';
+    document.getElementById('hiddenNumeroObra').value = (selectedOption && selectedOption.dataset.numero) || '';
 });
 
 // Atualizar seleção de obra quando uma atividade é associada
@@ -396,28 +412,14 @@ selectAtividade.addEventListener('change', () => {
         detalhesAtividade.textContent = '📄 ' + selectedOption.dataset.textoCompleto;
         detalhesAtividade.style.display = 'block';
 
-        const localObra = selectedOption.dataset.localObra;
-        const numeroObra = selectedOption.dataset.numeroObra;
-
-        // Tentar encontrar e selecionar a obra correspondente no dropdown
-        let obraEncontrada = false;
-        for (let i = 0; i < selectObra.options.length; i++) {
-            const opt = selectObra.options[i];
-            if (opt.dataset.local === localObra && opt.dataset.numero === numeroObra) {
-                selectObra.selectedIndex = i;
-                obraEncontrada = true;
-                break;
-            }
-        }
-        
-        // Se não encontrar exatamente, atualiza os hidden fields manualmente
-        if (!obraEncontrada) {
-            document.getElementById('hiddenLocalObra').value = localObra || '';
-            document.getElementById('hiddenNumeroObra').value = numeroObra || '';
+        const obraId = selectedOption.dataset.obraId;
+        if (obraId) {
+            selectObra.value = obraId;
         } else {
-            // Dispara o evento change para garantir que os hidden fields são atualizados
-            selectObra.dispatchEvent(new Event('change'));
+            selectObra.value = "";
         }
+        // Dispara o evento change para atualizar os campos ocultos
+        selectObra.dispatchEvent(new Event('change'));
 
     } else {
         detalhesAtividade.style.display = 'none';
@@ -586,8 +588,10 @@ window.onload = async () => {
     } else {
         document.getElementById('user-display').innerText = user.email;
         definirDataAtual();
-        carregarObras(); // Carrega as obras no formato "265 Belarmino - CCR ENG&CONST"
-        carregarAtividades();
+        // As obras carregam primeiro para o dropdown já estar preenchido
+        // quando uma atividade for selecionada
+        await carregarObras();
+        await carregarAtividades();
     }
 };
 
