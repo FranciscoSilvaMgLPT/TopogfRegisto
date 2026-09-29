@@ -175,7 +175,7 @@
         let mapaPedidosGlobal = {};
         let atividadeParaAssociarPedido = null;
         let mapaObrasGlobal = {};
-        
+
         let fotosOcorrenciaAtual = [];
         let fotoOcorrenciaIndexAtual = 0;
 
@@ -300,7 +300,7 @@
                     Atividade_Servico: servicoComOcorrencias,
                     "%Atividade_Anexo": anexoPreparado ? ANEXO_MARCADOR : ""
                 };
-                
+
                 doc.render(dadosTemplate);
                 const zipFinal = doc.getZip();
                 if (anexoPreparado) inserirImagemAnexo(zipFinal, anexoPreparado.arrayBuffer, anexoPreparado.size);
@@ -501,7 +501,7 @@
         function abrirModalOcorrencias(rowData) {
             const ocorrencias = rowData.ocorrencias_info || [];
             document.getElementById('modal-ocorrencias-titulo').innerText = '🚨 Ocorrências — Atividade #' + rowData.id;
-            
+
             if (ocorrencias.length === 0) {
                 document.getElementById('modal-ocorrencias-corpo').innerHTML = '<p style="color: #94a3b8; text-align: center; padding: 20px;">Sem ocorrências registadas.</p>';
             } else {
@@ -519,7 +519,7 @@
                     html += '</div>';
                     return html;
                 }).join('');
-                
+
                 setTimeout(() => {
                     document.querySelectorAll('.btn-ver-fotos').forEach(btn => {
                         btn.addEventListener('click', function() {
@@ -639,9 +639,11 @@
                 dadosAtividadesPorId[a.id] = a;
             });
 
+            // A tabela PEDIDOS não tem empresa/local_obra/numero_obra;
+            // tem obra_id. Esses dados vêm da tabela OBRAS.
             const { data: pedidosData, error: errPedidos } = await sbClient
                 .from('pedidos')
-                .select('id, requerente, empresa, servico, local_obra, numero_obra, data_hora_pedido, estado, importancia, data_conclusao, obra_id')
+                .select('id, requerente, servico, data_hora_pedido, estado, importancia, data_conclusao, obra_id')
                 .order('id', { ascending: false });
             mapaPedidosGlobal = {};
             if (errPedidos) {
@@ -807,14 +809,14 @@
                     }
                     htmlCorpo += '<p style="margin-top:12px;"><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalOcorrencia(dadosAtividadesPorId[' + row.id + '])">🚨 Adicionar ocorrência a esta atividade</a></p>';
                     if (row.anexo) htmlCorpo += '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalEvento(); abrirModalAnexo(\'' + row.anexo + '\')">🖼️ Ver anexo</a></p>';
-                    
+
                     document.getElementById('modal-evento-corpo').innerHTML = htmlCorpo;
                     setTimeout(function() {
                         document.querySelectorAll('.btn-ver-fotos-evento').forEach(function(btn) {
                             btn.addEventListener('click', function() { abrirModalFotosOcorrencia(JSON.parse(this.getAttribute('data-fotos'))); });
                         });
                     }, 0);
-                    
+
                     document.getElementById('modal-evento').classList.add('aberta');
                     document.body.style.overflow = 'hidden';
                 }
