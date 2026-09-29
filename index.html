@@ -215,23 +215,34 @@
 
             .grid-menu {
                 grid-template-columns: 1fr 1fr;
-                gap: 12px 24px;
+                gap: 12px 16px;
+            }
+
+            /* Garante que o 3º item de cada grupo (Registos e Consultas) 
+               ocupe a largura total da grelha e fique centrado no mobile.
+               Isto evita que os grupos se misturem visualmente nas linhas, 
+               mantendo um design responsivo, organizado e visualmente atraente. */
+            .menu-card-mobile-center {
+                grid-column: 1 / -1;
+                justify-self: center;
+                max-width: 50%; /* Mantém proporção visual equilibrada */
+                padding: 16px 12px;
             }
 
             .menu-container {
-                padding: 20px;
+                padding: 20px 15px;
             }
 
             #login-box {
-                padding: 28px 22px;
+                padding: 28px 20px;
             }
 
             .menu-container h1 {
-                font-size: 26px;
+                font-size: 24px;
             }
 
             .menu-icon {
-                font-size: 2.5em;
+                font-size: 2.2em;
             }
 
             .menu-text {
@@ -243,12 +254,23 @@
             }
 
             .menu-card-destaque {
-                max-width: 100%; /* No mobile, pode ocupar a largura total disponível na grelha de 2 colunas */
+                max-width: 100%;
+                padding: 18px;
+            }
+
+            .menu-card-destaque .menu-icon {
+                font-size: 2.4em;
+            }
+
+            .menu-card-destaque .menu-text {
+                font-size: 0.9em;
             }
 
             .menu-card-export {
-                padding: 14px 22px;
+                padding: 14px 20px;
                 font-size: 0.9em;
+                width: 100%;
+                justify-content: center;
             }
 
             .menu-card-export .menu-icon {
@@ -451,10 +473,10 @@
             </a>
 
 
-            <!-- REGISTO DE OCORRÊNCIA -->
+            <!-- REGISTO DE OCORRÊNCIA (Centrado no mobile para fechar o grupo) -->
             <a
                 href="registo_ocorrencia.html"
-                class="menu-card"
+                class="menu-card menu-card-mobile-center"
             >
                 <span class="menu-icon">🚨</span>
                 <span class="menu-text">
@@ -491,10 +513,10 @@
             </a>
 
 
-            <!-- CONSULTAR OCORRÊNCIAS -->
+            <!-- CONSULTAR OCORRÊNCIAS (Centrado no mobile para fechar o grupo) -->
             <a
                 href="ver_ocorrencias.html"
-                class="menu-card"
+                class="menu-card menu-card-mobile-center"
             >
                 <span class="menu-icon">📄</span>
                 <span class="menu-text">
