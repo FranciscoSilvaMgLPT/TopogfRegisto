@@ -8,14 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
-        /* =========================
-           RESET E BASE (Tema Escuro)
-        ========================= */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             background: #0f172a;
@@ -34,9 +27,7 @@
             box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
         }
 
-        /* =========================
-           CABEÇALHO
-        ========================= */
+        /* CABEÇALHO */
         .header {
             display: flex;
             justify-content: space-between;
@@ -47,56 +38,17 @@
             padding-bottom: 20px;
             border-bottom: 1px solid #334155;
         }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .header-icon { font-size: 36px; }
+        .header-title h1 { font-size: 32px; color: #ffffff; margin-bottom: 4px; }
+        .header-title p { font-size: 14px; color: #94a3b8; }
 
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
+        .user-box { background: #334155; border-radius: 10px; padding: 10px 15px; text-align: right; }
+        .user-label { font-size: 12px; color: #94a3b8; text-transform: uppercase; margin-bottom: 3px; }
+        #user-email { font-size: 15px; font-weight: bold; color: #60a5fa; }
 
-        .header-icon {
-            font-size: 36px;
-        }
-
-        .header-title h1 {
-            font-size: 32px;
-            color: #ffffff;
-            margin-bottom: 4px;
-        }
-
-        .header-title p {
-            font-size: 14px;
-            color: #94a3b8;
-        }
-
-        .user-box {
-            background: #334155;
-            border-radius: 10px;
-            padding: 10px 15px;
-            text-align: right;
-        }
-
-        .user-label {
-            font-size: 12px;
-            color: #94a3b8;
-            text-transform: uppercase;
-            margin-bottom: 3px;
-        }
-
-        #user-email {
-            font-size: 15px;
-            font-weight: bold;
-            color: #60a5fa;
-        }
-
-        /* =========================
-           BOTÕES
-        ========================= */
-        .top-buttons {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 25px;
-        }
+        /* BOTÕES */
+        .top-buttons { display: flex; gap: 12px; margin-bottom: 25px; }
 
         .btn {
             border: none;
@@ -112,17 +64,8 @@
             justify-content: center;
             gap: 6px;
         }
-
-        .btn:hover {
-            transform: translateY(-1px);
-            filter: brightness(1.1);
-        }
-
-        .btn:disabled {
-            background: #475569 !important;
-            cursor: not-allowed;
-            transform: none;
-        }
+        .btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+        .btn:disabled { background: #475569 !important; cursor: not-allowed; transform: none; }
 
         .btn-voltar { background: #334155; }
         .btn-nova { background: #2563eb; }
@@ -130,10 +73,11 @@
         .btn-cancelar { background: #475569; }
         .btn-editar { background: #d97706; padding: 8px 12px; font-size: 13px; }
         .btn-apagar { background: #dc2626; padding: 8px 12px; font-size: 13px; }
+        .btn-concluir { background: #059669; padding: 8px 12px; font-size: 13px; }
+        .btn-reabrir { background: #475569; padding: 8px 12px; font-size: 13px; }
+        .btn-toggle { background: #334155; }
 
-        /* =========================
-           FORMULÁRIO E CARDS
-        ========================= */
+        /* FORMULÁRIO E CARDS */
         .form-card, .list-card {
             background: #0f172a;
             border-radius: 14px;
@@ -141,36 +85,13 @@
             margin-bottom: 25px;
             border: 1px solid #334155;
         }
+        .form-card h2, .list-header h2 { font-size: 22px; color: #ffffff; margin-bottom: 20px; }
 
-        .form-card h2, .list-header h2 {
-            font-size: 22px;
-            color: #ffffff;
-            margin-bottom: 20px;
-        }
+        .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .form-group { display: flex; flex-direction: column; position: relative; }
+        .form-group.full { grid-column: 1 / -1; }
 
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-
-        .form-group.full {
-            grid-column: 1 / -1;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 14px;
-            color: #cbd5e1;
-            font-weight: normal;
-        }
+        label { display: block; margin-bottom: 8px; font-size: 14px; color: #cbd5e1; font-weight: normal; }
 
         input, select {
             width: 100%;
@@ -183,24 +104,12 @@
             outline: none;
             transition: 0.2s;
         }
+        input::placeholder { color: #94a3b8; }
+        input:focus, select:focus { box-shadow: 0 0 0 2px #60a5fa; }
 
-        input::placeholder {
-            color: #94a3b8;
-        }
+        .form-actions { display: flex; gap: 12px; margin-top: 25px; }
 
-        input:focus, select:focus {
-            box-shadow: 0 0 0 2px #60a5fa;
-        }
-
-        .form-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 25px;
-        }
-
-        /* =========================
-           AUTOCOMPLETE EMPRESA
-        ========================= */
+        /* AUTOCOMPLETE EMPRESA */
         .autocomplete-dropdown {
             display: none;
             position: absolute;
@@ -216,28 +125,11 @@
             z-index: 50;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
         }
+        .autocomplete-item { padding: 12px 14px; font-size: 14px; color: #e2e8f0; cursor: pointer; }
+        .autocomplete-item:hover, .autocomplete-item.ativo { background: #475569; }
+        .autocomplete-vazio { padding: 12px 14px; font-size: 13px; color: #94a3b8; }
 
-        .autocomplete-item {
-            padding: 12px 14px;
-            font-size: 14px;
-            color: #e2e8f0;
-            cursor: pointer;
-        }
-
-        .autocomplete-item:hover,
-        .autocomplete-item.ativo {
-            background: #475569;
-        }
-
-        .autocomplete-vazio {
-            padding: 12px 14px;
-            font-size: 13px;
-            color: #94a3b8;
-        }
-
-        /* =========================
-           LISTAGEM E TABELA
-        ========================= */
+        /* LISTAGEM E TABELA */
         .list-header {
             display: flex;
             justify-content: space-between;
@@ -246,73 +138,26 @@
             flex-wrap: wrap;
             margin-bottom: 20px;
         }
+        .list-tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .contador { font-size: 14px; color: #94a3b8; margin-top: 4px; }
+        .search-box { width: 300px; }
 
-        .contador {
-            font-size: 14px;
-            color: #94a3b8;
-            margin-top: 4px;
-        }
+        .table-container { width: 100%; overflow-x: auto; border-radius: 10px; }
+        table { width: 100%; border-collapse: collapse; min-width: 750px; }
+        thead { background: #334155; }
+        th { padding: 14px; text-align: left; font-size: 13px; color: #94a3b8; text-transform: uppercase; font-weight: bold; }
+        td { padding: 14px; border-bottom: 1px solid #334155; font-size: 14px; color: #e2e8f0; vertical-align: middle; }
+        tbody tr:hover { background: #334155; }
 
-        .search-box {
-            width: 300px;
-        }
+        .numero-obra { font-weight: bold; color: #60a5fa; }
+        tr.concluida td { opacity: 0.55; }
+        tr.concluida td:last-child { opacity: 1; }
+        tr.concluida .numero-obra { text-decoration: line-through; }
 
-        .table-container {
-            width: 100%;
-            overflow-x: auto;
-            border-radius: 10px;
-        }
+        .acoes { display: flex; gap: 8px; }
+        .loading, .sem-resultados { text-align: center; padding: 35px !important; color: #94a3b8; }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 750px;
-        }
-
-        thead {
-            background: #334155;
-        }
-
-        th {
-            padding: 14px;
-            text-align: left;
-            font-size: 13px;
-            color: #94a3b8;
-            text-transform: uppercase;
-            font-weight: bold;
-        }
-
-        td {
-            padding: 14px;
-            border-bottom: 1px solid #334155;
-            font-size: 14px;
-            color: #e2e8f0;
-            vertical-align: middle;
-        }
-
-        tbody tr:hover {
-            background: #334155;
-        }
-
-        .numero-obra {
-            font-weight: bold;
-            color: #60a5fa;
-        }
-
-        .acoes {
-            display: flex;
-            gap: 8px;
-        }
-
-        .loading, .sem-resultados {
-            text-align: center;
-            padding: 35px !important;
-            color: #94a3b8;
-        }
-
-        /* =========================
-           MENSAGENS (TOAST)
-        ========================= */
+        /* MENSAGENS (TOAST) */
         #mensagens {
             position: fixed;
             top: 20px;
@@ -323,7 +168,6 @@
             gap: 10px;
             max-width: 400px;
         }
-
         .mensagem {
             padding: 14px 18px;
             border-radius: 10px;
@@ -333,7 +177,6 @@
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
             animation: aparecer 0.2s ease;
         }
-
         .mensagem.sucesso { background: #059669; }
         .mensagem.erro { background: #dc2626; }
         .mensagem.info { background: #2563eb; }
@@ -343,42 +186,20 @@
             to { opacity: 1; transform: translateX(0); }
         }
 
-        /* =========================
-           RESPONSIVO
-        ========================= */
+        /* RESPONSIVO */
         @media (max-width: 700px) {
             body { padding: 15px; }
             .container { padding: 20px; border-radius: 14px; }
-            
-            .header { 
-                flex-direction: column; 
-                align-items: flex-start; 
-                gap: 15px; 
-            }
-            .user-box { 
-                width: 100%; 
-                text-align: left; 
-            }
-            
+            .header { flex-direction: column; align-items: flex-start; gap: 15px; }
+            .user-box { width: 100%; text-align: left; }
             .form-grid { grid-template-columns: 1fr; }
             .form-group.full { grid-column: auto; }
-            
-            .top-buttons, .form-actions { 
-                flex-direction: column; 
-            }
+            .top-buttons, .form-actions { flex-direction: column; }
             .btn { width: 100%; }
-            
-            .list-header { 
-                flex-direction: column; 
-                align-items: stretch; 
-            }
+            .list-header { flex-direction: column; align-items: stretch; }
+            .list-tools { flex-direction: column; align-items: stretch; }
             .search-box { width: 100%; }
-            
-            #mensagens {
-                left: 15px;
-                right: 15px;
-                max-width: none;
-            }
+            #mensagens { left: 15px; right: 15px; max-width: none; }
         }
     </style>
 </head>
@@ -389,9 +210,7 @@
 
 <div class="container">
 
-    <!-- =========================
-         CABEÇALHO
-    ========================== -->
+    <!-- CABEÇALHO -->
     <div class="header">
         <div class="header-left">
             <div class="header-icon">🏗️</div>
@@ -407,21 +226,13 @@
         </div>
     </div>
 
-    <!-- =========================
-         BOTÕES
-    ========================== -->
+    <!-- BOTÕES -->
     <div class="top-buttons">
-        <button type="button" class="btn btn-voltar" onclick="voltarInicio()">
-            ⬅ Voltar
-        </button>
-        <button type="button" class="btn btn-nova" onclick="novaObra()">
-            ➕ Nova Obra
-        </button>
+        <button type="button" class="btn btn-voltar" onclick="voltarInicio()">⬅ Voltar</button>
+        <button type="button" class="btn btn-nova" onclick="novaObra()">➕ Nova Obra</button>
     </div>
 
-    <!-- =========================
-         FORMULÁRIO
-    ========================== -->
+    <!-- FORMULÁRIO -->
     <div class="form-card">
         <h2 id="titulo-formulario">➕ Registar Nova Obra</h2>
 
@@ -450,27 +261,24 @@
             </div>
 
             <div class="form-actions">
-                <button type="submit" class="btn btn-guardar" id="btn-guardar">
-                    💾 Guardar Obra
-                </button>
-                <button type="button" class="btn btn-cancelar" id="btn-cancelar" onclick="cancelarEdicao()" style="display:none;">
-                    ✖ Cancelar
-                </button>
+                <button type="submit" class="btn btn-guardar" id="btn-guardar">💾 Guardar Obra</button>
+                <button type="button" class="btn btn-cancelar" id="btn-cancelar" onclick="cancelarEdicao()" style="display:none;">✖ Cancelar</button>
             </div>
         </form>
     </div>
 
-    <!-- =========================
-         LISTAGEM
-    ========================== -->
+    <!-- LISTAGEM -->
     <div class="list-card">
         <div class="list-header">
             <div>
                 <h2>📋 Obras Registadas</h2>
                 <div id="contador-obras" class="contador">A carregar...</div>
             </div>
-            <div class="search-box">
-                <input type="text" id="pesquisa" placeholder="🔎 Pesquisar obra..." autocomplete="off">
+            <div class="list-tools">
+                <button type="button" class="btn btn-toggle" id="btn-toggle-concluidas" onclick="alternarConcluidas()">👁 Mostrar concluídas</button>
+                <div class="search-box">
+                    <input type="text" id="pesquisa" placeholder="🔎 Pesquisar obra..." autocomplete="off">
+                </div>
             </div>
         </div>
 
@@ -486,9 +294,7 @@
                     </tr>
                 </thead>
                 <tbody id="tabela-obras">
-                    <tr>
-                        <td colspan="5" class="loading">⏳ A carregar obras...</td>
-                    </tr>
+                    <tr><td colspan="5" class="loading">⏳ A carregar obras...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -497,35 +303,23 @@
 </div>
 
 <script>
-    /* =====================================================
-       SUPABASE
-    ===================================================== */
+    /* SUPABASE */
     const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bm9uZGppcWF3b3Zpc253YXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTk3MjIsImV4cCI6MjA5NTYzNTcyMn0.KY5xnuHCixsO0a4yCzXP6CmO8e08v1wrDjoGCL-LTro';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    /* =====================================================
-       VARIÁVEIS
-    ===================================================== */
+    /* VARIÁVEIS */
     let obras = [];
     let obraEmEdicao = null;
     let indiceAtivoEmpresa = -1;
+    let mostrarConcluidas = false; // começa oculto
 
-    /* =====================================================
-       INICIALIZAÇÃO
-    ===================================================== */
+    /* INICIALIZAÇÃO */
     window.addEventListener('DOMContentLoaded', inicializar);
 
     async function inicializar() {
-        console.log('=================================');
-        console.log('INICIALIZAÇÃO REGISTO DE OBRAS');
-        console.log('=================================');
-
         try {
             const { data, error } = await supabaseClient.auth.getUser();
-
-            console.log('Resultado getUser():', data);
-            console.log('Erro getUser():', error);
 
             if (error) {
                 console.error('Erro ao obter utilizador:', error);
@@ -535,14 +329,11 @@
             }
 
             const user = data.user;
-
             if (!user) {
-                console.warn('Não existe utilizador autenticado.');
                 window.location.href = 'index.html';
                 return;
             }
 
-            console.log('UTILIZADOR AUTENTICADO:', user);
             mostrarUtilizador(user);
             await carregarObras();
 
@@ -552,24 +343,17 @@
         }
     }
 
-    /* =====================================================
-       MOSTRAR UTILIZADOR
-    ===================================================== */
+    /* UTILIZADOR */
     function mostrarUtilizador(user) {
         const elemento = document.getElementById('user-email');
         if (!elemento) return;
 
         const metadata = user.user_metadata || {};
         const nome = metadata.full_name || metadata.name || metadata.nome || metadata.username || metadata.user_name;
-        const texto = nome || user.email || 'Utilizador';
-        
-        elemento.textContent = texto;
-        console.log('Nome apresentado:', texto);
+        elemento.textContent = nome || user.email || 'Utilizador';
     }
 
-    /* =====================================================
-       CARREGAR OBRAS
-    ===================================================== */
+    /* CARREGAR OBRAS */
     async function carregarObras() {
         const tabela = document.getElementById('tabela-obras');
         const contador = document.getElementById('contador-obras');
@@ -577,9 +361,9 @@
         tabela.innerHTML = `<tr><td colspan="5" class="loading">⏳ A carregar obras...</td></tr>`;
         contador.textContent = 'A consultar a base de dados...';
 
-        const { data, error, status } = await supabaseClient
+        const { data, error } = await supabaseClient
             .from('obras')
-            .select('id, local_obra, numero_obra, empresa, concelho')
+            .select('id, local_obra, numero_obra, empresa, concelho, concluida')
             .order('id', { ascending: false });
 
         if (error) {
@@ -591,31 +375,35 @@
         }
 
         obras = data || [];
-        mostrarObras(obras);
+        aplicarFiltros();
     }
 
-    /* =====================================================
-       MOSTRAR OBRAS
-    ===================================================== */
+    /* MOSTRAR OBRAS */
     function mostrarObras(lista) {
         const tabela = document.getElementById('tabela-obras');
         const contador = document.getElementById('contador-obras');
 
-        contador.textContent = lista.length === 1 ? '1 obra registada' : `${lista.length} obras registadas`;
+        const ocultas = mostrarConcluidas ? 0 : obras.filter(o => o.concluida).length;
+        let texto = lista.length === 1 ? '1 obra' : `${lista.length} obras`;
+        if (ocultas) texto += ` (${ocultas} concluída${ocultas > 1 ? 's' : ''} oculta${ocultas > 1 ? 's' : ''})`;
+        contador.textContent = texto;
 
         if (!lista.length) {
-            tabela.innerHTML = `<tr><td colspan="5" class="sem-resultados">📭 Não existem obras registadas.</td></tr>`;
+            tabela.innerHTML = `<tr><td colspan="5" class="sem-resultados">📭 Não existem obras para mostrar.</td></tr>`;
             return;
         }
 
         tabela.innerHTML = lista.map(obra => `
-            <tr>
+            <tr class="${obra.concluida ? 'concluida' : ''}">
                 <td class="numero-obra">${escaparHTML(obra.numero_obra)}</td>
                 <td>${escaparHTML(obra.local_obra)}</td>
                 <td>${escaparHTML(obra.empresa || '-')}</td>
                 <td>${escaparHTML(obra.concelho || '-')}</td>
                 <td>
                     <div class="acoes">
+                        <button type="button" class="btn ${obra.concluida ? 'btn-reabrir' : 'btn-concluir'}" onclick="alternarConcluida(${obra.id})">
+                            ${obra.concluida ? '↩️ Reabrir' : '✅ Concluir'}
+                        </button>
                         <button type="button" class="btn btn-editar" onclick="editarObra(${obra.id})">✏️ Editar</button>
                         <button type="button" class="btn btn-apagar" onclick="apagarObra(${obra.id})">🗑️ Apagar</button>
                     </div>
@@ -624,32 +412,57 @@
         `).join('');
     }
 
-    /* =====================================================
-       PESQUISA
-    ===================================================== */
-    document.getElementById('pesquisa').addEventListener('input', function () {
-        const termo = this.value.trim().toLowerCase();
+    /* PESQUISA E FILTROS */
+    document.getElementById('pesquisa').addEventListener('input', aplicarFiltros);
 
-        if (!termo) {
-            mostrarObras(obras);
-            return;
-        }
+    function aplicarFiltros() {
+        const termo = document.getElementById('pesquisa').value.trim().toLowerCase();
+        let lista = obras;
 
-        const filtradas = obras.filter(obra => {
-            return (
+        if (!mostrarConcluidas) lista = lista.filter(o => !o.concluida);
+
+        if (termo) {
+            lista = lista.filter(obra =>
                 String(obra.numero_obra || '').toLowerCase().includes(termo) ||
                 String(obra.local_obra || '').toLowerCase().includes(termo) ||
                 String(obra.empresa || '').toLowerCase().includes(termo) ||
                 String(obra.concelho || '').toLowerCase().includes(termo)
             );
-        });
+        }
 
-        mostrarObras(filtradas);
-    });
+        document.getElementById('btn-toggle-concluidas').textContent =
+            mostrarConcluidas ? '🙈 Ocultar concluídas' : '👁 Mostrar concluídas';
 
-    /* =====================================================
-       AUTOCOMPLETE DE EMPRESA (evita duplicados)
-    ===================================================== */
+        mostrarObras(lista);
+    }
+
+    function alternarConcluidas() {
+        mostrarConcluidas = !mostrarConcluidas;
+        aplicarFiltros();
+    }
+
+    async function alternarConcluida(id) {
+        const obra = obras.find(item => Number(item.id) === Number(id));
+        if (!obra) return;
+
+        const novoEstado = !obra.concluida;
+        const { error } = await supabaseClient
+            .from('obras')
+            .update({ concluida: novoEstado })
+            .eq('id', id);
+
+        if (error) {
+            console.error('Erro UPDATE concluida:', error);
+            mostrarMensagem('Erro ao atualizar estado: ' + error.message, 'erro');
+            return;
+        }
+
+        obra.concluida = novoEstado;
+        mostrarMensagem(novoEstado ? 'Obra marcada como concluída. ✅' : 'Obra reaberta. ↩️', 'sucesso');
+        aplicarFiltros();
+    }
+
+    /* AUTOCOMPLETE DE EMPRESA (evita duplicados) */
     const inputEmpresa = document.getElementById('empresa');
     const dropdownEmpresa = document.getElementById('empresa-dropdown');
 
@@ -746,9 +559,7 @@
         }
     });
 
-    /* =====================================================
-       SUBMETER FORMULÁRIO
-    ===================================================== */
+    /* SUBMETER FORMULÁRIO */
     document.getElementById('form-obra').addEventListener('submit', async function (event) {
         event.preventDefault();
 
@@ -784,20 +595,16 @@
         }
     });
 
-    /* =====================================================
-       INSERIR OBRA
-    ===================================================== */
+    /* INSERIR OBRA */
     async function inserirObra(numeroObra, localObra, empresa, concelho) {
-        const { data, error } = await supabaseClient
+        const { error } = await supabaseClient
             .from('obras')
             .insert([{
                 numero_obra: numeroObra,
                 local_obra: localObra,
                 empresa: empresa || null,
                 concelho: concelho || null
-            }])
-            .select()
-            .single();
+            }]);
 
         if (error) {
             console.error('Erro INSERT:', error);
@@ -814,9 +621,7 @@
         await carregarObras();
     }
 
-    /* =====================================================
-       EDITAR OBRA
-    ===================================================== */
+    /* EDITAR OBRA */
     function editarObra(id) {
         const obra = obras.find(item => Number(item.id) === Number(id));
 
@@ -839,9 +644,7 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    /* =====================================================
-       ATUALIZAR OBRA
-    ===================================================== */
+    /* ATUALIZAR OBRA */
     async function atualizarObra(id, numeroObra, localObra, empresa, concelho) {
         const { error } = await supabaseClient
             .from('obras')
@@ -868,9 +671,7 @@
         await carregarObras();
     }
 
-    /* =====================================================
-       APAGAR OBRA
-    ===================================================== */
+    /* APAGAR OBRA */
     async function apagarObra(id) {
         const obra = obras.find(item => Number(item.id) === Number(id));
 
@@ -879,8 +680,7 @@
             return;
         }
 
-        const confirmar = confirm(`Tem a certeza que pretende apagar a obra "${obra.numero_obra}"?`);
-        if (!confirmar) return;
+        if (!confirm(`Tem a certeza que pretende apagar a obra "${obra.numero_obra}"?`)) return;
 
         const { error } = await supabaseClient.from('obras').delete().eq('id', id);
 
@@ -894,15 +694,9 @@
         await carregarObras();
     }
 
-    /* =====================================================
-       NOVA OBRA / CANCELAR / LIMPAR
-    ===================================================== */
+    /* NOVA OBRA / CANCELAR / LIMPAR */
     function novaObra() {
-        obraEmEdicao = null;
-        limparFormulario();
-        document.getElementById('titulo-formulario').textContent = '➕ Registar Nova Obra';
-        document.getElementById('btn-guardar').textContent = '💾 Guardar Obra';
-        document.getElementById('btn-cancelar').style.display = 'none';
+        cancelarEdicao();
         document.getElementById('numero_obra').focus();
     }
 
@@ -919,9 +713,7 @@
         fecharDropdownEmpresa();
     }
 
-    /* =====================================================
-       UTILITÁRIOS
-    ===================================================== */
+    /* UTILITÁRIOS */
     function voltarInicio() {
         window.location.href = 'index.html';
     }
@@ -950,11 +742,8 @@
         }, 4000);
     }
 
-    /* =====================================================
-       ALTERAÇÕES DE AUTENTICAÇÃO
-    ===================================================== */
+    /* ALTERAÇÕES DE AUTENTICAÇÃO */
     supabaseClient.auth.onAuthStateChange(function (event, session) {
-        console.log('Auth event:', event);
         if (!session && event !== 'INITIAL_SESSION') {
             window.location.href = 'index.html';
             return;
