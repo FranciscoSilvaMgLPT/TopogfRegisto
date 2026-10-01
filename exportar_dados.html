@@ -125,10 +125,9 @@
     let mapaObras = {};
 
     // ============================================================
-    // 🛡️ SANITIZAÇÃO - Limita texto ao máximo de 32767 caracteres
-    // do Excel para evitar o erro "Text length must not exceed 32767"
+    // 🛡️ SANITIZAÇÃO - evita o erro "Text length must not exceed 32767"
     // ============================================================
-    const LIMITE_CELULA_EXCEL = 32000; // Margem de segurança (< 32767)
+    const LIMITE_CELULA_EXCEL = 32000;
 
     function truncarTexto(valor, limite) {
       if (valor === null || valor === undefined) return valor;
@@ -137,7 +136,6 @@
       return str.substring(0, limite - 3) + '...';
     }
 
-    // Campos de texto potencialmente longos que devem ser truncados
     const CAMPOS_LONGOS = [
       'servico', 'observacao', 'ocorrencia', 'fotos', 'anexo',
       'tipo_trabalho', 'tecnico', 'frequencia', 'via', 'requerente',
@@ -151,9 +149,7 @@
         if (CAMPOS_LONGOS.includes(chave) && typeof valor === 'string') {
           resultado[chave] = truncarTexto(valor, LIMITE_CELULA_EXCEL);
         } else if (Array.isArray(valor)) {
-          // Arrays (ex: fotos) -> converte para string e trunca
-          const str = valor.join(' | ');
-          resultado[chave] = truncarTexto(str, LIMITE_CELULA_EXCEL);
+          resultado[chave] = truncarTexto(valor.join(' | '), LIMITE_CELULA_EXCEL);
         } else if (typeof valor === 'object' && valor !== null) {
           resultado[chave] = truncarTexto(JSON.stringify(valor), LIMITE_CELULA_EXCEL);
         } else {
@@ -165,6 +161,20 @@
 
     function sanitizarLista(lista) {
       return lista.map(sanitizarLinha);
+    }
+
+    // ============================================================
+    // ✅ FIX DO BUG "concluida": em JS a string 'Não' é truthy!
+    // Esta função aceita boolean OU string 'Sim'/'Não' corretamente.
+    // ============================================================
+    function obraEstaConcluida(o) {
+      const v = o.concluida;
+      if (typeof v === 'boolean') return v;
+      if (typeof v === 'string') {
+        const s = v.trim().toLowerCase();
+        return s === 'sim' || s === 'true' || s === '1';
+      }
+      return !!v;
     }
 
     // ============================================================
@@ -233,7 +243,7 @@
           numero_obra: obra ? (obra.numero_obra || '') : '',
           local_obra: obra ? (obra.local_obra || '') : '',
           concelho: obra ? (obra.concelho || '') : '',
-          obra_concluida: obra ? (obra.concluida ? 'Sim' : 'Não') : ''
+          obra_concluida: obra ? (obraEstaConcluida(obra) ? 'Sim' : 'Não') : ''
         };
       });
     }
@@ -307,12 +317,10 @@
       });
     }
 
-    // ===== Função principal que sanitiza antes de criar a folha =====
     function criarFolha(rows) {
       if (!rows || rows.length === 0) {
         return XLSX.utils.aoa_to_sheet([['Sem registos']]);
       }
-      // 🔒 Sanitiza TODOS os dados para garantir nenhum campo excede o limite
       const dadosLimpos = sanitizarLista(rows);
       const ws = XLSX.utils.json_to_sheet(dadosLimpos);
       ajustarLarguras(ws, dadosLimpos, obterColunas(dadosLimpos));
@@ -409,7 +417,8 @@
 
       const concluidos = pedidos.filter(estaConcluido).length;
       const pendentes = pedidos.length - concluidos;
-      const obrasConcluidas = obras.filter(o => o.concluida).length;
+      // ✅ FIX: usa obraEstaConcluida (aceita boolean e string 'Sim'/'Não')
+      const obrasConcluidas = obras.filter(obraEstaConcluida).length;
       const obrasAtivas = obras.length - obrasConcluidas;
 
       linhas.push(['RELATÓRIO RESUMO — gerado em ' + dataGeracao]);
@@ -493,7 +502,8 @@
         const c = (o.concelho || '(sem concelho)').trim();
         if (!porConcelho[c]) porConcelho[c] = { total: 0, conc: 0 };
         porConcelho[c].total++;
-        if (o.concluida) porConcelho[c].conc++;
+        // ✅ FIX: usa obraEstaConcluida em vez de o.concluida (truthy)
+        if (obraEstaConcluida(o)) porConcelho[c].conc++;
       });
       Object.entries(porConcelho)
         .sort((a, b) => b[1].total - a[1].total)
@@ -704,7 +714,7 @@
       try {
         const obras = await buscarTudo('obras');
         if (!obras.length) { alert('Não existem obras.'); return; }
-        const formatadas = sanitizarLista(obras.map(o => ({ ...o, concluida: o.concluida ? 'Sim' : 'Não' })));
+        const formatadas = sanitizarLista(obras.map(o => ({ ...o, concluida: obraEstaConcluida(o) ? 'Sim' : 'Não' })));
         gerarExcel([{ nome: 'Obras', rows: formatadas }], `obras_${hoje()}.xlsx`);
         mostrarStatus(`✅ ${formatadas.length} obras exportadas!`);
       } catch (err) {
@@ -772,7 +782,7 @@
         const pedidosR = sanitizarLista(enriquecerComObra(pedidos));
         const atividadesR = sanitizarLista(enriquecerAtividades(enriquecerComObra(atividades), pedidos));
         const ocorrenciasR = sanitizarLista(enriquecerOcorrencias(ocorrencias, atividades));
-        const obrasR = sanitizarLista(obras.map(o => ({ ...o, concluida: o.concluida ? 'Sim' : 'Não' })));
+        const obrasR = sanitizarLista(obras.map(o => ({ ...o, concluida: obraEstaConcluida(o) ? 'Sim' : 'Não' })));
         const stockR = sanitizarLista(stock);
         const movimentosR = sanitizarLista(movimentos);
 
