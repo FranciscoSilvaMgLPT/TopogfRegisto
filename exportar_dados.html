@@ -122,8 +122,52 @@
     const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Cache de obras para enriquecer pedidos, atividades e ocorrências
     let mapaObras = {};
+
+    // ============================================================
+    // 🛡️ SANITIZAÇÃO - Limita texto ao máximo de 32767 caracteres
+    // do Excel para evitar o erro "Text length must not exceed 32767"
+    // ============================================================
+    const LIMITE_CELULA_EXCEL = 32000; // Margem de segurança (< 32767)
+
+    function truncarTexto(valor, limite) {
+      if (valor === null || valor === undefined) return valor;
+      const str = String(valor);
+      if (str.length <= limite) return str;
+      return str.substring(0, limite - 3) + '...';
+    }
+
+    // Campos de texto potencialmente longos que devem ser truncados
+    const CAMPOS_LONGOS = [
+      'servico', 'observacao', 'ocorrencia', 'fotos', 'anexo',
+      'tipo_trabalho', 'tecnico', 'frequencia', 'via', 'requerente',
+      'local_obra', 'empresa', 'concelho', 'numero_obra'
+    ];
+
+    function sanitizarLinha(linha) {
+      const resultado = {};
+      for (const chave in linha) {
+        const valor = linha[chave];
+        if (CAMPOS_LONGOS.includes(chave) && typeof valor === 'string') {
+          resultado[chave] = truncarTexto(valor, LIMITE_CELULA_EXCEL);
+        } else if (Array.isArray(valor)) {
+          // Arrays (ex: fotos) -> converte para string e trunca
+          const str = valor.join(' | ');
+          resultado[chave] = truncarTexto(str, LIMITE_CELULA_EXCEL);
+        } else if (typeof valor === 'object' && valor !== null) {
+          resultado[chave] = truncarTexto(JSON.stringify(valor), LIMITE_CELULA_EXCEL);
+        } else {
+          resultado[chave] = valor;
+        }
+      }
+      return resultado;
+    }
+
+    function sanitizarLista(lista) {
+      return lista.map(sanitizarLinha);
+    }
+
+    // ============================================================
 
     window.onload = async () => {
       const { data: { user }, error } = await supabaseClient.auth.getUser();
@@ -172,7 +216,6 @@
           .select('*')
           .order('id', { ascending: true })
           .range(offset, offset + passo - 1);
-
         if (error) throw error;
         tudo = tudo.concat(data);
         if (data.length < passo) break;
@@ -181,7 +224,6 @@
       return tudo;
     }
 
-    // ===== Enriquecimento de dados com informação da tabela OBRAS =====
     function enriquecerComObra(rows) {
       return rows.map(r => {
         const obra = mapaObras[r.obra_id] || null;
@@ -196,7 +238,6 @@
       });
     }
 
-    // ===== Enriquecimento de ocorrências com informação da atividade e obra =====
     function enriquecerOcorrencias(ocorrencias, atividades) {
       const mapaAtividades = {};
       atividades.forEach(a => {
@@ -224,7 +265,6 @@
       });
     }
 
-    // ===== Enriquecimento de atividades com nome do pedido =====
     function enriquecerAtividades(atividades, pedidos) {
       const mapaPedidos = {};
       pedidos.forEach(p => {
@@ -259,7 +299,7 @@
     function ajustarLarguras(ws, rows, cols) {
       ws['!cols'] = cols.map(c => {
         let max = c.length;
-        rows.slice(0, 200).forEach(r => {
+        rows.slice(0, 100).forEach(r => {
           const v = r[c];
           if (v !== null && v !== undefined) max = Math.max(max, String(v).length);
         });
@@ -267,12 +307,15 @@
       });
     }
 
+    // ===== Função principal que sanitiza antes de criar a folha =====
     function criarFolha(rows) {
       if (!rows || rows.length === 0) {
         return XLSX.utils.aoa_to_sheet([['Sem registos']]);
       }
-      const ws = XLSX.utils.json_to_sheet(rows);
-      ajustarLarguras(ws, rows, obterColunas(rows));
+      // 🔒 Sanitiza TODOS os dados para garantir nenhum campo excede o limite
+      const dadosLimpos = sanitizarLista(rows);
+      const ws = XLSX.utils.json_to_sheet(dadosLimpos);
+      ajustarLarguras(ws, dadosLimpos, obterColunas(dadosLimpos));
       return ws;
     }
 
@@ -372,7 +415,6 @@
       linhas.push(['RELATÓRIO RESUMO — gerado em ' + dataGeracao]);
       linhas.push([]);
 
-      // ============== TOTAIS GERAIS ==============
       linhas.push(['TOTAIS GERAIS']);
       linhas.push(['Pedidos totais', pedidos.length]);
       linhas.push(['Pedidos concluídos', concluidos, percent(concluidos, pedidos.length)]);
@@ -389,7 +431,6 @@
       linhas.push(['Materiais com stock crítico/esgotado', stock.filter(i => (i.stockatual || 0) <= (i.stockminimo || 0)).length]);
       linhas.push([]);
 
-      // ============== PEDIDOS POR EMPRESA ==============
       linhas.push(['PEDIDOS POR EMPRESA']);
       linhas.push(['Empresa', 'Total', 'Concluídos', 'Pendentes', 'Taxa conclusão']);
       const porEmpresa = {};
@@ -404,40 +445,33 @@
         .forEach(([emp, v]) => linhas.push([emp, v.total, v.conc, v.total - v.conc, percent(v.conc, v.total)]));
       linhas.push([]);
 
-      // ============== PEDIDOS POR REQUERENTE (TOP 15) ==============
       linhas.push(['PEDIDOS POR REQUERENTE (TOP 15)']);
       linhas.push(['Requerente', 'Pedidos']);
-      agruparPorCampo(pedidos, 'requerente')
-        .slice(0, 15)
+      agruparPorCampo(pedidos, 'requerente').slice(0, 15)
         .forEach(([req, n]) => linhas.push([req, n]));
       linhas.push([]);
 
-      // ============== PEDIDOS POR VIA DE COMUNICAÇÃO ==============
       linhas.push(['PEDIDOS POR VIA DE COMUNICAÇÃO']);
       linhas.push(['Via', 'Pedidos', '%']);
       const porVia = agruparPorCampo(pedidos, 'via');
       porVia.forEach(([via, n]) => linhas.push([via, n, percent(n, pedidos.length)]));
       linhas.push([]);
 
-      // ============== PEDIDOS POR IMPORTÂNCIA ==============
       linhas.push(['PEDIDOS POR IMPORTÂNCIA']);
       linhas.push(['Importância', 'Pedidos', '%']);
       agruparPorCampo(pedidos, 'importancia').forEach(([u, n]) => linhas.push([u, n, percent(n, pedidos.length)]));
       linhas.push([]);
 
-      // ============== PEDIDOS POR FREQUÊNCIA ==============
       linhas.push(['PEDIDOS POR FREQUÊNCIA']);
       linhas.push(['Frequência', 'Pedidos', '%']);
       agruparPorCampo(pedidos, 'frequencia').forEach(([f, n]) => linhas.push([f, n, percent(n, pedidos.length)]));
       linhas.push([]);
 
-      // ============== ATIVIDADES POR TÉCNICO ==============
       linhas.push(['ATIVIDADES POR TÉCNICO']);
       linhas.push(['Técnico', 'Atividades']);
       contarSeparados(atividades, 'tecnico', ',').forEach(([t, n]) => linhas.push([t, n]));
       linhas.push([]);
 
-      // ============== TIPOS DE TRABALHO (PEDIDOS) ==============
       linhas.push(['TIPOS DE TRABALHO (PEDIDOS)']);
       linhas.push(['Tipo', 'Quantidade', '%']);
       const tiposP = contarSeparados(pedidos, 'tipo_trabalho', ';');
@@ -445,7 +479,6 @@
       tiposP.forEach(([t, n]) => linhas.push([t, n, percent(n, totalTiposP)]));
       linhas.push([]);
 
-      // ============== TIPOS DE TRABALHO (ATIVIDADES) ==============
       linhas.push(['TIPOS DE TRABALHO (ATIVIDADES)']);
       linhas.push(['Tipo', 'Quantidade', '%']);
       const tiposA = contarSeparados(atividades, 'tipo_trabalho', ';');
@@ -453,7 +486,6 @@
       tiposA.forEach(([t, n]) => linhas.push([t, n, percent(n, totalTiposA)]));
       linhas.push([]);
 
-      // ============== OBRAS POR CONCELHO ==============
       linhas.push(['OBRAS POR CONCELHO']);
       linhas.push(['Concelho', 'Total', 'Ativas', 'Concluídas']);
       const porConcelho = {};
@@ -468,7 +500,6 @@
         .forEach(([c, v]) => linhas.push([c, v.total, v.total - v.conc, v.conc]));
       linhas.push([]);
 
-      // ============== LOCAIS / OBRAS MAIS FREQUENTES (TOP 15) ==============
       linhas.push(['LOCAIS / OBRAS MAIS FREQUENTES — ATIVIDADES (TOP 15)']);
       linhas.push(['Local / Obra', 'Atividades']);
       const porLocalA = {};
@@ -476,35 +507,24 @@
         const local = (a.local_obra || '').trim();
         if (local) porLocalA[local] = (porLocalA[local] || 0) + 1;
       });
-      Object.entries(porLocalA)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 15)
+      Object.entries(porLocalA).sort((a, b) => b[1] - a[1]).slice(0, 15)
         .forEach(([local, n]) => linhas.push([local, n]));
       linhas.push([]);
 
-      // ============== HORAS POR LOCAL / OBRA (TOP 20) ==============
       linhas.push(['HORAS TRABALHADAS POR LOCAL / OBRA (TOP 20)']);
       linhas.push(['Local / Obra', 'Total Horas', 'Nº Atividades', 'Média Horas/Atividade']);
       const horasPorLocal = agruparHorasPorLocal(atividades);
-      if (horasPorLocal.length === 0) {
-        linhas.push(['(sem registos com data de início e fim)']);
-      } else {
-        horasPorLocal
-          .slice(0, 20)
-          .forEach(([local, h, n, media]) => linhas.push([local, h.toFixed(2), n, media.toFixed(2)]));
-      }
+      if (horasPorLocal.length === 0) linhas.push(['(sem registos com data de início e fim)']);
+      else horasPorLocal.slice(0, 20).forEach(([local, h, n, media]) => linhas.push([local, h.toFixed(2), n, media.toFixed(2)]));
       linhas.push([]);
 
-      // ============== HORAS POR LOCAL/OBRA E TÉCNICO (TOP 15 OBRAS) ==============
       linhas.push(['HORAS POR LOCAL/OBRA E TÉCNICO (TOP 15 OBRAS)']);
       linhas.push(['Local / Obra', 'Técnico', 'Total Horas', 'Nº Atividades']);
       const dadosLocalTecnico = agruparHorasPorLocalETecnico(atividades);
       const locaisOrdenadosLT = Object.entries(dadosLocalTecnico)
-        .sort((a, b) => b[1].total - a[1].total)
-        .slice(0, 15);
-      if (locaisOrdenadosLT.length === 0) {
-        linhas.push(['(sem registos)']);
-      } else {
+        .sort((a, b) => b[1].total - a[1].total).slice(0, 15);
+      if (locaisOrdenadosLT.length === 0) linhas.push(['(sem registos)']);
+      else {
         locaisOrdenadosLT.forEach(([local, info]) => {
           const tecnicosOrdenados = Object.entries(info.tecnicos).sort((a, b) => b[1].horas - a[1].horas);
           tecnicosOrdenados.forEach(([tec, v], idx) => {
@@ -514,7 +534,6 @@
       }
       linhas.push([]);
 
-      // ============== OCORRÊNCIAS POR LOCAL (TOP 15) ==============
       linhas.push(['OCORRÊNCIAS POR LOCAL (TOP 15)']);
       linhas.push(['Local / Obra', 'Ocorrências']);
       const porLocalO = {};
@@ -523,14 +542,10 @@
         if (local) porLocalO[local] = (porLocalO[local] || 0) + 1;
       });
       const locaisOc = Object.entries(porLocalO).sort((a, b) => b[1] - a[1]);
-      if (locaisOc.length === 0) {
-        linhas.push(['(sem registos)']);
-      } else {
-        locaisOc.slice(0, 15).forEach(([local, n]) => linhas.push([local, n]));
-      }
+      if (locaisOc.length === 0) linhas.push(['(sem registos)']);
+      else locaisOc.slice(0, 15).forEach(([local, n]) => linhas.push([local, n]));
       linhas.push([]);
 
-      // ============== EVOLUÇÃO MENSAL - PEDIDOS ==============
       linhas.push(['EVOLUÇÃO MENSAL — PEDIDOS']);
       linhas.push(['Mês', 'Pedidos']);
       const pedidosMes = agruparPorMes(pedidos, 'data_hora_pedido');
@@ -538,7 +553,6 @@
       else pedidosMes.forEach(([mes, n]) => linhas.push([mes, n]));
       linhas.push([]);
 
-      // ============== EVOLUÇÃO MENSAL - ATIVIDADES ==============
       linhas.push(['EVOLUÇÃO MENSAL — ATIVIDADES']);
       linhas.push(['Mês', 'Atividades']);
       const ativMes = agruparPorMes(atividades, 'data_hora_inicio');
@@ -546,7 +560,6 @@
       else ativMes.forEach(([mes, n]) => linhas.push([mes, n]));
       linhas.push([]);
 
-      // ============== EVOLUÇÃO MENSAL - OCORRÊNCIAS ==============
       linhas.push(['EVOLUÇÃO MENSAL — OCORRÊNCIAS']);
       linhas.push(['Mês', 'Ocorrências']);
       const ocMes = agruparPorMes(ocorrencias, 'data');
@@ -554,7 +567,6 @@
       else ocMes.forEach(([mes, n]) => linhas.push([mes, n]));
       linhas.push([]);
 
-      // ============== STOCK POR CATEGORIA ==============
       linhas.push(['STOCK POR CATEGORIA']);
       linhas.push(['Categoria', 'Nº Materiais', 'Unidades em Stock', 'Total Compradas', 'Total Gastas']);
       const stockPorCategoria = {};
@@ -567,41 +579,25 @@
         stockPorCategoria[cat].gastas += (i.totalgastas || 0);
       });
       if (stock.length === 0) linhas.push(['(sem registos)']);
-      else {
-        Object.entries(stockPorCategoria)
-          .sort((a, b) => b[1].unidades - a[1].unidades)
-          .forEach(([cat, v]) => linhas.push([cat, v.n, v.unidades, v.compradas, v.gastas]));
-      }
+      else Object.entries(stockPorCategoria).sort((a, b) => b[1].unidades - a[1].unidades)
+        .forEach(([cat, v]) => linhas.push([cat, v.n, v.unidades, v.compradas, v.gastas]));
       linhas.push([]);
 
-      // ============== MATERIAIS COM STOCK CRÍTICO / ESGOTADO ==============
       linhas.push(['MATERIAIS COM STOCK CRÍTICO / ESGOTADO']);
       linhas.push(['Material', 'Categoria', 'Stock Atual', 'Qt. Alerta', 'Estado']);
       const criticos = stock.filter(i => (i.stockatual || 0) <= (i.stockminimo || 0));
       if (criticos.length === 0) linhas.push(['(nenhum material em estado crítico)']);
-      else {
-        criticos
-          .sort((a, b) => (a.stockatual || 0) - (b.stockatual || 0))
-          .forEach(i => linhas.push([
-            i.material, i.categoria, i.stockatual || 0, i.stockminimo || 0,
-            (i.stockatual || 0) === 0 ? 'Esgotado' : 'Crítico'
-          ]));
-      }
+      else criticos.sort((a, b) => (a.stockatual || 0) - (b.stockatual || 0))
+        .forEach(i => linhas.push([i.material, i.categoria, i.stockatual || 0, i.stockminimo || 0, (i.stockatual || 0) === 0 ? 'Esgotado' : 'Crítico']));
       linhas.push([]);
 
-      // ============== MATERIAIS MAIS GASTOS (TOP 15) ==============
       linhas.push(['MATERIAIS MAIS GASTOS (TOP 15)']);
       linhas.push(['Material', 'Total Gastas', 'Total Compradas', 'Stock Atual']);
-      const maisGastos = [...stock]
-        .filter(i => (i.totalgastas || 0) > 0)
-        .sort((a, b) => (b.totalgastas || 0) - (a.totalgastas || 0));
+      const maisGastos = [...stock].filter(i => (i.totalgastas || 0) > 0).sort((a, b) => (b.totalgastas || 0) - (a.totalgastas || 0));
       if (maisGastos.length === 0) linhas.push(['(sem registos)']);
-      else maisGastos.slice(0, 15).forEach(i => linhas.push([
-        i.material, i.totalgastas || 0, i.totalcompradas || 0, i.stockatual || 0
-      ]));
+      else maisGastos.slice(0, 15).forEach(i => linhas.push([i.material, i.totalgastas || 0, i.totalcompradas || 0, i.stockatual || 0]));
       linhas.push([]);
 
-      // ============== MOVIMENTOS DE STOCK POR MÊS ==============
       linhas.push(['MOVIMENTOS DE STOCK POR MÊS']);
       linhas.push(['Mês', 'Entradas (compras)', 'Saídas (gastos)']);
       const movPorMes = {};
@@ -642,14 +638,13 @@
       setTimeout(() => { el.style.display = 'none'; }, 5000);
     }
 
-    // ===== Downloads individuais =====
     async function exportarPedidos(btn) {
       btn.disabled = true;
       btn.innerText = 'A preparar...';
       try {
         const pedidos = await buscarTudo('pedidos');
         if (!pedidos.length) { alert('Não existem pedidos.'); return; }
-        const enriquecidos = enriquecerComObra(pedidos);
+        const enriquecidos = sanitizarLista(enriquecerComObra(pedidos));
         gerarExcel([{ nome: 'Pedidos', rows: enriquecidos }], `pedidos_${hoje()}.xlsx`);
         mostrarStatus(`✅ ${enriquecidos.length} pedidos exportados!`);
       } catch (err) {
@@ -670,7 +665,7 @@
           buscarTudo('pedidos')
         ]);
         if (!atividades.length) { alert('Não existem atividades.'); return; }
-        const enriquecidas = enriquecerAtividades(enriquecerComObra(atividades), pedidos);
+        const enriquecidas = sanitizarLista(enriquecerAtividades(enriquecerComObra(atividades), pedidos));
         gerarExcel([{ nome: 'Atividades', rows: enriquecidas }], `atividades_${hoje()}.xlsx`);
         mostrarStatus(`✅ ${enriquecidas.length} atividades exportadas!`);
       } catch (err) {
@@ -691,7 +686,7 @@
           buscarTudo('atividades')
         ]);
         if (!ocorrencias.length) { alert('Não existem ocorrências.'); return; }
-        const enriquecidas = enriquecerOcorrencias(ocorrencias, atividades);
+        const enriquecidas = sanitizarLista(enriquecerOcorrencias(ocorrencias, atividades));
         gerarExcel([{ nome: 'Ocorrências', rows: enriquecidas }], `ocorrencias_${hoje()}.xlsx`);
         mostrarStatus(`✅ ${enriquecidas.length} ocorrências exportadas!`);
       } catch (err) {
@@ -709,10 +704,7 @@
       try {
         const obras = await buscarTudo('obras');
         if (!obras.length) { alert('Não existem obras.'); return; }
-        const formatadas = obras.map(o => ({
-          ...o,
-          concluida: o.concluida ? 'Sim' : 'Não'
-        }));
+        const formatadas = sanitizarLista(obras.map(o => ({ ...o, concluida: o.concluida ? 'Sim' : 'Não' })));
         gerarExcel([{ nome: 'Obras', rows: formatadas }], `obras_${hoje()}.xlsx`);
         mostrarStatus(`✅ ${formatadas.length} obras exportadas!`);
       } catch (err) {
@@ -734,8 +726,8 @@
         ]);
         if (!stock.length) { alert('Não existem materiais no stock.'); return; }
         gerarExcel([
-          { nome: 'Stock', rows: stock },
-          { nome: 'Movimentos', rows: movimentos }
+          { nome: 'Stock', rows: sanitizarLista(stock) },
+          { nome: 'Movimentos', rows: sanitizarLista(movimentos) }
         ], `stock_${hoje()}.xlsx`);
         mostrarStatus(`✅ ${stock.length} materiais e ${movimentos.length} movimentos exportados!`);
       } catch (err) {
@@ -753,7 +745,7 @@
       try {
         const movimentos = await buscarTudo('movimentos_stock');
         if (!movimentos.length) { alert('Não existem movimentos.'); return; }
-        gerarExcel([{ nome: 'Movimentos', rows: movimentos }], `movimentos_stock_${hoje()}.xlsx`);
+        gerarExcel([{ nome: 'Movimentos', rows: sanitizarLista(movimentos) }], `movimentos_stock_${hoje()}.xlsx`);
         mostrarStatus(`✅ ${movimentos.length} movimentos exportados!`);
       } catch (err) {
         console.error(err);
@@ -777,23 +769,24 @@
           buscarTudo('movimentos_stock')
         ]);
 
-        // Enriquecer dados com informação das obras
-        const pedidosR = enriquecerComObra(pedidos);
-        const atividadesR = enriquecerAtividades(enriquecerComObra(atividades), pedidos);
-        const ocorrenciasR = enriquecerOcorrencias(ocorrencias, atividades);
-        const obrasR = obras.map(o => ({ ...o, concluida: o.concluida ? 'Sim' : 'Não' }));
+        const pedidosR = sanitizarLista(enriquecerComObra(pedidos));
+        const atividadesR = sanitizarLista(enriquecerAtividades(enriquecerComObra(atividades), pedidos));
+        const ocorrenciasR = sanitizarLista(enriquecerOcorrencias(ocorrencias, atividades));
+        const obrasR = sanitizarLista(obras.map(o => ({ ...o, concluida: o.concluida ? 'Sim' : 'Não' })));
+        const stockR = sanitizarLista(stock);
+        const movimentosR = sanitizarLista(movimentos);
 
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, criarFolha(pedidosR), 'Pedidos');
         XLSX.utils.book_append_sheet(wb, criarFolha(atividadesR), 'Atividades');
         XLSX.utils.book_append_sheet(wb, criarFolha(ocorrenciasR), 'Ocorrencias');
         XLSX.utils.book_append_sheet(wb, criarFolha(obrasR), 'Obras');
-        XLSX.utils.book_append_sheet(wb, criarFolha(stock), 'Stock');
-        XLSX.utils.book_append_sheet(wb, criarFolha(movimentos), 'Movimentos');
-        XLSX.utils.book_append_sheet(wb, construirFolhaResumo(pedidosR, atividadesR, ocorrenciasR, obrasR, stock, movimentos), 'Resumo');
+        XLSX.utils.book_append_sheet(wb, criarFolha(stockR), 'Stock');
+        XLSX.utils.book_append_sheet(wb, criarFolha(movimentosR), 'Movimentos');
+        XLSX.utils.book_append_sheet(wb, construirFolhaResumo(pedidosR, atividadesR, ocorrenciasR, obrasR, stockR, movimentosR), 'Resumo');
         XLSX.writeFile(wb, `topogf_dados_completos_${hoje()}.xlsx`);
 
-        mostrarStatus('✅ Ficheiro completo exportado!');
+        mostrarStatus('✅ Ficheiro completo exportado com sucesso!');
       } catch (err) {
         console.error('Erro ao exportar tudo:', err);
         alert('Erro ao exportar: ' + err.message);
