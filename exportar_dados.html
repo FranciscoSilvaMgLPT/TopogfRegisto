@@ -57,15 +57,6 @@
     }
     .btn-all:hover { background: #047857; }
 
-    .btn-mensal {
-      width: 100%;
-      margin-top: 12px;
-      padding: 14px;
-      background: #7c3aed;
-      font-size: 15px;
-    }
-    .btn-mensal:hover { background: #6d28d9; }
-
     .success { display: none; margin-top: 20px; background: #065f46; padding: 15px; border-radius: 10px; text-align: center; }
 
     @media (max-width: 640px) {
@@ -120,8 +111,6 @@
         <button id="btnMovimentos">⬇ Download Movimentos</button>
       </div>
     </div>
-
-    <button id="btnMensal" class="btn-mensal">📅 Download Mensal (1 folha de Resumo Mensal + 1 folha por cada mês com todo o detalhe)</button>
 
     <button id="btnTudo" class="btn-all">⬇ Download Tudo (6 tabelas + Resumo + Resumo Mensal + 1 folha por cada mês)</button>
 
@@ -959,31 +948,6 @@
       }
     }
 
-    // ===== 📅 DOWNLOAD MENSAL (Resumo Mensal + 1 folha por mês) =====
-    async function exportarMensal(btn) {
-      btn.disabled = true;
-      btn.innerText = 'A preparar visão mensal...';
-      try {
-        const d = await prepararDadosEnriquecidos();
-        const meses = listaDeMeses(d);
-        if (meses.length === 0) { alert('Não existem dados com datas para agrupar por mês.'); return; }
-
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, construirFolhaResumoMensal(d.pedidosR, d.atividadesR, d.ocorrenciasR, d.movimentosR), 'Resumo Mensal');
-        meses.forEach(mes => {
-          XLSX.utils.book_append_sheet(wb, construirFolhaMensalDetalhada(mes, d.pedidosR, d.atividadesR, d.ocorrenciasR, d.movimentosR), nomeFolhaSeguro(mes));
-        });
-        XLSX.writeFile(wb, `topogf_mensal_${hoje()}.xlsx`);
-        mostrarStatus(`✅ Ficheiro mensal exportado com ${meses.length} mês(es)!`);
-      } catch (err) {
-        console.error(err);
-        alert('Erro: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerText = '📅 Download Mensal (1 folha de Resumo Mensal + 1 folha por cada mês com todo o detalhe)';
-      }
-    }
-
     // ===== DOWNLOAD TUDO =====
     async function exportarTudo(btn) {
       btn.disabled = true;
@@ -1021,7 +985,6 @@
     document.getElementById('btnObras').addEventListener('click', (e) => exportarObras(e.target));
     document.getElementById('btnStock').addEventListener('click', (e) => exportarStock(e.target));
     document.getElementById('btnMovimentos').addEventListener('click', (e) => exportarMovimentos(e.target));
-    document.getElementById('btnMensal').addEventListener('click', (e) => exportarMensal(e.target));
     document.getElementById('btnTudo').addEventListener('click', (e) => exportarTudo(e.target));
   </script>
 
