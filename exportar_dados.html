@@ -11,14 +11,15 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #0f172a; font-family: Arial, sans-serif; color: white; padding: 30px; }
-    .container { max-width: 900px; margin: auto; background: #1e293b; padding: 35px; border-radius: 18px; box-shadow: 0 0 30px rgba(0,0,0,0.4); }
+    .container { max-width: 1100px; margin: auto; background: #1e293b; padding: 35px; border-radius: 18px; box-shadow: 0 0 30px rgba(0,0,0,0.4); }
     .header-area { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
     .user-info { color: #94a3b8; font-size: 0.9em; margin-bottom: 20px; }
     h1 { font-size: 34px; }
     .btn-voltar { background: #334155; color: white; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: bold; }
 
     .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
-    @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 1000px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 700px) { .grid { grid-template-columns: repeat(2, 1fr); } }
 
     .card {
       background: #334155;
@@ -62,7 +63,7 @@
       body { padding: 15px; }
       .container { padding: 20px; border-radius: 14px; }
       h1 { font-size: 24px; }
-      .grid { grid-template-columns: 1fr; }
+      .grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
@@ -95,13 +96,23 @@
         <button id="btnOcorrencias">⬇ Download Ocorrências</button>
       </div>
       <div class="card">
+        <h3>🏗️ Obras</h3>
+        <p class="count" id="countObras">A contar...</p>
+        <button id="btnObras">⬇ Download Obras</button>
+      </div>
+      <div class="card">
         <h3>📦 Stock</h3>
         <p class="count" id="countStock">A contar...</p>
         <button id="btnStock">⬇ Download Stock</button>
       </div>
+      <div class="card">
+        <h3>📜 Movimentos</h3>
+        <p class="count" id="countMovimentos">A contar...</p>
+        <button id="btnMovimentos">⬇ Download Movimentos</button>
+      </div>
     </div>
 
-    <button id="btnTudo" class="btn-all">⬇ Download Tudo (1 ficheiro Excel com 6 folhas: Pedidos, Atividades, Ocorrências, Stock, Movimentos de Stock e Resumo)</button>
+    <button id="btnTudo" class="btn-all">⬇ Download Tudo (1 ficheiro Excel com 7 folhas: Pedidos, Atividades, Ocorrências, Obras, Stock, Movimentos de Stock e Resumo Completo)</button>
 
     <div class="success" id="statusMsg"></div>
   </div>
@@ -111,22 +122,37 @@
     const SUPABASE_ANON_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    // Cache de obras para enriquecer pedidos, atividades e ocorrências
+    let mapaObras = {};
+
     window.onload = async () => {
       const { data: { user }, error } = await supabaseClient.auth.getUser();
       if (error || !user) {
         window.location.href = 'index.html';
       } else {
         document.getElementById('user-display').innerText = user.email;
+        await carregarMapaObras();
         mostrarContagens();
       }
     };
+
+    async function carregarMapaObras() {
+      const { data, error } = await supabaseClient
+        .from('obras')
+        .select('id, numero_obra, local_obra, empresa, concelho, concluida');
+      if (!error && data) {
+        data.forEach(o => { mapaObras[o.id] = o; });
+      }
+    }
 
     async function mostrarContagens() {
       const tabelas = [
         ['pedidos', 'countPedidos'],
         ['atividades', 'countAtividades'],
         ['ocorrencias', 'countOcorrencias'],
-        ['stock', 'countStock']
+        ['obras', 'countObras'],
+        ['stock', 'countStock'],
+        ['movimentos_stock', 'countMovimentos']
       ];
       for (const [tabela, id] of tabelas) {
         const { count } = await supabaseClient
@@ -153,6 +179,73 @@
         offset += passo;
       }
       return tudo;
+    }
+
+    // ===== Enriquecimento de dados com informação da tabela OBRAS =====
+    function enriquecerComObra(rows) {
+      return rows.map(r => {
+        const obra = mapaObras[r.obra_id] || null;
+        return {
+          ...r,
+          empresa: obra ? (obra.empresa || '') : '',
+          numero_obra: obra ? (obra.numero_obra || '') : '',
+          local_obra: obra ? (obra.local_obra || '') : '',
+          concelho: obra ? (obra.concelho || '') : '',
+          obra_concluida: obra ? (obra.concluida ? 'Sim' : 'Não') : ''
+        };
+      });
+    }
+
+    // ===== Enriquecimento de ocorrências com informação da atividade e obra =====
+    function enriquecerOcorrencias(ocorrencias, atividades) {
+      const mapaAtividades = {};
+      atividades.forEach(a => {
+        mapaAtividades[a.id] = {
+          tecnico: a.tecnico || '',
+          servico: a.servico || '',
+          data_hora_inicio: a.data_hora_inicio || ''
+        };
+      });
+      return ocorrencias.map(o => {
+        const obra = mapaObras[o.obra_id] || null;
+        const atividade = mapaAtividades[o.atividade_id] || null;
+        const fotos = Array.isArray(o.fotos) ? o.fotos.join(' | ') : (o.fotos || '');
+        return {
+          ...o,
+          fotos: fotos,
+          tecnico_atividade: atividade ? atividade.tecnico : '',
+          servico_atividade: atividade ? atividade.servico : '',
+          data_atividade: atividade ? atividade.data_hora_inicio : '',
+          empresa: obra ? (obra.empresa || '') : '',
+          numero_obra: obra ? (obra.numero_obra || '') : '',
+          local_obra: obra ? (obra.local_obra || '') : (o.local_obra || ''),
+          concelho: obra ? (obra.concelho || '') : ''
+        };
+      });
+    }
+
+    // ===== Enriquecimento de atividades com nome do pedido =====
+    function enriquecerAtividades(atividades, pedidos) {
+      const mapaPedidos = {};
+      pedidos.forEach(p => {
+        mapaPedidos[p.id] = {
+          requerente: p.requerente || '',
+          estado: p.estado || ''
+        };
+      });
+      return atividades.map(a => {
+        const pedido = mapaPedidos[a.pedido_id] || null;
+        const obra = mapaObras[a.obra_id] || null;
+        return {
+          ...a,
+          pedido_requerente: pedido ? pedido.requerente : '',
+          pedido_estado: pedido ? pedido.estado : '',
+          empresa: obra ? (obra.empresa || '') : '',
+          numero_obra: obra ? (obra.numero_obra || '') : '',
+          local_obra: obra ? (obra.local_obra || '') : '',
+          concelho: obra ? (obra.concelho || '') : ''
+        };
+      });
     }
 
     function obterColunas(rows) {
@@ -202,7 +295,6 @@
       return Object.entries(cont).sort((a, b) => b[1] - a[1]);
     }
 
-    // ===== Agrupar por mês (AAAA-MM) =====
     function agruparPorMes(rows, campoData) {
       const cont = {};
       rows.forEach(r => {
@@ -214,9 +306,6 @@
       return Object.entries(cont).sort((a, b) => a[0].localeCompare(b[0]));
     }
 
-    // ===== Duração em horas de uma atividade (data_hora_fim - data_hora_inicio) =====
-    // NOTA: assume que a tabela "atividades" tem os campos "data_hora_inicio" e "data_hora_fim".
-    // Se o nome do campo de fim for diferente, ajustar aqui.
     function calcularDuracaoHoras(a) {
       if (!a.data_hora_inicio || !a.data_hora_fim) return 0;
       const inicio = new Date(a.data_hora_inicio);
@@ -226,7 +315,6 @@
       return diffMs / (1000 * 60 * 60);
     }
 
-    // ===== Agrupar total de horas, nº atividades e média por local/obra =====
     function agruparHorasPorLocal(atividades) {
       const horas = {};
       const contagem = {};
@@ -241,10 +329,6 @@
         .sort((a, b) => b[1] - a[1]);
     }
 
-    // ===== Agrupar horas por local/obra e por técnico =====
-    // NOTA: quando uma atividade tem vários técnicos (separados por vírgula),
-    // as horas dessa atividade são contabilizadas na totalidade para CADA técnico
-    // (não são divididas entre eles), à semelhança do que já é feito em "Atividades por técnico".
     function agruparHorasPorLocalETecnico(atividades) {
       const porLocal = {};
       atividades.forEach(a => {
@@ -268,20 +352,22 @@
       return (num / den * 100).toFixed(1) + '%';
     }
 
-    // ===== Verifica se um pedido está concluído com base no campo "estado" =====
     function estaConcluido(p) {
       return (p.estado || '').trim().toLowerCase() === 'concluido';
     }
 
-    function construirFolhaResumo(pedidos, atividades, ocorrencias, stock, movimentos) {
+    function construirFolhaResumo(pedidos, atividades, ocorrencias, obras, stock, movimentos) {
       stock = stock || [];
       movimentos = movimentos || [];
+      obras = obras || [];
       const linhas = [];
       const agora = new Date();
       const dataGeracao = agora.toLocaleDateString('pt-PT') + ' ' + agora.toLocaleTimeString('pt-PT').slice(0, 5);
 
       const concluidos = pedidos.filter(estaConcluido).length;
       const pendentes = pedidos.length - concluidos;
+      const obrasConcluidas = obras.filter(o => o.concluida).length;
+      const obrasAtivas = obras.length - obrasConcluidas;
 
       linhas.push(['RELATÓRIO RESUMO — gerado em ' + dataGeracao]);
       linhas.push([]);
@@ -293,8 +379,13 @@
       linhas.push(['Pedidos pendentes', pendentes, percent(pendentes, pedidos.length)]);
       linhas.push(['Atividades totais', atividades.length]);
       linhas.push(['Ocorrências totais', ocorrencias.length]);
+      linhas.push(['Obras totais', obras.length]);
+      linhas.push(['Obras concluídas', obrasConcluidas, percent(obrasConcluidas, obras.length)]);
+      linhas.push(['Obras ativas', obrasAtivas, percent(obrasAtivas, obras.length)]);
       linhas.push(['Materiais em stock (referências)', stock.length]);
       linhas.push(['Unidades totais em stock', stock.reduce((s, i) => s + (i.stockatual || 0), 0)]);
+      linhas.push(['Total de compras (unidades)', stock.reduce((s, i) => s + (i.totalcompradas || 0), 0)]);
+      linhas.push(['Total de gastos (unidades)', stock.reduce((s, i) => s + (i.totalgastas || 0), 0)]);
       linhas.push(['Materiais com stock crítico/esgotado', stock.filter(i => (i.stockatual || 0) <= (i.stockminimo || 0)).length]);
       linhas.push([]);
 
@@ -360,6 +451,21 @@
       const tiposA = contarSeparados(atividades, 'tipo_trabalho', ';');
       const totalTiposA = tiposA.reduce((s, [, n]) => s + n, 0);
       tiposA.forEach(([t, n]) => linhas.push([t, n, percent(n, totalTiposA)]));
+      linhas.push([]);
+
+      // ============== OBRAS POR CONCELHO ==============
+      linhas.push(['OBRAS POR CONCELHO']);
+      linhas.push(['Concelho', 'Total', 'Ativas', 'Concluídas']);
+      const porConcelho = {};
+      obras.forEach(o => {
+        const c = (o.concelho || '(sem concelho)').trim();
+        if (!porConcelho[c]) porConcelho[c] = { total: 0, conc: 0 };
+        porConcelho[c].total++;
+        if (o.concluida) porConcelho[c].conc++;
+      });
+      Object.entries(porConcelho)
+        .sort((a, b) => b[1].total - a[1].total)
+        .forEach(([c, v]) => linhas.push([c, v.total, v.total - v.conc, v.conc]));
       linhas.push([]);
 
       // ============== LOCAIS / OBRAS MAIS FREQUENTES (TOP 15) ==============
@@ -428,40 +534,43 @@
       linhas.push(['EVOLUÇÃO MENSAL — PEDIDOS']);
       linhas.push(['Mês', 'Pedidos']);
       const pedidosMes = agruparPorMes(pedidos, 'data_hora_pedido');
-      if (pedidosMes.length === 0) {
-        linhas.push(['(sem registos)']);
-      } else {
-        pedidosMes.forEach(([mes, n]) => linhas.push([mes, n]));
-      }
+      if (pedidosMes.length === 0) linhas.push(['(sem registos)']);
+      else pedidosMes.forEach(([mes, n]) => linhas.push([mes, n]));
       linhas.push([]);
 
       // ============== EVOLUÇÃO MENSAL - ATIVIDADES ==============
       linhas.push(['EVOLUÇÃO MENSAL — ATIVIDADES']);
       linhas.push(['Mês', 'Atividades']);
       const ativMes = agruparPorMes(atividades, 'data_hora_inicio');
-      if (ativMes.length === 0) {
-        linhas.push(['(sem registos)']);
-      } else {
-        ativMes.forEach(([mes, n]) => linhas.push([mes, n]));
-      }
+      if (ativMes.length === 0) linhas.push(['(sem registos)']);
+      else ativMes.forEach(([mes, n]) => linhas.push([mes, n]));
+      linhas.push([]);
+
+      // ============== EVOLUÇÃO MENSAL - OCORRÊNCIAS ==============
+      linhas.push(['EVOLUÇÃO MENSAL — OCORRÊNCIAS']);
+      linhas.push(['Mês', 'Ocorrências']);
+      const ocMes = agruparPorMes(ocorrencias, 'data');
+      if (ocMes.length === 0) linhas.push(['(sem registos)']);
+      else ocMes.forEach(([mes, n]) => linhas.push([mes, n]));
       linhas.push([]);
 
       // ============== STOCK POR CATEGORIA ==============
       linhas.push(['STOCK POR CATEGORIA']);
-      linhas.push(['Categoria', 'Nº Materiais', 'Unidades em Stock']);
+      linhas.push(['Categoria', 'Nº Materiais', 'Unidades em Stock', 'Total Compradas', 'Total Gastas']);
       const stockPorCategoria = {};
       stock.forEach(i => {
         const cat = (i.categoria || '(sem categoria)').trim() || '(sem categoria)';
-        if (!stockPorCategoria[cat]) stockPorCategoria[cat] = { n: 0, unidades: 0 };
+        if (!stockPorCategoria[cat]) stockPorCategoria[cat] = { n: 0, unidades: 0, compradas: 0, gastas: 0 };
         stockPorCategoria[cat].n++;
         stockPorCategoria[cat].unidades += (i.stockatual || 0);
+        stockPorCategoria[cat].compradas += (i.totalcompradas || 0);
+        stockPorCategoria[cat].gastas += (i.totalgastas || 0);
       });
-      if (stock.length === 0) {
-        linhas.push(['(sem registos)']);
-      } else {
+      if (stock.length === 0) linhas.push(['(sem registos)']);
+      else {
         Object.entries(stockPorCategoria)
           .sort((a, b) => b[1].unidades - a[1].unidades)
-          .forEach(([cat, v]) => linhas.push([cat, v.n, v.unidades]));
+          .forEach(([cat, v]) => linhas.push([cat, v.n, v.unidades, v.compradas, v.gastas]));
       }
       linhas.push([]);
 
@@ -469,9 +578,8 @@
       linhas.push(['MATERIAIS COM STOCK CRÍTICO / ESGOTADO']);
       linhas.push(['Material', 'Categoria', 'Stock Atual', 'Qt. Alerta', 'Estado']);
       const criticos = stock.filter(i => (i.stockatual || 0) <= (i.stockminimo || 0));
-      if (criticos.length === 0) {
-        linhas.push(['(nenhum material em estado crítico)']);
-      } else {
+      if (criticos.length === 0) linhas.push(['(nenhum material em estado crítico)']);
+      else {
         criticos
           .sort((a, b) => (a.stockatual || 0) - (b.stockatual || 0))
           .forEach(i => linhas.push([
@@ -487,13 +595,10 @@
       const maisGastos = [...stock]
         .filter(i => (i.totalgastas || 0) > 0)
         .sort((a, b) => (b.totalgastas || 0) - (a.totalgastas || 0));
-      if (maisGastos.length === 0) {
-        linhas.push(['(sem registos)']);
-      } else {
-        maisGastos.slice(0, 15).forEach(i => linhas.push([
-          i.material, i.totalgastas || 0, i.totalcompradas || 0, i.stockatual || 0
-        ]));
-      }
+      if (maisGastos.length === 0) linhas.push(['(sem registos)']);
+      else maisGastos.slice(0, 15).forEach(i => linhas.push([
+        i.material, i.totalgastas || 0, i.totalcompradas || 0, i.stockatual || 0
+      ]));
       linhas.push([]);
 
       // ============== MOVIMENTOS DE STOCK POR MÊS ==============
@@ -510,11 +615,8 @@
         else movPorMes[mes].saidas += (m.quantidade || 0);
       });
       const mesesMov = Object.keys(movPorMes).sort();
-      if (mesesMov.length === 0) {
-        linhas.push(['(sem registos)']);
-      } else {
-        mesesMov.forEach(mes => linhas.push([mes, movPorMes[mes].entradas, movPorMes[mes].saidas]));
-      }
+      if (mesesMov.length === 0) linhas.push(['(sem registos)']);
+      else mesesMov.forEach(mes => linhas.push([mes, movPorMes[mes].entradas, movPorMes[mes].saidas]));
 
       const ws = XLSX.utils.aoa_to_sheet(linhas);
       ws['!cols'] = [{ wch: 48 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 16 }];
@@ -540,24 +642,85 @@
       setTimeout(() => { el.style.display = 'none'; }, 5000);
     }
 
-    async function exportarTabela(tabela, btn) {
+    // ===== Downloads individuais =====
+    async function exportarPedidos(btn) {
       btn.disabled = true;
       btn.innerText = 'A preparar...';
       try {
-        const rows = await buscarTudo(tabela);
-        if (!rows.length) {
-          alert('Não existem dados na tabela ' + tabela + '.');
-          return;
-        }
-        const nomeFolha = tabela.charAt(0).toUpperCase() + tabela.slice(1);
-        gerarExcel([{ nome: nomeFolha, rows }], `${tabela}_${hoje()}.xlsx`);
-        mostrarStatus(`✅ ${rows.length} registos de "${tabela}" exportados!`);
+        const pedidos = await buscarTudo('pedidos');
+        if (!pedidos.length) { alert('Não existem pedidos.'); return; }
+        const enriquecidos = enriquecerComObra(pedidos);
+        gerarExcel([{ nome: 'Pedidos', rows: enriquecidos }], `pedidos_${hoje()}.xlsx`);
+        mostrarStatus(`✅ ${enriquecidos.length} pedidos exportados!`);
       } catch (err) {
-        console.error('Erro ao exportar ' + tabela + ':', err);
-        alert('Erro ao exportar ' + tabela + ': ' + err.message);
+        console.error(err);
+        alert('Erro: ' + err.message);
       } finally {
         btn.disabled = false;
-        btn.innerText = '⬇ Download ' + tabela.charAt(0).toUpperCase() + tabela.slice(1);
+        btn.innerText = '⬇ Download Pedidos';
+      }
+    }
+
+    async function exportarAtividades(btn) {
+      btn.disabled = true;
+      btn.innerText = 'A preparar...';
+      try {
+        const [atividades, pedidos] = await Promise.all([
+          buscarTudo('atividades'),
+          buscarTudo('pedidos')
+        ]);
+        if (!atividades.length) { alert('Não existem atividades.'); return; }
+        const enriquecidas = enriquecerAtividades(enriquecerComObra(atividades), pedidos);
+        gerarExcel([{ nome: 'Atividades', rows: enriquecidas }], `atividades_${hoje()}.xlsx`);
+        mostrarStatus(`✅ ${enriquecidas.length} atividades exportadas!`);
+      } catch (err) {
+        console.error(err);
+        alert('Erro: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '⬇ Download Atividades';
+      }
+    }
+
+    async function exportarOcorrencias(btn) {
+      btn.disabled = true;
+      btn.innerText = 'A preparar...';
+      try {
+        const [ocorrencias, atividades] = await Promise.all([
+          buscarTudo('ocorrencias'),
+          buscarTudo('atividades')
+        ]);
+        if (!ocorrencias.length) { alert('Não existem ocorrências.'); return; }
+        const enriquecidas = enriquecerOcorrencias(ocorrencias, atividades);
+        gerarExcel([{ nome: 'Ocorrências', rows: enriquecidas }], `ocorrencias_${hoje()}.xlsx`);
+        mostrarStatus(`✅ ${enriquecidas.length} ocorrências exportadas!`);
+      } catch (err) {
+        console.error(err);
+        alert('Erro: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '⬇ Download Ocorrências';
+      }
+    }
+
+    async function exportarObras(btn) {
+      btn.disabled = true;
+      btn.innerText = 'A preparar...';
+      try {
+        const obras = await buscarTudo('obras');
+        if (!obras.length) { alert('Não existem obras.'); return; }
+        const formatadas = obras.map(o => ({
+          ...o,
+          concluida: o.concluida ? 'Sim' : 'Não'
+        }));
+        gerarExcel([{ nome: 'Obras', rows: formatadas }], `obras_${hoje()}.xlsx`);
+        mostrarStatus(`✅ ${formatadas.length} obras exportadas!`);
+      } catch (err) {
+        console.error(err);
+        alert('Erro: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '⬇ Download Obras';
       }
     }
 
@@ -569,21 +732,35 @@
           buscarTudo('stock'),
           buscarTudo('movimentos_stock')
         ]);
-        if (!stock.length) {
-          alert('Não existem dados na tabela stock.');
-          return;
-        }
+        if (!stock.length) { alert('Não existem materiais no stock.'); return; }
         gerarExcel([
           { nome: 'Stock', rows: stock },
           { nome: 'Movimentos', rows: movimentos }
         ], `stock_${hoje()}.xlsx`);
-        mostrarStatus(`✅ ${stock.length} materiais e ${movimentos.length} movimentos de stock exportados!`);
+        mostrarStatus(`✅ ${stock.length} materiais e ${movimentos.length} movimentos exportados!`);
       } catch (err) {
-        console.error('Erro ao exportar stock:', err);
-        alert('Erro ao exportar stock: ' + err.message);
+        console.error(err);
+        alert('Erro: ' + err.message);
       } finally {
         btn.disabled = false;
         btn.innerText = '⬇ Download Stock';
+      }
+    }
+
+    async function exportarMovimentos(btn) {
+      btn.disabled = true;
+      btn.innerText = 'A preparar...';
+      try {
+        const movimentos = await buscarTudo('movimentos_stock');
+        if (!movimentos.length) { alert('Não existem movimentos.'); return; }
+        gerarExcel([{ nome: 'Movimentos', rows: movimentos }], `movimentos_stock_${hoje()}.xlsx`);
+        mostrarStatus(`✅ ${movimentos.length} movimentos exportados!`);
+      } catch (err) {
+        console.error(err);
+        alert('Erro: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '⬇ Download Movimentos';
       }
     }
 
@@ -591,21 +768,29 @@
       btn.disabled = true;
       btn.innerText = 'A preparar ficheiro completo...';
       try {
-        const [pedidos, atividades, ocorrencias, stock, movimentos] = await Promise.all([
+        const [pedidos, atividades, ocorrencias, obras, stock, movimentos] = await Promise.all([
           buscarTudo('pedidos'),
           buscarTudo('atividades'),
           buscarTudo('ocorrencias'),
+          buscarTudo('obras'),
           buscarTudo('stock'),
           buscarTudo('movimentos_stock')
         ]);
 
+        // Enriquecer dados com informação das obras
+        const pedidosR = enriquecerComObra(pedidos);
+        const atividadesR = enriquecerAtividades(enriquecerComObra(atividades), pedidos);
+        const ocorrenciasR = enriquecerOcorrencias(ocorrencias, atividades);
+        const obrasR = obras.map(o => ({ ...o, concluida: o.concluida ? 'Sim' : 'Não' }));
+
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, criarFolha(pedidos), 'Pedidos');
-        XLSX.utils.book_append_sheet(wb, criarFolha(atividades), 'Atividades');
-        XLSX.utils.book_append_sheet(wb, criarFolha(ocorrencias), 'Ocorrencias');
+        XLSX.utils.book_append_sheet(wb, criarFolha(pedidosR), 'Pedidos');
+        XLSX.utils.book_append_sheet(wb, criarFolha(atividadesR), 'Atividades');
+        XLSX.utils.book_append_sheet(wb, criarFolha(ocorrenciasR), 'Ocorrencias');
+        XLSX.utils.book_append_sheet(wb, criarFolha(obrasR), 'Obras');
         XLSX.utils.book_append_sheet(wb, criarFolha(stock), 'Stock');
         XLSX.utils.book_append_sheet(wb, criarFolha(movimentos), 'Movimentos');
-        XLSX.utils.book_append_sheet(wb, construirFolhaResumo(pedidos, atividades, ocorrencias, stock, movimentos), 'Resumo');
+        XLSX.utils.book_append_sheet(wb, construirFolhaResumo(pedidosR, atividadesR, ocorrenciasR, obrasR, stock, movimentos), 'Resumo');
         XLSX.writeFile(wb, `topogf_dados_completos_${hoje()}.xlsx`);
 
         mostrarStatus('✅ Ficheiro completo exportado!');
@@ -614,25 +799,17 @@
         alert('Erro ao exportar: ' + err.message);
       } finally {
         btn.disabled = false;
-        btn.innerText = '⬇ Download Tudo (1 ficheiro Excel com 6 folhas: Pedidos, Atividades, Ocorrências, Stock, Movimentos de Stock e Resumo)';
+        btn.innerText = '⬇ Download Tudo (1 ficheiro Excel com 7 folhas: Pedidos, Atividades, Ocorrências, Obras, Stock, Movimentos de Stock e Resumo Completo)';
       }
     }
 
-    document.getElementById('btnPedidos').addEventListener('click', (e) => {
-      exportarTabela('pedidos', e.target);
-    });
-    document.getElementById('btnAtividades').addEventListener('click', (e) => {
-      exportarTabela('atividades', e.target);
-    });
-    document.getElementById('btnOcorrencias').addEventListener('click', (e) => {
-      exportarTabela('ocorrencias', e.target);
-    });
-    document.getElementById('btnStock').addEventListener('click', (e) => {
-      exportarStock(e.target);
-    });
-    document.getElementById('btnTudo').addEventListener('click', (e) => {
-      exportarTudo(e.target);
-    });
+    document.getElementById('btnPedidos').addEventListener('click', (e) => exportarPedidos(e.target));
+    document.getElementById('btnAtividades').addEventListener('click', (e) => exportarAtividades(e.target));
+    document.getElementById('btnOcorrencias').addEventListener('click', (e) => exportarOcorrencias(e.target));
+    document.getElementById('btnObras').addEventListener('click', (e) => exportarObras(e.target));
+    document.getElementById('btnStock').addEventListener('click', (e) => exportarStock(e.target));
+    document.getElementById('btnMovimentos').addEventListener('click', (e) => exportarMovimentos(e.target));
+    document.getElementById('btnTudo').addEventListener('click', (e) => exportarTudo(e.target));
   </script>
 
 </body>
