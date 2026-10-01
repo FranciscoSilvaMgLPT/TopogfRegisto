@@ -168,7 +168,7 @@
           <input type="text" id="dataHoraLimiteDisplay" placeholder="Selecionar data e hora" readonly autocomplete="off">
           <input type="hidden" id="dataHoraLimite" name="data_hora_limite">
         </div>
-                       <div>
+        <div>
           <label>Data Agendada</label>
           <input type="text" id="dataAgendadaDisplay" placeholder="Selecionar data e hora" readonly autocomplete="off">
           <input type="hidden" id="dataAgendada" name="data_agendada">
@@ -429,13 +429,14 @@
     dataAgendadaDisplay.addEventListener('click', () => openPicker(dataAgendada, dataAgendadaDisplay));
     dataHoraLimiteDisplay.addEventListener('click', () => openPicker(dataHoraLimite, dataHoraLimiteDisplay));
 
-    // ===== Carregar lista de Obras a partir da tabela "obras" =====
+    // ===== Carregar lista de Obras (só as NÃO concluídas) =====
     async function carregarObras() {
       selectObra.innerHTML = '<option value="">-- Selecionar obra --</option>';
       try {
         const { data: obras, error } = await supabaseClient
           .from('obras')
           .select('id, local_obra, numero_obra, empresa, concelho')
+          .eq('concluida', false)
           .order('local_obra', { ascending: true });
 
         if (error) throw error;
