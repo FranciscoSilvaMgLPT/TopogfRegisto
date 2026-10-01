@@ -531,12 +531,14 @@
 
     const selectObra = document.getElementById('selectObra');
 
+    // Só mostra obras NÃO concluídas
     async function carregarObras() {
       selectObra.innerHTML = '<option value="">-- Selecionar obra --</option>';
       try {
         const { data: obras, error } = await supabaseClient
           .from('obras')
           .select('id, local_obra, numero_obra, empresa')
+          .eq('concluida', false)
           .order('local_obra', { ascending: true });
 
         if (error) throw error;
