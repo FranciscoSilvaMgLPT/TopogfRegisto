@@ -632,6 +632,14 @@
                 return;
             }
 
+            // 🛡️ Formata a data do movimento; se for null/inválida mostra "SEM DATA"
+            function formatarDataMovimento(valor) {
+                if (!valor) return null;
+                const d = new Date(valor);
+                if (isNaN(d.getTime())) return null;
+                return d.toLocaleString('pt-PT');
+            }
+
             let html = `
                 <table class="stock-table">
                     <thead>
@@ -646,9 +654,13 @@
 
             movimentosData.forEach(m => {
                 const isEntrada = m.tipo === 'entrada';
+                const dataFormatada = formatarDataMovimento(m.created_at);
+                const dataHtml = dataFormatada
+                    ? dataFormatada
+                    : '<span style="color:#64748b; font-style:italic;">SEM DATA</span>';
                 html += `
                     <tr>
-                        <td>${new Date(m.created_at).toLocaleString('pt-PT')}</td>
+                        <td>${dataHtml}</td>
                         <td><strong>${m.material}</strong></td>
                         <td><span class="stock-badge ${isEntrada ? 'mov-entrada' : 'mov-saida'}">${isEntrada ? '📥 Compra' : '📤 Gasto'}</span></td>
                         <td><strong>${isEntrada ? '+' : '-'}${m.quantidade}</strong></td>
