@@ -57,6 +57,15 @@
     }
     .btn-all:hover { background: #047857; }
 
+    .btn-mensal {
+      width: 100%;
+      margin-top: 12px;
+      padding: 14px;
+      background: #7c3aed;
+      font-size: 15px;
+    }
+    .btn-mensal:hover { background: #6d28d9; }
+
     .success { display: none; margin-top: 20px; background: #065f46; padding: 15px; border-radius: 10px; text-align: center; }
 
     @media (max-width: 640px) {
@@ -112,7 +121,9 @@
       </div>
     </div>
 
-    <button id="btnTudo" class="btn-all">⬇ Download Tudo (1 ficheiro Excel com 7 folhas: Pedidos, Atividades, Ocorrências, Obras, Stock, Movimentos de Stock e Resumo Completo)</button>
+    <button id="btnMensal" class="btn-mensal">📅 Download Mensal (1 folha de Resumo Mensal + 1 folha por cada mês com todo o detalhe)</button>
+
+    <button id="btnTudo" class="btn-all">⬇ Download Tudo (6 tabelas + Resumo + Resumo Mensal + 1 folha por cada mês)</button>
 
     <div class="success" id="statusMsg"></div>
   </div>
@@ -165,7 +176,6 @@
 
     // ============================================================
     // ✅ FIX DO BUG "concluida": em JS a string 'Não' é truthy!
-    // Esta função aceita boolean OU string 'Sim'/'Não' corretamente.
     // ============================================================
     function obraEstaConcluida(o) {
       const v = o.concluida;
@@ -175,6 +185,45 @@
         return s === 'sim' || s === 'true' || s === '1';
       }
       return !!v;
+    }
+
+    // ============================================================
+    // 📅 UTILITÁRIOS MENSAIS
+    // ============================================================
+    function mesDe(valor) {
+      if (!valor) return null;
+      const m = String(valor).substring(0, 7);
+      return /^\d{4}-\d{2}$/.test(m) ? m : null;
+    }
+
+    function recolherMeses(conjuntos) {
+      const meses = new Set();
+      conjuntos.forEach(([rows, campo]) => {
+        (rows || []).forEach(r => {
+          const m = mesDe(r[campo]);
+          if (m) meses.add(m);
+        });
+      });
+      return Array.from(meses).sort();
+    }
+
+    function fmtData(v) {
+      if (!v) return '';
+      const d = new Date(v);
+      if (isNaN(d.getTime())) return String(v);
+      const p = n => String(n).padStart(2, '0');
+      return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+    }
+
+    function contarFotos(r) {
+      const f = r.fotos;
+      if (Array.isArray(f)) return f.length;
+      if (typeof f === 'string' && f.trim()) return f.split(' | ').filter(Boolean).length;
+      return 0;
+    }
+
+    function nomeFolhaSeguro(nome) {
+      return String(nome).replace(/[\[\]\:\*\?\/\\]/g, '-').substring(0, 31);
     }
 
     // ============================================================
@@ -407,6 +456,122 @@
       return (p.estado || '').trim().toLowerCase() === 'concluido';
     }
 
+    // ============================================================
+    // 📅 FOLHA: RESUMO MENSAL (uma linha por mês + total)
+    // ============================================================
+    function construirFolhaResumoMensal(pedidos, atividades, ocorrencias, movimentos) {
+      pedidos = pedidos || []; atividades = atividades || [];
+      ocorrencias = ocorrencias || []; movimentos = movimentos || [];
+      const meses = recolherMeses([
+        [pedidos, 'data_hora_pedido'],
+        [atividades, 'data_hora_inicio'],
+        [ocorrencias, 'data'],
+        [movimentos, 'created_at']
+      ]);
+      const linhas = [];
+      linhas.push(['RESUMO MENSAL — visão mês a mês']);
+      linhas.push([]);
+      linhas.push(['Mês', 'Pedidos', 'Pedidos Concluídos', 'Taxa Conclusão', 'Atividades', 'Horas Trabalhadas', 'Média Horas/Atividade', 'Ocorrências', 'Entradas Stock', 'Saídas Stock']);
+      let totP = 0, totPC = 0, totA = 0, totH = 0, totO = 0, totE = 0, totS = 0;
+      meses.forEach(mes => {
+        const p = pedidos.filter(r => mesDe(r.data_hora_pedido) === mes);
+        const pc = p.filter(estaConcluido).length;
+        const a = atividades.filter(r => mesDe(r.data_hora_inicio) === mes);
+        const horas = a.reduce((s, r) => s + calcularDuracaoHoras(r), 0);
+        const o = ocorrencias.filter(r => mesDe(r.data) === mes);
+        const mov = movimentos.filter(r => mesDe(r.created_at) === mes);
+        const ent = mov.filter(m => m.tipo === 'entrada').reduce((s, m) => s + (m.quantidade || 0), 0);
+        const sai = mov.filter(m => m.tipo !== 'entrada').reduce((s, m) => s + (m.quantidade || 0), 0);
+        totP += p.length; totPC += pc; totA += a.length; totH += horas; totO += o.length; totE += ent; totS += sai;
+        linhas.push([
+          mes, p.length, pc, percent(pc, p.length), a.length,
+          Number(horas.toFixed(2)), a.length ? Number((horas / a.length).toFixed(2)) : 0,
+          o.length, ent, sai
+        ]);
+      });
+      linhas.push([]);
+      linhas.push(['TOTAL', totP, totPC, percent(totPC, totP), totA, Number(totH.toFixed(2)), totA ? Number((totH / totA).toFixed(2)) : 0, totO, totE, totS]);
+      const ws = XLSX.utils.aoa_to_sheet(linhas);
+      ws['!cols'] = [{ wch: 10 }, { wch: 10 }, { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 16 }, { wch: 20 }, { wch: 12 }, { wch: 14 }, { wch: 14 }];
+      return ws;
+    }
+
+    // ============================================================
+    // 📅 FOLHA: DETALHE DE UM MÊS (pedidos, atividades, ocorrências, movimentos)
+    // ============================================================
+    function construirFolhaMensalDetalhada(mes, pedidos, atividades, ocorrencias, movimentos) {
+      const p = (pedidos || []).filter(r => mesDe(r.data_hora_pedido) === mes)
+        .sort((x, y) => String(x.data_hora_pedido || '').localeCompare(String(y.data_hora_pedido || '')));
+      const a = (atividades || []).filter(r => mesDe(r.data_hora_inicio) === mes)
+        .sort((x, y) => String(x.data_hora_inicio || '').localeCompare(String(y.data_hora_inicio || '')));
+      const o = (ocorrencias || []).filter(r => mesDe(r.data) === mes)
+        .sort((x, y) => String(x.data || '').localeCompare(String(y.data || '')));
+      const mov = (movimentos || []).filter(r => mesDe(r.created_at) === mes)
+        .sort((x, y) => String(x.created_at || '').localeCompare(String(y.created_at || '')));
+
+      const horas = a.reduce((s, r) => s + calcularDuracaoHoras(r), 0);
+      const pc = p.filter(estaConcluido).length;
+
+      const linhas = [];
+      linhas.push(['RELATÓRIO DO MÊS ' + mes]);
+      linhas.push([]);
+      linhas.push(['RESUMO DO MÊS']);
+      linhas.push(['Pedidos', p.length]);
+      linhas.push(['Pedidos concluídos', pc, percent(pc, p.length)]);
+      linhas.push(['Atividades', a.length]);
+      linhas.push(['Horas trabalhadas', Number(horas.toFixed(2))]);
+      linhas.push(['Ocorrências', o.length]);
+      linhas.push(['Movimentos de stock', mov.length]);
+      linhas.push([]);
+
+      linhas.push(['PEDIDOS DO MÊS']);
+      if (p.length === 0) linhas.push(['(sem pedidos neste mês)']);
+      else {
+        linhas.push(['ID', 'Data Pedido', 'Requerente', 'Empresa', 'Nº Obra', 'Local/Obra', 'Concelho', 'Serviço', 'Tipo de Trabalho', 'Importância', 'Via', 'Frequência', 'Estado', 'Data Conclusão']);
+        p.forEach(r => linhas.push([
+          r.id, fmtData(r.data_hora_pedido), r.requerente || '', r.empresa || '', r.numero_obra || '', r.local_obra || '', r.concelho || '',
+          truncarTexto(r.servico || '', 1000), r.tipo_trabalho || '', r.importancia || '', r.via || '', r.frequencia || '', r.estado || '', fmtData(r.data_conclusao)
+        ]));
+      }
+      linhas.push([]);
+
+      linhas.push(['ATIVIDADES DO MÊS']);
+      if (a.length === 0) linhas.push(['(sem atividades neste mês)']);
+      else {
+        linhas.push(['ID', 'Início', 'Fim', 'Duração (h)', 'Técnico(s)', 'Empresa', 'Nº Obra', 'Local/Obra', 'Serviço', 'Tipo de Trabalho', 'Pedido #']);
+        a.forEach(r => linhas.push([
+          r.id, fmtData(r.data_hora_inicio), fmtData(r.data_hora_fim), Number(calcularDuracaoHoras(r).toFixed(2)),
+          r.tecnico || '', r.empresa || '', r.numero_obra || '', r.local_obra || '',
+          truncarTexto(r.servico || '', 1000), r.tipo_trabalho || '', r.pedido_id || ''
+        ]));
+      }
+      linhas.push([]);
+
+      linhas.push(['OCORRÊNCIAS DO MÊS']);
+      if (o.length === 0) linhas.push(['(sem ocorrências neste mês)']);
+      else {
+        linhas.push(['ID', 'Data', 'Descrição', 'Empresa', 'Nº Obra', 'Local/Obra', 'Atividade #', 'Nº Fotos']);
+        o.forEach(r => linhas.push([
+          r.id, fmtData(r.data), truncarTexto(r.ocorrencia || '', 2000), r.empresa || '', r.numero_obra || '', r.local_obra || '', r.atividade_id || '', contarFotos(r)
+        ]));
+      }
+      linhas.push([]);
+
+      linhas.push(['MOVIMENTOS DE STOCK DO MÊS']);
+      if (mov.length === 0) linhas.push(['(sem movimentos neste mês)']);
+      else {
+        linhas.push(['Data', 'Material', 'Tipo', 'Quantidade']);
+        mov.forEach(r => linhas.push([fmtData(r.created_at), r.material || '', r.tipo || '', r.quantidade || 0]));
+      }
+
+      const ws = XLSX.utils.aoa_to_sheet(linhas);
+      ws['!cols'] = [{ wch: 8 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 12 }, { wch: 10 }, { wch: 24 }, { wch: 40 }, { wch: 24 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 18 }];
+      return ws;
+    }
+
+    // ============================================================
+    // FOLHA: RESUMO GERAL
+    // ============================================================
     function construirFolhaResumo(pedidos, atividades, ocorrencias, obras, stock, movimentos) {
       stock = stock || [];
       movimentos = movimentos || [];
@@ -417,7 +582,6 @@
 
       const concluidos = pedidos.filter(estaConcluido).length;
       const pendentes = pedidos.length - concluidos;
-      // ✅ FIX: usa obraEstaConcluida (aceita boolean e string 'Sim'/'Não')
       const obrasConcluidas = obras.filter(obraEstaConcluida).length;
       const obrasAtivas = obras.length - obrasConcluidas;
 
@@ -502,7 +666,6 @@
         const c = (o.concelho || '(sem concelho)').trim();
         if (!porConcelho[c]) porConcelho[c] = { total: 0, conc: 0 };
         porConcelho[c].total++;
-        // ✅ FIX: usa obraEstaConcluida em vez de o.concluida (truthy)
         if (obraEstaConcluida(o)) porConcelho[c].conc++;
       });
       Object.entries(porConcelho)
@@ -648,6 +811,36 @@
       setTimeout(() => { el.style.display = 'none'; }, 5000);
     }
 
+    // ===== Preparação central dos dados (usada por vários exports) =====
+    async function prepararDadosEnriquecidos() {
+      const [pedidos, atividades, ocorrencias, obras, stock, movimentos] = await Promise.all([
+        buscarTudo('pedidos'),
+        buscarTudo('atividades'),
+        buscarTudo('ocorrencias'),
+        buscarTudo('obras'),
+        buscarTudo('stock'),
+        buscarTudo('movimentos_stock')
+      ]);
+      return {
+        pedidosR: sanitizarLista(enriquecerComObra(pedidos)),
+        atividadesR: sanitizarLista(enriquecerAtividades(enriquecerComObra(atividades), pedidos)),
+        ocorrenciasR: sanitizarLista(enriquecerOcorrencias(ocorrencias, atividades)),
+        obrasR: sanitizarLista(obras.map(o => ({ ...o, concluida: obraEstaConcluida(o) ? 'Sim' : 'Não' }))),
+        stockR: sanitizarLista(stock),
+        movimentosR: sanitizarLista(movimentos)
+      };
+    }
+
+    function listaDeMeses(d) {
+      return recolherMeses([
+        [d.pedidosR, 'data_hora_pedido'],
+        [d.atividadesR, 'data_hora_inicio'],
+        [d.ocorrenciasR, 'data'],
+        [d.movimentosR, 'created_at']
+      ]);
+    }
+
+    // ===== Downloads individuais =====
     async function exportarPedidos(btn) {
       btn.disabled = true;
       btn.innerText = 'A preparar...';
@@ -766,34 +959,50 @@
       }
     }
 
+    // ===== 📅 DOWNLOAD MENSAL (Resumo Mensal + 1 folha por mês) =====
+    async function exportarMensal(btn) {
+      btn.disabled = true;
+      btn.innerText = 'A preparar visão mensal...';
+      try {
+        const d = await prepararDadosEnriquecidos();
+        const meses = listaDeMeses(d);
+        if (meses.length === 0) { alert('Não existem dados com datas para agrupar por mês.'); return; }
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, construirFolhaResumoMensal(d.pedidosR, d.atividadesR, d.ocorrenciasR, d.movimentosR), 'Resumo Mensal');
+        meses.forEach(mes => {
+          XLSX.utils.book_append_sheet(wb, construirFolhaMensalDetalhada(mes, d.pedidosR, d.atividadesR, d.ocorrenciasR, d.movimentosR), nomeFolhaSeguro(mes));
+        });
+        XLSX.writeFile(wb, `topogf_mensal_${hoje()}.xlsx`);
+        mostrarStatus(`✅ Ficheiro mensal exportado com ${meses.length} mês(es)!`);
+      } catch (err) {
+        console.error(err);
+        alert('Erro: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '📅 Download Mensal (1 folha de Resumo Mensal + 1 folha por cada mês com todo o detalhe)';
+      }
+    }
+
+    // ===== DOWNLOAD TUDO =====
     async function exportarTudo(btn) {
       btn.disabled = true;
       btn.innerText = 'A preparar ficheiro completo...';
       try {
-        const [pedidos, atividades, ocorrencias, obras, stock, movimentos] = await Promise.all([
-          buscarTudo('pedidos'),
-          buscarTudo('atividades'),
-          buscarTudo('ocorrencias'),
-          buscarTudo('obras'),
-          buscarTudo('stock'),
-          buscarTudo('movimentos_stock')
-        ]);
-
-        const pedidosR = sanitizarLista(enriquecerComObra(pedidos));
-        const atividadesR = sanitizarLista(enriquecerAtividades(enriquecerComObra(atividades), pedidos));
-        const ocorrenciasR = sanitizarLista(enriquecerOcorrencias(ocorrencias, atividades));
-        const obrasR = sanitizarLista(obras.map(o => ({ ...o, concluida: obraEstaConcluida(o) ? 'Sim' : 'Não' })));
-        const stockR = sanitizarLista(stock);
-        const movimentosR = sanitizarLista(movimentos);
+        const d = await prepararDadosEnriquecidos();
 
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, criarFolha(pedidosR), 'Pedidos');
-        XLSX.utils.book_append_sheet(wb, criarFolha(atividadesR), 'Atividades');
-        XLSX.utils.book_append_sheet(wb, criarFolha(ocorrenciasR), 'Ocorrencias');
-        XLSX.utils.book_append_sheet(wb, criarFolha(obrasR), 'Obras');
-        XLSX.utils.book_append_sheet(wb, criarFolha(stockR), 'Stock');
-        XLSX.utils.book_append_sheet(wb, criarFolha(movimentosR), 'Movimentos');
-        XLSX.utils.book_append_sheet(wb, construirFolhaResumo(pedidosR, atividadesR, ocorrenciasR, obrasR, stockR, movimentosR), 'Resumo');
+        XLSX.utils.book_append_sheet(wb, criarFolha(d.pedidosR), 'Pedidos');
+        XLSX.utils.book_append_sheet(wb, criarFolha(d.atividadesR), 'Atividades');
+        XLSX.utils.book_append_sheet(wb, criarFolha(d.ocorrenciasR), 'Ocorrencias');
+        XLSX.utils.book_append_sheet(wb, criarFolha(d.obrasR), 'Obras');
+        XLSX.utils.book_append_sheet(wb, criarFolha(d.stockR), 'Stock');
+        XLSX.utils.book_append_sheet(wb, criarFolha(d.movimentosR), 'Movimentos');
+        XLSX.utils.book_append_sheet(wb, construirFolhaResumo(d.pedidosR, d.atividadesR, d.ocorrenciasR, d.obrasR, d.stockR, d.movimentosR), 'Resumo');
+        XLSX.utils.book_append_sheet(wb, construirFolhaResumoMensal(d.pedidosR, d.atividadesR, d.ocorrenciasR, d.movimentosR), 'Resumo Mensal');
+        listaDeMeses(d).forEach(mes => {
+          XLSX.utils.book_append_sheet(wb, construirFolhaMensalDetalhada(mes, d.pedidosR, d.atividadesR, d.ocorrenciasR, d.movimentosR), nomeFolhaSeguro(mes));
+        });
         XLSX.writeFile(wb, `topogf_dados_completos_${hoje()}.xlsx`);
 
         mostrarStatus('✅ Ficheiro completo exportado com sucesso!');
@@ -802,7 +1011,7 @@
         alert('Erro ao exportar: ' + err.message);
       } finally {
         btn.disabled = false;
-        btn.innerText = '⬇ Download Tudo (1 ficheiro Excel com 7 folhas: Pedidos, Atividades, Ocorrências, Obras, Stock, Movimentos de Stock e Resumo Completo)';
+        btn.innerText = '⬇ Download Tudo (6 tabelas + Resumo + Resumo Mensal + 1 folha por cada mês)';
       }
     }
 
@@ -812,6 +1021,7 @@
     document.getElementById('btnObras').addEventListener('click', (e) => exportarObras(e.target));
     document.getElementById('btnStock').addEventListener('click', (e) => exportarStock(e.target));
     document.getElementById('btnMovimentos').addEventListener('click', (e) => exportarMovimentos(e.target));
+    document.getElementById('btnMensal').addEventListener('click', (e) => exportarMensal(e.target));
     document.getElementById('btnTudo').addEventListener('click', (e) => exportarTudo(e.target));
   </script>
 
