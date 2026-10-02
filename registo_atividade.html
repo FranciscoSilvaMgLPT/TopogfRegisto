@@ -479,24 +479,27 @@
         // Exclui os que já estão marcados como concluídos (qualquer grafia)
         const pendentes = (pedidos || []).filter(p => !/conclu/i.test(p.estado || ''));
 
-        pendentes.forEach(pedido => {
-          const obra = Array.isArray(pedido.obras) ? pedido.obras[0] : pedido.obras;
+    pendentes.forEach(pedido => {
+  const obra = Array.isArray(pedido.obras) ? pedido.obras[0] : pedido.obras;
 
-          const option = document.createElement('option');
-          option.value = pedido.id;
-          option.dataset.obraId = pedido.obra_id || '';
+  const option = document.createElement('option');
+  option.value = pedido.id;
+  option.dataset.obraId = pedido.obra_id || '';
 
-          const requerente = pedido.requerente || 'Sem requerente';
-          const empresa = (obra && obra.empresa) || '';
-          const servico = pedido.servico || '';
-          const servicoCurto = servico.substring(0, 40) + (servico.length > 40 ? '...' : '');
-          const numeroObra = obra && obra.numero_obra ? obra.numero_obra + ' ' : '';
-          const localObra = (obra && obra.local_obra) || 'Sem local';
-          const tipoTrabalho = pedido.tipo_trabalho || 'Sem tipo';
+  const requerente = pedido.requerente || 'Sem requerente';
+  const empresa = (obra && obra.empresa) || '';
+  const servico = pedido.servico || '';
+  const servicoCurto = servico.substring(0, 40) + (servico.length > 40 ? '...' : '');
+  const local = (obra && obra.local_obra) || 'Sem local';
+  const numero = (obra && obra.numero_obra) || '';
 
-          option.textContent = `#${pedido.id} ${requerente}${empresa ? ' (' + empresa + ')' : ''} - ${servicoCurto} (${numeroObra}${localObra}) - ${tipoTrabalho}`;
-          selectPedido.appendChild(option);
-        });
+  // "requerente (empresa) - serviço (local numero)"
+  const parteRequerente = empresa ? `${requerente} (${empresa})` : requerente;
+  const parteObra = [local, numero].filter(Boolean).join(' ');
+
+  option.textContent = `${parteRequerente} - ${servicoCurto} (${parteObra})`;
+  selectPedido.appendChild(option);
+});
       } catch (err) {
         console.error("Erro ao carregar pedidos:", err);
         alert("Erro ao carregar pedidos: " + (err.message || err));
