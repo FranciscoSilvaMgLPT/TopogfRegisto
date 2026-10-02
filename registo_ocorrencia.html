@@ -381,19 +381,24 @@ async function carregarObras() {
 
         if (error) throw error;
 
-        (obras || []).forEach(obra => {
-            const option = document.createElement('option');
-            option.value = obra.id;
-            option.dataset.local = obra.local_obra || '';
-            option.dataset.numero = obra.numero_obra || '';
+     (obras || []).forEach(obra => {
+    const option = document.createElement('option');
+    option.value = obra.id;
+    option.dataset.local = obra.local_obra || '';
+    option.dataset.numero = obra.numero_obra || '';
 
-            const numero = obra.numero_obra ? `${obra.numero_obra} ` : '';
-            const local = obra.local_obra || '';
-            const empresa = obra.empresa ? ` - ${obra.empresa}` : '';
+    const local = obra.local_obra || '';
+    const numero = obra.numero_obra || '';
+    const empresa = obra.empresa || '';
+    const concelho = obra.concelho || '';
 
-            option.textContent = `${numero}${local}${empresa}`.trim();
-            selectObra.appendChild(option);
-        });
+    // "local numero - empresa concelho"
+    const parteObra = [local, numero].filter(Boolean).join(' ');
+    const parteEmpresa = [empresa, concelho].filter(Boolean).join(' ');
+
+    option.textContent = [parteObra, parteEmpresa].filter(Boolean).join(' - ');
+    selectObra.appendChild(option);
+});
     } catch (err) {
         console.error("Erro ao carregar obras:", err);
     }
