@@ -441,20 +441,23 @@
 
         if (error) throw error;
 
-        (obras || []).forEach(obra => {
-          const option = document.createElement('option');
-          option.value = obra.id;
-          
-          // Constrói o texto no formato: "Número Local - Empresa"
-          const numero = obra.numero_obra ? `${obra.numero_obra} ` : '';
-          const local = obra.local_obra || '';
-          const empresa = obra.empresa ? ` - ${obra.empresa}` : '';
-          
-          // Junta tudo e remove espaços extras no início/fim, caso algum campo esteja vazio
-          option.textContent = `${numero}${local}${empresa}`.trim();
-          
-          selectObra.appendChild(option);
-        });
+  (obras || []).forEach(obra => {
+  const option = document.createElement('option');
+  option.value = obra.id;
+
+  const local = obra.local_obra || '';
+  const numero = obra.numero_obra || '';
+  const empresa = obra.empresa || '';
+  const concelho = obra.concelho || '';
+
+  // "local numero - empresa concelho"
+  const parteObra = [local, numero].filter(Boolean).join(' ');
+  const parteEmpresa = [empresa, concelho].filter(Boolean).join(' ');
+
+  option.textContent = [parteObra, parteEmpresa].filter(Boolean).join(' - ');
+
+  selectObra.appendChild(option);
+});
       } catch (err) {
         console.error("Erro ao carregar obras:", err);
       }
