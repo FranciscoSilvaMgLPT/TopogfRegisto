@@ -531,35 +531,39 @@
 
     const selectObra = document.getElementById('selectObra');
 
-    // Só mostra obras NÃO concluídas
-    async function carregarObras() {
-      selectObra.innerHTML = '<option value="">-- Selecionar obra --</option>';
-      try {
-        const { data: obras, error } = await supabaseClient
-          .from('obras')
-          .select('id, local_obra, numero_obra, empresa')
-          .eq('concluida', false)
-          .order('local_obra', { ascending: true });
+ // Só mostra obras NÃO concluídas
+async function carregarObras() {
+  selectObra.innerHTML = '<option value="">-- Selecionar obra --</option>';
+  try {
+    const { data: obras, error } = await supabaseClient
+      .from('obras')
+      .select('id, local_obra, numero_obra, empresa, concelho')
+      .eq('concluida', false)
+      .order('local_obra', { ascending: true });
 
-        if (error) throw error;
+    if (error) throw error;
 
-        (obras || []).forEach(obra => {
-          const option = document.createElement('option');
-          option.value = obra.id;
+    (obras || []).forEach(obra => {
+      const option = document.createElement('option');
+      option.value = obra.id;
 
-          // Constrói o texto no formato: "Número Local - Empresa"
-          const numero = obra.numero_obra ? `${obra.numero_obra} ` : '';
-          const local = obra.local_obra || '';
-          const empresa = obra.empresa ? ` - ${obra.empresa}` : '';
+      const local = obra.local_obra || '';
+      const numero = obra.numero_obra || '';
+      const empresa = obra.empresa || '';
+      const concelho = obra.concelho || '';
 
-          option.textContent = `${numero}${local}${empresa}`.trim();
+      // "local numero - empresa concelho"
+      const parteObra = [local, numero].filter(Boolean).join(' ');
+      const parteEmpresa = [empresa, concelho].filter(Boolean).join(' ');
 
-          selectObra.appendChild(option);
-        });
-      } catch (err) {
-        console.error("Erro ao carregar obras:", err);
-      }
-    }
+      option.textContent = [parteObra, parteEmpresa].filter(Boolean).join(' - ');
+
+      selectObra.appendChild(option);
+    });
+  } catch (err) {
+    console.error("Erro ao carregar obras:", err);
+  }
+}
 
     // ===== Utilitários de data e Calendário Personalizado =====
     function pad2(n) { return String(n).padStart(2, '0'); }
