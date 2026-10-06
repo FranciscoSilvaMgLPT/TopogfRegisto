@@ -143,11 +143,24 @@
         .search-box { width: 300px; }
 
         .table-container { width: 100%; overflow-x: auto; border-radius: 10px; }
-        table { width: 100%; border-collapse: collapse; min-width: 750px; }
+        table { width: 100%; border-collapse: collapse; min-width: 950px; }
         thead { background: #334155; }
         th { padding: 14px; text-align: left; font-size: 13px; color: #94a3b8; text-transform: uppercase; font-weight: bold; }
         td { padding: 14px; border-bottom: 1px solid #334155; font-size: 14px; color: #e2e8f0; vertical-align: middle; }
         tbody tr:hover { background: #334155; }
+
+        th.num, td.num { text-align: center; }
+        .badge {
+            display: inline-block;
+            min-width: 32px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: #1d4ed8;
+            color: #fff;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        .badge.zero { background: #334155; color: #94a3b8; }
 
         .numero-obra { font-weight: bold; color: #60a5fa; }
         tr.concluida td { opacity: 0.55; }
@@ -290,11 +303,14 @@
                         <th>Local da Obra</th>
                         <th>Empresa</th>
                         <th>Concelho</th>
+                        <th class="num">Pedidos</th>
+                        <th class="num">Atividades</th>
+                        <th class="num">Ocorrências</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody id="tabela-obras">
-                    <tr><td colspan="5" class="loading">⏳ A carregar obras...</td></tr>
+                    <tr><td colspan="8" class="loading">⏳ A carregar obras...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -353,22 +369,22 @@
         elemento.textContent = nome || user.email || 'Utilizador';
     }
 
-    /* CARREGAR OBRAS */
+    /* CARREGAR OBRAS (com contagem de pedidos, atividades e ocorrências) */
     async function carregarObras() {
         const tabela = document.getElementById('tabela-obras');
         const contador = document.getElementById('contador-obras');
 
-        tabela.innerHTML = `<tr><td colspan="5" class="loading">⏳ A carregar obras...</td></tr>`;
+        tabela.innerHTML = `<tr><td colspan="8" class="loading">⏳ A carregar obras...</td></tr>`;
         contador.textContent = 'A consultar a base de dados...';
 
         const { data, error } = await supabaseClient
             .from('obras')
-            .select('id, local_obra, numero_obra, empresa, concelho, concluida')
+            .select('id, local_obra, numero_obra, empresa, concelho, concluida, pedidos(count), atividades(count), ocorrencias(count)')
             .order('id', { ascending: false });
 
         if (error) {
             console.error('ERRO AO CARREGAR OBRAS:', error);
-            tabela.innerHTML = `<tr><td colspan="5" class="sem-resultados">❌ Erro ao carregar as obras.<br><br><small>${escaparHTML(error.message)}</small></td></tr>`;
+            tabela.innerHTML = `<tr><td colspan="8" class="sem-resultados">❌ Erro ao carregar as obras.<br><br><small>${escaparHTML(error.message)}</small></td></tr>`;
             contador.textContent = 'Erro ao consultar a tabela obras.';
             mostrarMensagem('Erro ao carregar obras: ' + error.message, 'erro');
             return;
@@ -376,6 +392,16 @@
 
         obras = data || [];
         aplicarFiltros();
+    }
+
+    /* CONTAGEM DE REGISTOS RELACIONADOS */
+    function contar(relacao) {
+        return (relacao && relacao[0] && relacao[0].count) || 0;
+    }
+
+    function badge(relacao) {
+        const n = contar(relacao);
+        return `<span class="badge ${n ? '' : 'zero'}">${n}</span>`;
     }
 
     /* MOSTRAR OBRAS */
@@ -389,7 +415,7 @@
         contador.textContent = texto;
 
         if (!lista.length) {
-            tabela.innerHTML = `<tr><td colspan="5" class="sem-resultados">📭 Não existem obras para mostrar.</td></tr>`;
+            tabela.innerHTML = `<tr><td colspan="8" class="sem-resultados">📭 Não existem obras para mostrar.</td></tr>`;
             return;
         }
 
@@ -399,6 +425,9 @@
                 <td>${escaparHTML(obra.local_obra)}</td>
                 <td>${escaparHTML(obra.empresa || '-')}</td>
                 <td>${escaparHTML(obra.concelho || '-')}</td>
+                <td class="num">${badge(obra.pedidos)}</td>
+                <td class="num">${badge(obra.atividades)}</td>
+                <td class="num">${badge(obra.ocorrencias)}</td>
                 <td>
                     <div class="acoes">
                         <button type="button" class="btn ${obra.concluida ? 'btn-reabrir' : 'btn-concluir'}" onclick="alternarConcluida(${obra.id})">
@@ -680,7 +709,12 @@
             return;
         }
 
-        if (!confirm(`Tem a certeza que pretende apagar a obra "${obra.numero_obra}"?`)) return;
+        const total = contar(obra.pedidos) + contar(obra.atividades) + contar(obra.ocorrencias);
+        const aviso = total
+            ? `\n\nAtenção: tem ${total} registo(s) associado(s) (pedidos, atividades ou ocorrências) que ficarão sem obra.`
+            : '';
+
+        if (!confirm(`Tem a certeza que pretende apagar a obra "${obra.numero_obra}"?${aviso}`)) return;
 
         const { error } = await supabaseClient.from('obras').delete().eq('id', id);
 
