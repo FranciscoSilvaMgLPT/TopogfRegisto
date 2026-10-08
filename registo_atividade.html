@@ -243,6 +243,26 @@
     .dt-time input[type="number"] {
       -moz-appearance: textfield;
     }
+
+    /* Botões Manhã / Tarde */
+    .dt-periods {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .dt-period {
+      margin-top: 0;
+      flex: 1;
+      padding: 10px;
+      font-size: 14px;
+      background: #334155;
+      border: 2px solid transparent;
+    }
+    .dt-period.active {
+      background: #2563eb;
+      border-color: #fff;
+    }
+
     .dt-actions {
       display: flex;
       gap: 10px;
@@ -385,6 +405,10 @@
         <span>:</span>
         <input type="number" inputmode="numeric" id="dtMinute" min="0" max="59" value="00">
       </div>
+      <div class="dt-periods">
+        <button type="button" class="dt-period" id="dtManha">Manhã</button>
+        <button type="button" class="dt-period" id="dtTarde">Tarde</button>
+      </div>
       <div class="dt-actions">
         <button type="button" id="dtCancel">Cancelar</button>
         <button type="button" id="dtConfirm">Confirmar</button>
@@ -479,27 +503,27 @@
         // Exclui os que já estão marcados como concluídos (qualquer grafia)
         const pendentes = (pedidos || []).filter(p => !/conclu/i.test(p.estado || ''));
 
-    pendentes.forEach(pedido => {
-  const obra = Array.isArray(pedido.obras) ? pedido.obras[0] : pedido.obras;
+        pendentes.forEach(pedido => {
+          const obra = Array.isArray(pedido.obras) ? pedido.obras[0] : pedido.obras;
 
-  const option = document.createElement('option');
-  option.value = pedido.id;
-  option.dataset.obraId = pedido.obra_id || '';
+          const option = document.createElement('option');
+          option.value = pedido.id;
+          option.dataset.obraId = pedido.obra_id || '';
 
-  const requerente = pedido.requerente || 'Sem requerente';
-  const empresa = (obra && obra.empresa) || '';
-  const servico = pedido.servico || '';
-  const servicoCurto = servico.substring(0, 40) + (servico.length > 40 ? '...' : '');
-  const local = (obra && obra.local_obra) || 'Sem local';
-  const numero = (obra && obra.numero_obra) || '';
+          const requerente = pedido.requerente || 'Sem requerente';
+          const empresa = (obra && obra.empresa) || '';
+          const servico = pedido.servico || '';
+          const servicoCurto = servico.substring(0, 40) + (servico.length > 40 ? '...' : '');
+          const local = (obra && obra.local_obra) || 'Sem local';
+          const numero = (obra && obra.numero_obra) || '';
 
-  // "requerente (empresa) - serviço (local numero)"
-  const parteRequerente = empresa ? `${requerente} (${empresa})` : requerente;
-  const parteObra = [local, numero].filter(Boolean).join(' ');
+          // "requerente (empresa) - serviço (local numero)"
+          const parteRequerente = empresa ? `${requerente} (${empresa})` : requerente;
+          const parteObra = [local, numero].filter(Boolean).join(' ');
 
-  option.textContent = `${parteRequerente} - ${servicoCurto} (${parteObra})`;
-  selectPedido.appendChild(option);
-});
+          option.textContent = `${parteRequerente} - ${servicoCurto} (${parteObra})`;
+          selectPedido.appendChild(option);
+        });
       } catch (err) {
         console.error("Erro ao carregar pedidos:", err);
         alert("Erro ao carregar pedidos: " + (err.message || err));
@@ -534,39 +558,39 @@
 
     const selectObra = document.getElementById('selectObra');
 
- // Só mostra obras NÃO concluídas
-async function carregarObras() {
-  selectObra.innerHTML = '<option value="">-- Selecionar obra --</option>';
-  try {
-    const { data: obras, error } = await supabaseClient
-      .from('obras')
-      .select('id, local_obra, numero_obra, empresa, concelho')
-      .eq('concluida', false)
-      .order('local_obra', { ascending: true });
+    // Só mostra obras NÃO concluídas
+    async function carregarObras() {
+      selectObra.innerHTML = '<option value="">-- Selecionar obra --</option>';
+      try {
+        const { data: obras, error } = await supabaseClient
+          .from('obras')
+          .select('id, local_obra, numero_obra, empresa, concelho')
+          .eq('concluida', false)
+          .order('local_obra', { ascending: true });
 
-    if (error) throw error;
+        if (error) throw error;
 
-    (obras || []).forEach(obra => {
-      const option = document.createElement('option');
-      option.value = obra.id;
+        (obras || []).forEach(obra => {
+          const option = document.createElement('option');
+          option.value = obra.id;
 
-      const local = obra.local_obra || '';
-      const numero = obra.numero_obra || '';
-      const empresa = obra.empresa || '';
-      const concelho = obra.concelho || '';
+          const local = obra.local_obra || '';
+          const numero = obra.numero_obra || '';
+          const empresa = obra.empresa || '';
+          const concelho = obra.concelho || '';
 
-      // "local numero - empresa concelho"
-      const parteObra = [local, numero].filter(Boolean).join(' ');
-      const parteEmpresa = [empresa, concelho].filter(Boolean).join(' ');
+          // "local numero - empresa concelho"
+          const parteObra = [local, numero].filter(Boolean).join(' ');
+          const parteEmpresa = [empresa, concelho].filter(Boolean).join(' ');
 
-      option.textContent = [parteObra, parteEmpresa].filter(Boolean).join(' - ');
+          option.textContent = [parteObra, parteEmpresa].filter(Boolean).join(' - ');
 
-      selectObra.appendChild(option);
-    });
-  } catch (err) {
-    console.error("Erro ao carregar obras:", err);
-  }
-}
+          selectObra.appendChild(option);
+        });
+      } catch (err) {
+        console.error("Erro ao carregar obras:", err);
+      }
+    }
 
     // ===== Utilitários de data e Calendário Personalizado =====
     function pad2(n) { return String(n).padStart(2, '0'); }
@@ -601,6 +625,39 @@ async function carregarObras() {
     const btnNextMonth = document.getElementById('dtNextMonth');
     const btnCancel = document.getElementById('dtCancel');
     const btnConfirm = document.getElementById('dtConfirm');
+
+    const dataHoraInicioDisplay = document.getElementById('dataHoraInicioDisplay');
+    const dataHoraInicio = document.getElementById('dataHoraInicio');
+    const dataHoraFimDisplay = document.getElementById('dataHoraFimDisplay');
+    const dataHoraFim = document.getElementById('dataHoraFim');
+
+    // ===== Botões Manhã / Tarde =====
+    // Manhã = 9h-13h | Tarde = 14h-18h | Ambos = 9h-18h
+    const btnManha = document.getElementById('dtManha');
+    const btnTarde = document.getElementById('dtTarde');
+
+    function horasPeriodo() {
+      const manha = btnManha.classList.contains('active');
+      const tarde = btnTarde.classList.contains('active');
+      if (!manha && !tarde) return null;
+      return { ini: manha ? 9 : 14, fim: tarde ? 18 : 13 };
+    }
+
+    function resetPeriodos() {
+      btnManha.classList.remove('active');
+      btnTarde.classList.remove('active');
+    }
+
+    [btnManha, btnTarde].forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.classList.toggle('active');
+        const p = horasPeriodo();
+        if (p) {
+          hourInput.value = pad2(activeHiddenInput === dataHoraInicio ? p.ini : p.fim);
+          minuteInput.value = '00';
+        }
+      });
+    });
 
     const nomesMes = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 
@@ -654,6 +711,7 @@ async function carregarObras() {
     }
 
     function openPicker(hiddenInput, displayInput) {
+      resetPeriodos();
       activeHiddenInput = hiddenInput;
       activeDisplayInput = displayInput;
 
@@ -705,6 +763,21 @@ async function carregarObras() {
     btnConfirm.addEventListener('click', () => {
       if (!activeHiddenInput) { closePicker(); return; }
 
+      const p = horasPeriodo();
+      if (p) {
+        // Manhã/Tarde ativo: mantém o dia e preenche Início e Fim
+        const base = selectedDate || parseCurrentValue(activeHiddenInput) || new Date();
+        const ini = new Date(base.getFullYear(), base.getMonth(), base.getDate(), p.ini, 0);
+        const fim = new Date(base.getFullYear(), base.getMonth(), base.getDate(), p.fim, 0);
+
+        dataHoraInicio.value = toIsoLocal(ini);
+        dataHoraInicioDisplay.value = toDisplayFormat(ini);
+        dataHoraFim.value = toIsoLocal(fim);
+        dataHoraFimDisplay.value = toDisplayFormat(fim);
+        closePicker();
+        return;
+      }
+
       const baseDate = selectedDate || new Date(viewYear, viewMonth, 1);
       const finalDate = new Date(
         baseDate.getFullYear(),
@@ -718,11 +791,6 @@ async function carregarObras() {
       activeDisplayInput.value = toDisplayFormat(finalDate);
       closePicker();
     });
-
-    const dataHoraInicioDisplay = document.getElementById('dataHoraInicioDisplay');
-    const dataHoraInicio = document.getElementById('dataHoraInicio');
-    const dataHoraFimDisplay = document.getElementById('dataHoraFimDisplay');
-    const dataHoraFim = document.getElementById('dataHoraFim');
 
     dataHoraInicioDisplay.addEventListener('click', () => openPicker(dataHoraInicio, dataHoraInicioDisplay));
     dataHoraFimDisplay.addEventListener('click', () => openPicker(dataHoraFim, dataHoraFimDisplay));
