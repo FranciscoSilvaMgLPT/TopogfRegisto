@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Calendário de obras</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#eef1ec;--panel:#fbfcfa;--ink:#1d2a2e;--mute:#66767a;--line:#d6ddd6;--today:#1d2a2e;
+--ped:#c98a12;--ped-bg:#f7ebcf;--atv:#0f7b6c;--atv-bg:#d3ece7;--oco:#b33a3a;--oco-bg:#f4d9d7;--late:#b33a3a}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#141b1d;--panel:#1b2427;--ink:#e6ecea;--mute:#8d9ea2;--line:#2d3a3d;--today:#e6ecea;
+--ped-bg:#3d3216;--atv-bg:#12413a;--oco-bg:#472222;--ped:#e3a82e;--atv:#37b5a3;--oco:#e26b6b}}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 "Schibsted Grotesk",system-ui,sans-serif;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+.app{max-width:1280px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:100%}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+h1{font-size:26px;margin:0;letter-spacing:-.02em;text-transform:capitalize}
+.nav,.seg{display:flex;gap:4px;align-items:center}
+button,select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--mute)}
+button:focus-visible,select:focus-visible,.cell:focus-visible{outline:2px solid var(--atv);outline-offset:1px}
+.seg button{border-radius:0;margin-left:-1px}.seg button:first-child{border-radius:6px 0 0 6px;margin:0}.seg button:last-child{border-radius:0 6px 6px 0}
+.seg button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tog{display:flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:var(--panel);cursor:pointer;user-select:none}
+.tog i{width:10px;height:10px;border-radius:50%;display:block}
+.tog.off{opacity:.45}.tog.off i{background:transparent!important;outline:1px solid var(--mute)}
+.tog b{font-weight:600}
+.msg{font-size:12px;color:var(--mute)}
+.cal{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;flex:1}
+.dow,.grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.dow div{padding:8px;font-weight:600;color:var(--mute);border-bottom:1px solid var(--line)}
+.cell{min-height:112px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:6px;display:flex;flex-direction:column;gap:3px;cursor:pointer;min-width:0}
+.cell:nth-child(7n){border-right:0}
+.cell.out{background:color-mix(in srgb,var(--bg) 60%,var(--panel))}.cell.out .d{color:var(--mute)}
+.cell:hover{background:color-mix(in srgb,var(--bg) 50%,var(--panel))}
+.grid.week .cell{min-height:60vh}
+.d{font-weight:600;width:24px;height:24px;display:grid;place-items:center;border-radius:50%}
+.cell.today .d{background:var(--today);color:var(--bg)}
+.chip{display:flex;gap:4px;align-items:center;border-radius:4px;padding:2px 6px;font-size:12px;white-space:nowrap;overflow:hidden;border-left:3px solid;min-width:0}
+.chip span{overflow:hidden;text-overflow:ellipsis}
+.chip.p{background:var(--ped-bg);border-color:var(--ped)}.chip.a{background:var(--atv-bg);border-color:var(--atv)}.chip.o{background:var(--oco-bg);border-color:var(--oco)}
+.chip.late{outline:1px solid var(--late)}
+.more{font-size:12px;color:var(--mute);padding-left:4px}
+.grid.week .chip{white-space:normal;align-items:flex-start}
+aside{position:fixed;top:0;right:0;bottom:0;width:min(400px,100%);background:var(--panel);border-left:1px solid var(--line);padding:20px 16px calc(20px + env(safe-area-inset-bottom,0));overflow:auto;transform:translateX(100%);transition:transform .2s;z-index:5;box-shadow:-8px 0 24px rgba(0,0,0,.12)}
+aside.open{transform:none}
+aside h2{margin:0 36px 12px 0;font-size:20px;text-transform:capitalize}
+.x{position:absolute;top:14px;right:14px}
+.ev{border:1px solid var(--line);border-left:4px solid;border-radius:6px;padding:10px;margin-bottom:10px}
+.ev.p{border-left-color:var(--ped)}.ev.a{border-left-color:var(--atv)}.ev.o{border-left-color:var(--oco)}
+.ev h3{margin:0 0 2px;font-size:15px}
+.ev .t{font-size:12px;color:var(--mute);margin-bottom:6px}
+.ev dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:13px}
+.ev dt{color:var(--mute)}.ev dd{margin:0;overflow-wrap:anywhere}
+.badge{display:inline-block;font-size:11px;border-radius:999px;padding:1px 8px;background:var(--line);margin-left:6px}
+.badge.late{background:var(--late);color:#fff}
+@media (max-width:700px){
+ .app{padding:10px}h1{font-size:22px}
+ .cell{min-height:64px;padding:4px;align-items:center}
+ .chips{display:flex;flex-wrap:wrap;gap:3px;justify-content:center}
+ .chip{width:8px;height:8px;padding:0;border-radius:50%;border:0}
+ .chip.p{background:var(--ped)}.chip.a{background:var(--atv)}.chip.o{background:var(--oco)}
+ .chip span,.more{display:none}
+ .grid.week .cell{min-height:50vh;align-items:stretch}
+ .grid.week .chip{width:auto;height:auto;border-radius:4px;padding:2px 4px;border-left:3px solid}
+ .grid.week .chip.p{background:var(--ped-bg)}.grid.week .chip.a{background:var(--atv-bg)}.grid.week .chip.o{background:var(--oco-bg)}
+ .grid.week .chip span{display:block;font-size:10px}
+}
+@media (prefers-reduced-motion:reduce){aside{transition:none}}
+</style>
+</head>
+<body>
+<div class="app">
+ <header>
+  <div class="nav">
+   <button id="prev" aria-label="Anterior">‹</button>
+   <button id="today">Hoje</button>
+   <button id="next" aria-label="Seguinte">›</button>
+   <h1 id="title" style="margin-left:10px"></h1>
+  </div>
+  <div class="nav"><div class="seg"><button id="vm" class="on">Mês</button><button id="vw">Semana</button></div><button id="out" title="Terminar sessão" style="margin-left:8px">Sair</button></div>
+ </header>
+ <div class="filters">
+  <label class="tog" id="tp"><i style="background:var(--ped)"></i>Pedidos <b id="cp"></b></label>
+  <label class="tog" id="ta"><i style="background:var(--atv)"></i>Atividades <b id="ca"></b></label>
+  <label class="tog" id="to"><i style="background:var(--oco)"></i>Ocorrências <b id="co"></b></label>
+  <select id="fTec" aria-label="Técnico"><option value="">Todos os técnicos</option></select>
+  <select id="fObra" aria-label="Obra"><option value="">Todas as obras</option></select>
+  <select id="fEst" aria-label="Estado do pedido"><option value="">Todos os estados</option></select>
+  <span class="msg" id="msg"></span>
+ </div>
+ <div class="cal"><div class="dow" id="dow"></div><div class="grid" id="grid"></div></div>
+</div>
+<aside id="side" aria-label="Detalhe do dia"><button class="x" id="close" aria-label="Fechar">✕</button><h2 id="sTitle"></h2><div id="sBody"></div></aside>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
+
+const MESES=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+const DIAS=["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad=n=>String(n).padStart(2,"0");
+const key=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const hhmm=s=>s&&s.length>10?s.slice(11,16):"";
+const done=p=>/conclu|fechad|resolvid/i.test(p.estado||"")||!!p.data_conclusao;
+
+let DB={pedidos:[],atividades:[],ocorrencias:[],obras:[]};
+let view="m",cur=new Date(),show={p:true,a:true,o:true},EV={};
+
+async function load(){
+ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+ const goLogin=()=>{location.replace("index.html")};
+ $("out").onclick=async()=>{await sb.auth.signOut();goLogin()};
+ const {data:{user},error:ae}=await sb.auth.getUser();
+ if(ae||!user){goLogin();return false}
+ sb.auth.onAuthStateChange(ev=>{if(ev==="SIGNED_OUT")goLogin()});
+ $("msg").textContent=user.email;
+ try{
+  const r=await Promise.all(["pedidos","atividades","ocorrencias","obras"].map(t=>sb.from(t).select("*").limit(5000)));
+  r.forEach(x=>{if(x.error)throw x.error});
+  [DB.pedidos,DB.atividades,DB.ocorrencias,DB.obras]=r.map(x=>x.data||[]);
+ }catch(e){$("msg").textContent="Erro ao carregar dados: "+(e.message||e)}
+ return true;
+}
+
+function demo(){
+ const t=new Date(),f=(o,h=9)=>{const d=new Date(t.getFullYear(),t.getMonth(),t.getDate()+o,h,0);return `${key(d)}T${pad(h)}:00:00`};
+ const obras=[{id:1,numero_obra:"OB-2041",empresa:"Construções Tejo",concelho:"Odivelas",local_obra:"Rua do Alto 12"},{id:2,numero_obra:"OB-2057",empresa:"Habitar+",concelho:"Loures",local_obra:"Urb. Vale Verde"}];
+ const pedidos=[
+  {id:1,tecnico:"Rita",requerente:"J. Matos",servico:"Quadro elétrico",tipo_trabalho:"Instalação",estado:"Pendente",importancia:"Alta",data_agendada:f(1,10),data_hora_limite:f(3),obra_id:1,observacao:"Confirmar acesso com o encarregado."},
+  {id:2,tecnico:"Paulo",requerente:"Habitar+",servico:"Reparação de fuga",tipo_trabalho:"Manutenção",estado:"Pendente",importancia:"Média",data_hora_limite:f(-2),obra_id:2},
+  {id:3,tecnico:"Rita",requerente:"A. Lopes",servico:"Revisão AVAC",tipo_trabalho:"Revisão",estado:"Concluído",data_agendada:f(-4,14),data_conclusao:f(-4,17),obra_id:1},
+  {id:4,tecnico:"Paulo",requerente:"C. Tejo",servico:"Pintura exterior",tipo_trabalho:"Acabamentos",estado:"Em curso",data_agendada:f(5,8),data_hora_limite:f(9),obra_id:2}];
+ const atividades=[
+  {id:1,tecnico:"Rita",servico:"Montagem de quadro",data_hora_inicio:f(0,9),data_hora_fim:f(0,12),pedido_id:1,obra_id:1},
+  {id:2,tecnico:"Paulo",servico:"Deteção de fuga",data_hora_inicio:f(-1,15),data_hora_fim:f(-1,18),pedido_id:2,obra_id:2},
+  {id:3,tecnico:"Rita",servico:"Revisão AVAC",data_hora_inicio:f(-4,14),data_hora_fim:f(-4,17),pedido_id:3,obra_id:1},
+  {id:4,tecnico:"Paulo",servico:"Preparação de superfícies",data_hora_inicio:f(2,8),data_hora_fim:f(2,12),pedido_id:4,obra_id:2}];
+ const ocorrencias=[
+  {id:1,data:f(-1,16),ocorrencia:"Tubagem antiga com corrosão; foi necessário substituir 2 m.",atividade_id:2,obra_id:2},
+  {id:2,data:f(0,11),ocorrencia:"Falta de acesso ao patamar técnico durante 30 min.",atividade_id:1,obra_id:1}];
+ return {pedidos,atividades,ocorrencias,obras};
+}
+
+function build(){
+ const O=Object.fromEntries(DB.obras.map(o=>[o.id,o])),A=Object.fromEntries(DB.atividades.map(a=>[a.id,a]));
+ const ob=id=>{const o=O[id];return o?`${o.numero_obra}${o.local_obra?" – "+o.local_obra:""}`:""};
+ const now=new Date(),L=[];
+ DB.pedidos.forEach(p=>{
+  const d=p.data_agendada||p.data_hora_limite||p.data_hora_pedido; if(!d)return;
+  const late=!done(p)&&p.data_hora_limite&&new Date(p.data_hora_limite)<now;
+  L.push({k:"p",d,title:p.servico||p.tipo_trabalho||"Pedido",tec:p.tecnico,obra:ob(p.obra_id),obraId:p.obra_id,est:p.estado||"",late,
+   rows:[["Requerente",p.requerente],["Tipo",p.tipo_trabalho],["Via",p.via],["Importância",p.importancia],["Frequência",p.frequencia],["Pedido em",fmt(p.data_hora_pedido)],["Agendado",fmt(p.data_agendada)],["Limite",fmt(p.data_hora_limite)],["Concluído",fmt(p.data_conclusao)],["Observação",p.observacao]]});
+ });
+ DB.atividades.forEach(a=>{ if(!a.data_hora_inicio)return;
+  L.push({k:"a",d:a.data_hora_inicio,title:a.servico||a.tipo_trabalho||"Atividade",tec:a.tecnico,obra:ob(a.obra_id),obraId:a.obra_id,est:"",
+   rows:[["Início",fmt(a.data_hora_inicio)],["Fim",fmt(a.data_hora_fim)],["Tipo",a.tipo_trabalho],["Pedido",a.pedido_id?"#"+a.pedido_id:""],["Anexo",a.anexo]]});
+ });
+ DB.ocorrencias.forEach(o=>{ if(!o.data)return;
+  const a=A[o.atividade_id]||{},n=Array.isArray(o.fotos)?o.fotos.length:0;
+  L.push({k:"o",d:o.data,title:(o.ocorrencia||"Ocorrência").slice(0,70),tec:a.tecnico,obra:ob(o.obra_id||a.obra_id),obraId:o.obra_id||a.obra_id,est:"",
+   rows:[["Descrição",o.ocorrencia],["Atividade",a.servico],["Fotos",n?n+" anexada(s)":""]]});
+ });
+ L.forEach(e=>e.day=e.d.slice(0,10));
+ const set=(sel,vals,lab)=>{const v=sel.value;sel.innerHTML=`<option value="">${lab}</option>`+[...new Set(vals.filter(Boolean))].sort().map(x=>`<option>${esc(x)}</option>`).join("");sel.value=v};
+ set($("fTec"),L.map(e=>e.tec),"Todos os técnicos");
+ set($("fObra"),L.map(e=>e.obra),"Todas as obras");
+ set($("fEst"),L.filter(e=>e.k==="p").map(e=>e.est),"Todos os estados");
+ EV.all=L;
+}
+function fmt(s){if(!s)return"";const d=new Date(s);return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`}
+
+function filtered(){
+ const t=$("fTec").value,o=$("fObra").value,s=$("fEst").value;
+ return EV.all.filter(e=>(!t||e.tec===t)&&(!o||e.obra===o)&&(!s||e.k!=="p"||e.est===s));
+}
+
+function render(){
+ const F=filtered(),by={};
+ F.forEach(e=>{(by[e.day]??=[]).push(e)});
+ Object.values(by).forEach(a=>a.sort((x,y)=>x.d.localeCompare(y.d)));
+ $("cp").textContent=F.filter(e=>e.k==="p").length;$("ca").textContent=F.filter(e=>e.k==="a").length;$("co").textContent=F.filter(e=>e.k==="o").length;
+ ["p","a","o"].forEach(k=>$("t"+k).classList.toggle("off",!show[k]));
+ let start,n;
+ if(view==="m"){const f=new Date(cur.getFullYear(),cur.getMonth(),1);start=new Date(f);start.setDate(1-((f.getDay()+6)%7));n=42;
+  $("title").textContent=`${MESES[cur.getMonth()]} ${cur.getFullYear()}`}
+ else{start=new Date(cur);start.setDate(cur.getDate()-((cur.getDay()+6)%7));n=7;
+  const e=new Date(start);e.setDate(e.getDate()+6);
+  $("title").textContent=`${start.getDate()} ${MESES[start.getMonth()].slice(0,3)} – ${e.getDate()} ${MESES[e.getMonth()].slice(0,3)} ${e.getFullYear()}`}
+ const tk=key(new Date()),max=view==="m"?3:99;let h="";
+ for(let i=0;i<n;i++){
+  const d=new Date(start);d.setDate(start.getDate()+i);const k=key(d);
+  const ev=(by[k]||[]).filter(e=>show[e.k]);
+  const out=view==="m"&&d.getMonth()!==cur.getMonth();
+  h+=`<div class="cell${out?" out":""}${k===tk?" today":""}" tabindex="0" role="button" data-k="${k}" aria-label="${d.getDate()} de ${MESES[d.getMonth()]}, ${ev.length} eventos"><div class="d">${d.getDate()}</div><div class="chips">`+
+   ev.slice(0,max).map(e=>`<div class="chip ${e.k}${e.late?" late":""}" title="${esc(e.title)}"><span>${hhmm(e.d)?hhmm(e.d)+" ":""}${esc(e.title)}</span></div>`).join("")+
+   (ev.length>max?`<div class="more">+${ev.length-max} mais</div>`:"")+`</div></div>`;
+ }
+ $("grid").className="grid"+(view==="w"?" week":"");
+ $("grid").innerHTML=h;
+ EV.by=by;
+}
+
+function open(k){
+ const d=new Date(k+"T00:00:00"),ev=(EV.by[k]||[]).filter(e=>show[e.k]);
+ $("sTitle").textContent=`${DIAS[(d.getDay()+6)%7]}, ${d.getDate()} de ${MESES[d.getMonth()]}`;
+ const nm={p:"Pedido",a:"Atividade",o:"Ocorrência"};
+ $("sBody").innerHTML=ev.length?ev.map(e=>`<div class="ev ${e.k}"><h3>${esc(e.title)}${e.late?'<span class="badge late">Em atraso</span>':""}${e.est?`<span class="badge">${esc(e.est)}</span>`:""}</h3>
+  <div class="t">${nm[e.k]}${hhmm(e.d)?" às "+hhmm(e.d):""}${e.tec?" – "+esc(e.tec):""}</div>
+  <dl>${e.obra?`<dt>Obra</dt><dd>${esc(e.obra)}</dd>`:""}${e.rows.filter(r=>r[1]).map(r=>`<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join("")}</dl></div>`).join(""):'<p class="msg">Sem eventos neste dia com os filtros atuais.</p>';
+ $("side").classList.add("open");
+}
+
+function step(dir){
+ if(view==="m")cur=new Date(cur.getFullYear(),cur.getMonth()+dir,1);else cur.setDate(cur.getDate()+7*dir);
+ render();
+}
+$("dow").innerHTML=DIAS.map(d=>`<div>${d}</div>`).join("");
+$("prev").onclick=()=>step(-1);$("next").onclick=()=>step(1);
+$("today").onclick=()=>{cur=new Date();render()};
+$("vm").onclick=()=>{view="m";$("vm").classList.add("on");$("vw").classList.remove("on");render()};
+$("vw").onclick=()=>{view="w";$("vw").classList.add("on");$("vm").classList.remove("on");render()};
+["p","a","o"].forEach(k=>$("t"+k).onclick=e=>{e.preventDefault();show[k]=!show[k];render()});
+["fTec","fObra","fEst"].forEach(i=>$(i).onchange=render);
+$("grid").onclick=e=>{const c=e.target.closest(".cell");if(c)open(c.dataset.k)};
+$("grid").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){const c=e.target.closest(".cell");if(c){e.preventDefault();open(c.dataset.k)}}};
+$("close").onclick=()=>$("side").classList.remove("open");
+document.addEventListener("keydown",e=>{if(e.key==="Escape")$("side").classList.remove("open")});
+
+load().then(ok=>{if(ok){build();render()}});
+</script>
+</body>
+</html>
