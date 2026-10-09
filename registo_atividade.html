@@ -616,6 +616,21 @@
       document.getElementById("dataHoraFimDisplay").value = toDisplayFormat(fim);
     }
 
+    // Se vier do calendário (?data=AAAA-MM-DD), usa esse dia: início às 09:00 e fim às 13:00
+    function aplicarDataDoCalendario() {
+      const dia = new URLSearchParams(window.location.search).get('data');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dia || '')) return;
+      const ini = new Date(dia + 'T09:00');
+      const fim = new Date(dia + 'T13:00');
+      if (isNaN(ini)) return;
+
+      document.getElementById("dataHoraInicio").value = toIsoLocal(ini);
+      document.getElementById("dataHoraInicioDisplay").value = toDisplayFormat(ini);
+
+      document.getElementById("dataHoraFim").value = toIsoLocal(fim);
+      document.getElementById("dataHoraFimDisplay").value = toDisplayFormat(fim);
+    }
+
     const overlay = document.getElementById('dtPickerOverlay');
     const monthLabel = document.getElementById('dtMonthLabel');
     const daysGrid = document.getElementById('dtDays');
@@ -886,6 +901,7 @@
             data: document.getElementById("dataHoraInicio").value,
             ocorrencia: textoOcorrencia,
             atividade_id: novaAtividadeId,
+            obra_id: parseInt(selectObra.value),
             fotos: fotosBase64
           }])
           .select();
@@ -926,6 +942,7 @@
       } else {
         document.getElementById('user-display').innerText = user.email;
         definirDatasAtuais();
+        aplicarDataDoCalendario();
         await carregarObras();
         await carregarPedidosPendentes();
         preSelecionarPedidoPorUrl();
