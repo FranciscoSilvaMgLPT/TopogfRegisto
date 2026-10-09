@@ -290,12 +290,15 @@
       document.getElementById("dataHoraPedidoDisplay").value = toDisplayFormat(now);
     }
 
-    // Se vier do calendário (?data=AAAA-MM-DD), preenche a Data Agendada com esse dia às 09:00
+    // Se vier do calendário (?data=AAAA-MM-DD), preenche a Data + Hora do Pedido
+    // e a Data Agendada com esse dia às 09:00
     function aplicarDataDoCalendario() {
       const dia = new URLSearchParams(window.location.search).get('data');
       if (!/^\d{4}-\d{2}-\d{2}$/.test(dia || '')) return;
       const d = new Date(dia + 'T09:00');
       if (isNaN(d)) return;
+      document.getElementById("dataHoraPedido").value = toIsoLocal(d);
+      document.getElementById("dataHoraPedidoDisplay").value = toDisplayFormat(d);
       document.getElementById("dataAgendada").value = toIsoLocal(d);
       document.getElementById("dataAgendadaDisplay").value = toDisplayFormat(d);
     }
