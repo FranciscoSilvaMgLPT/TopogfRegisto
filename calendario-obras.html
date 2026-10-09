@@ -23,6 +23,7 @@ button:hover{border-color:var(--mute)}
 button:focus-visible,select:focus-visible,.cell:focus-visible{outline:2px solid var(--atv);outline-offset:1px}
 .seg button{border-radius:0;margin-left:-1px}.seg button:first-child{border-radius:6px 0 0 6px;margin:0}.seg button:last-child{border-radius:0 6px 6px 0}
 .seg button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.back-link{display:inline-block;font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 12px;text-decoration:none;cursor:pointer;white-space:nowrap}.back-link:hover{border-color:var(--mute)}.back-link:focus-visible{outline:2px solid var(--atv);outline-offset:1px}
 .filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .tog{display:flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:var(--panel);cursor:pointer;user-select:none}
 .tog i{width:10px;height:10px;border-radius:50%;display:block}
@@ -86,7 +87,7 @@ aside h2{margin:0 36px 12px 0;font-size:20px;text-transform:capitalize}
    <button id="next" aria-label="Seguinte">›</button>
    <h1 id="title" style="margin-left:10px"></h1>
   </div>
-  <div class="nav"><div class="seg"><button id="vm" class="on">Mês</button><button id="vw">Semana</button></div><button id="out" title="Terminar sessão" style="margin-left:8px">Sair</button></div>
+  <div class="nav"><div class="seg"><button id="vm" class="on">Mês</button><button id="vw">Semana</button></div><a href="index.html" class="back-link" style="margin-left:8px">← Voltar</a></div>
  </header>
  <div class="filters">
   <label class="tog" id="tp"><i style="background:var(--ped)"></i>Pedidos <b id="cp"></b></label>
@@ -123,7 +124,6 @@ let view="m",cur=new Date(),show={p:true,a:true,o:true},EV={};
 async function load(){
  const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
  const goLogin=()=>{location.replace("index.html")};
- $("out").onclick=async()=>{await sb.auth.signOut();goLogin()};
  const {data:{user},error:ae}=await sb.auth.getUser();
  if(ae||!user){goLogin();return false}
  sb.auth.onAuthStateChange(ev=>{if(ev==="SIGNED_OUT")goLogin()});
