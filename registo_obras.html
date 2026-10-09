@@ -146,6 +146,14 @@
         table { width: 100%; border-collapse: collapse; min-width: 950px; }
         thead { background: #334155; }
         th { padding: 14px; text-align: left; font-size: 13px; color: #94a3b8; text-transform: uppercase; font-weight: bold; }
+
+        /* ORDENAÇÃO */
+        th.ordenavel { cursor: pointer; user-select: none; transition: 0.2s; }
+        th.ordenavel:hover { color: #e2e8f0; }
+        th .seta { display: inline-block; width: 12px; margin-left: 6px; font-size: 11px; opacity: 0.35; }
+        th.ativo { color: #60a5fa; }
+        th.ativo .seta { opacity: 1; }
+
         td { padding: 14px; border-bottom: 1px solid #334155; font-size: 14px; color: #e2e8f0; vertical-align: middle; }
         tbody tr:hover { background: #334155; }
 
@@ -299,13 +307,13 @@
             <table>
                 <thead>
                     <tr>
-                        <th>N.º Obra</th>
-                        <th>Local da Obra</th>
-                        <th>Empresa</th>
-                        <th>Concelho</th>
-                        <th class="num">Pedidos</th>
-                        <th class="num">Atividades</th>
-                        <th class="num">Ocorrências</th>
+                        <th class="ordenavel" data-campo="numero_obra">N.º Obra <span class="seta">⇅</span></th>
+                        <th class="ordenavel" data-campo="local_obra">Local da Obra <span class="seta">⇅</span></th>
+                        <th class="ordenavel" data-campo="empresa">Empresa <span class="seta">⇅</span></th>
+                        <th class="ordenavel" data-campo="concelho">Concelho <span class="seta">⇅</span></th>
+                        <th class="ordenavel num" data-campo="pedidos">Pedidos <span class="seta">⇅</span></th>
+                        <th class="ordenavel num" data-campo="atividades">Atividades <span class="seta">⇅</span></th>
+                        <th class="ordenavel num" data-campo="ocorrencias">Ocorrências <span class="seta">⇅</span></th>
                         <th>Ações</th>
                     </tr>
                 </thead>
@@ -329,6 +337,7 @@
     let obraEmEdicao = null;
     let indiceAtivoEmpresa = -1;
     let mostrarConcluidas = false; // começa oculto
+    let ordenacao = { campo: null, direcao: 'asc' };
 
     /* INICIALIZAÇÃO */
     window.addEventListener('DOMContentLoaded', inicializar);
@@ -462,6 +471,9 @@
         document.getElementById('btn-toggle-concluidas').textContent =
             mostrarConcluidas ? '🙈 Ocultar concluídas' : '👁 Mostrar concluídas';
 
+        lista = ordenarLista(lista);
+        atualizarSetas();
+
         mostrarObras(lista);
     }
 
@@ -469,6 +481,60 @@
         mostrarConcluidas = !mostrarConcluidas;
         aplicarFiltros();
     }
+
+    /* ORDENAÇÃO */
+    const CAMPOS_NUMERICOS = ['pedidos', 'atividades', 'ocorrencias'];
+
+    function valorOrdenacao(obra, campo) {
+        if (CAMPOS_NUMERICOS.includes(campo)) return contar(obra[campo]);
+        return String(obra[campo] || '').trim();
+    }
+
+    function ordenarLista(lista) {
+        if (!ordenacao.campo) return lista; // ordem original (id desc)
+
+        const dir = ordenacao.direcao === 'asc' ? 1 : -1;
+        const campo = ordenacao.campo;
+
+        return [...lista].sort((a, b) => {
+            const va = valorOrdenacao(a, campo);
+            const vb = valorOrdenacao(b, campo);
+
+            if (typeof va === 'number') return (va - vb) * dir;
+
+            // vazios ficam sempre no fim
+            if (!va && !vb) return 0;
+            if (!va) return 1;
+            if (!vb) return -1;
+
+            return va.localeCompare(vb, 'pt', { numeric: true, sensitivity: 'base' }) * dir;
+        });
+    }
+
+    function atualizarSetas() {
+        document.querySelectorAll('th.ordenavel').forEach(th => {
+            const ativo = th.dataset.campo === ordenacao.campo;
+            th.classList.toggle('ativo', ativo);
+            th.querySelector('.seta').textContent =
+                !ativo ? '⇅' : (ordenacao.direcao === 'asc' ? '▲' : '▼');
+        });
+    }
+
+    document.querySelectorAll('th.ordenavel').forEach(th => {
+        th.addEventListener('click', () => {
+            const campo = th.dataset.campo;
+
+            if (ordenacao.campo !== campo) {
+                ordenacao = { campo, direcao: 'asc' };
+            } else if (ordenacao.direcao === 'asc') {
+                ordenacao.direcao = 'desc';
+            } else {
+                ordenacao = { campo: null, direcao: 'asc' }; // repor ordem original
+            }
+
+            aplicarFiltros();
+        });
+    });
 
     async function alternarConcluida(id) {
         const obra = obras.find(item => Number(item.id) === Number(id));
