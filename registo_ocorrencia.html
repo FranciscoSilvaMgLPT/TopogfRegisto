@@ -454,6 +454,16 @@ function definirDataAtual() {
   document.getElementById("dataOcorrenciaDisplay").value = toDisplayFormat(now);
 }
 
+// Se vier do calendário (?data=AAAA-MM-DD), usa esse dia às 09:00
+function aplicarDataDoCalendario() {
+  const dia = new URLSearchParams(window.location.search).get('data');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dia || '')) return;
+  const d = new Date(dia + 'T09:00');
+  if (isNaN(d)) return;
+  document.getElementById("dataOcorrencia").value = toIsoLocal(d);
+  document.getElementById("dataOcorrenciaDisplay").value = toDisplayFormat(d);
+}
+
 const overlay = document.getElementById('dtPickerOverlay');
 const monthLabel = document.getElementById('dtMonthLabel');
 const daysGrid = document.getElementById('dtDays');
@@ -594,6 +604,7 @@ window.onload = async () => {
     } else {
         document.getElementById('user-display').innerText = user.email;
         definirDataAtual();
+        aplicarDataDoCalendario();
         // As obras carregam primeiro para o dropdown já estar preenchido
         // quando uma atividade for selecionada
         await carregarObras();
