@@ -69,6 +69,11 @@ aside h2{margin:0 36px 12px 0;font-size:20px;text-transform:capitalize}
  .grid.week .chip.p{background:var(--ped-bg)}.grid.week .chip.a{background:var(--atv-bg)}.grid.week .chip.o{background:var(--oco-bg)}
  .grid.week .chip span{display:block;font-size:10px}
 }
+.acts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px}
+.acts a,.lnk{display:block;text-align:center;text-decoration:none;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 6px;font-size:13px;font-weight:600}
+.acts a:hover,.lnk:hover{border-color:var(--mute)}
+.acts .p{border-top:3px solid var(--ped)}.acts .a{border-top:3px solid var(--atv)}.acts .o{border-top:3px solid var(--oco)}
+.lnk{margin-top:8px;font-weight:500;background:transparent}
 @media (prefers-reduced-motion:reduce){aside{transition:none}}
 </style>
 </head>
@@ -100,6 +105,8 @@ aside h2{margin:0 36px 12px 0;font-size:20px;text-transform:capitalize}
 <script>
 const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_WekrBSs5JOjnJ1SGxFvmKQ_3v6AnBMs';
+/* Nomes dos teus ficheiros de registo (ajusta se forem diferentes) */
+const FORMS = {p:'pedidos.html', a:'atividade.html', o:'ocorrencia.html'};
 
 const MESES=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
 const DIAS=["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"];
@@ -155,7 +162,7 @@ function build(){
  DB.pedidos.forEach(p=>{
   const d=p.data_agendada||p.data_hora_limite||p.data_hora_pedido; if(!d)return;
   const late=!done(p)&&p.data_hora_limite&&new Date(p.data_hora_limite)<now;
-  L.push({k:"p",d,title:p.servico||p.tipo_trabalho||"Pedido",tec:p.tecnico,obra:ob(p.obra_id),obraId:p.obra_id,est:p.estado||"",late,
+  L.push({k:"p",d,title:p.servico||p.tipo_trabalho||"Pedido",tec:p.tecnico,obra:ob(p.obra_id),obraId:p.obra_id,est:p.estado||"",late,id:p.id,fin:done(p),
    rows:[["Requerente",p.requerente],["Tipo",p.tipo_trabalho],["Via",p.via],["Importância",p.importancia],["Frequência",p.frequencia],["Pedido em",fmt(p.data_hora_pedido)],["Agendado",fmt(p.data_agendada)],["Limite",fmt(p.data_hora_limite)],["Concluído",fmt(p.data_conclusao)],["Observação",p.observacao]]});
  });
  DB.atividades.forEach(a=>{ if(!a.data_hora_inicio)return;
@@ -211,9 +218,11 @@ function open(k){
  const d=new Date(k+"T00:00:00"),ev=(EV.by[k]||[]).filter(e=>show[e.k]);
  $("sTitle").textContent=`${DIAS[(d.getDay()+6)%7]}, ${d.getDate()} de ${MESES[d.getMonth()]}`;
  const nm={p:"Pedido",a:"Atividade",o:"Ocorrência"};
- $("sBody").innerHTML=ev.length?ev.map(e=>`<div class="ev ${e.k}"><h3>${esc(e.title)}${e.late?'<span class="badge late">Em atraso</span>':""}${e.est?`<span class="badge">${esc(e.est)}</span>`:""}</h3>
+ const q=(f,x="")=>`${FORMS[f]}?data=${k}${x}`;
+ const acts=`<div class="acts"><a class="p" href="${q("p")}">＋ Pedido</a><a class="a" href="${q("a")}">＋ Atividade</a><a class="o" href="${q("o")}">＋ Ocorrência</a></div>`;
+ $("sBody").innerHTML=acts+(ev.length?ev.map(e=>`<div class="ev ${e.k}"><h3>${esc(e.title)}${e.late?'<span class="badge late">Em atraso</span>':""}${e.est?`<span class="badge">${esc(e.est)}</span>`:""}</h3>
   <div class="t">${nm[e.k]}${hhmm(e.d)?" às "+hhmm(e.d):""}${e.tec?" – "+esc(e.tec):""}</div>
-  <dl>${e.obra?`<dt>Obra</dt><dd>${esc(e.obra)}</dd>`:""}${e.rows.filter(r=>r[1]).map(r=>`<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join("")}</dl></div>`).join(""):'<p class="msg">Sem eventos neste dia com os filtros atuais.</p>';
+  <dl>${e.obra?`<dt>Obra</dt><dd>${esc(e.obra)}</dd>`:""}${e.rows.filter(r=>r[1]).map(r=>`<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join("")}</dl>${e.k==="p"&&!e.fin?`<a class="lnk" href="${q("a","&pedido="+e.id)}">Registar atividade neste pedido</a>`:""}</div>`).join(""):'<p class="msg">Sem eventos neste dia com os filtros atuais.</p>');
  $("side").classList.add("open");
 }
 
