@@ -161,7 +161,7 @@
 
     // Campos próprios do pedido (guardados na tabela "pedidos")
     const CAMPOS_GUARDAVEIS = [
-        "tecnico", "data_hora_pedido", "requerente", "importancia",
+        "tecnico", "data_hora_pedido", "data_agendada", "requerente", "importancia",
         "via", "servico", "observacao",
         "tipo_trabalho", "frequencia", "data_hora_limite", "estado", "data_conclusao"
     ];
@@ -346,6 +346,7 @@
                     '<p><strong>Estado:</strong> ' + (row.estado || '—') + '</p>' +
                     '<p><strong>Importância:</strong> ' + (row.importancia || '—') + '</p>' +
                     '<p><strong>Data Pedido:</strong> ' + dataFormatter({getValue: () => row.data_hora_pedido}) + '</p>' +
+                    '<p><strong>Data Agendada:</strong> ' + (row.data_agendada ? dataFormatter({getValue: () => row.data_agendada}) : '—') + '</p>' +
                     '<p><strong>Limite:</strong> ' + dataFormatter({getValue: () => row.data_hora_limite}) + '</p>' +
                     '<p><strong>Requerente:</strong> ' + (row.requerente || '—') + '</p>' +
                     '<p><strong>Empresa:</strong> ' + (row.empresa || '—') + '</p>' +
@@ -483,6 +484,7 @@
             columns: [
                 {title: "Técnico", field: "tecnico", minWidth: 120, editor: "input"},
                 {title: "Data Pedido", field: "data_hora_pedido", minWidth: 150, editor: dateEditor, formatter: dataFormatter},
+                {title: "Data Agendada", field: "data_agendada", minWidth: 150, editor: dateEditor, formatter: dataFormatter},
                 {title: "Requerente", field: "requerente", minWidth: 140, editor: "input"},
                 {title: "Empresa", field: "empresa", minWidth: 150, editor: "list", editorParams: {values: ["", "CCR ENG&CONST", "CCR-INVEST", "GROWNOR", "WEST-VIEW", "GRAU-ON", "FERCAYO", "DECIBOLT", "INTERNO", "EXTERNO"]}},
                 {title: "Importância❗", field: "importancia", minWidth: 100, editor: "list", editorParams: {values: ["Baixa", "Média", "Alta"]}},
@@ -592,7 +594,8 @@
                     tecnico: item.tecnico, data_hora_pedido: item.data_hora_pedido, requerente: item.requerente,
                     importancia: item.importancia, via: item.via, servico: item.servico, observacao: item.observacao,
                     tipo_trabalho: item.tipo_trabalho, frequencia: item.frequencia, data_hora_limite: item.data_hora_limite,
-                    estado: item.estado, data_conclusao: item.data_conclusao
+                    estado: item.estado, data_conclusao: item.data_conclusao,
+                    data_agendada: item.data_agendada || null
                 }).eq('id', item.id);
 
                 if (erroPedido) return { id: item.id, error: erroPedido };
