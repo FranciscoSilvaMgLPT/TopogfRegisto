@@ -178,6 +178,81 @@
         .acoes { display: flex; gap: 8px; }
         .loading, .sem-resultados { text-align: center; padding: 35px !important; color: #94a3b8; }
 
+        /* LINHAS CLICÁVEIS */
+        tbody tr.clicavel { cursor: pointer; }
+
+        /* MODAL DA OBRA */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.65);
+            z-index: 1000;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 30px 15px;
+            overflow-y: auto;
+        }
+        .modal-overlay.aberto { display: flex; }
+
+        .modal {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 1100px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #334155;
+        }
+        .modal-header h2 { font-size: 22px; color: #fff; margin-bottom: 6px; }
+        .modal-header .sub { font-size: 14px; color: #94a3b8; line-height: 1.5; }
+        .btn-fechar { background: #334155; padding: 8px 14px; }
+
+        .tabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+        .tab {
+            background: #334155;
+            color: #cbd5e1;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .tab:hover { filter: brightness(1.15); }
+        .tab.ativo { background: #2563eb; color: #fff; }
+        .tab .badge { margin-left: 6px; background: rgba(255,255,255,0.2); }
+
+        .modal table { min-width: 700px; }
+        .modal td.texto-longo { max-width: 380px; white-space: pre-wrap; word-break: break-word; }
+
+        .estado {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            background: #475569;
+            color: #fff;
+        }
+        .estado.pendente { background: #d97706; }
+        .estado.concluido { background: #059669; }
+
+        .fotos { display: flex; gap: 6px; flex-wrap: wrap; }
+        .fotos img { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; border: 1px solid #475569; }
+        .fotos a, .link-anexo { color: #60a5fa; font-size: 13px; text-decoration: none; }
+        .fotos a:hover, .link-anexo:hover { text-decoration: underline; }
+
         /* MENSAGENS (TOAST) */
         #mensagens {
             position: fixed;
@@ -221,6 +296,8 @@
             .list-tools { flex-direction: column; align-items: stretch; }
             .search-box { width: 100%; }
             #mensagens { left: 15px; right: 15px; max-width: none; }
+            .modal { padding: 15px; }
+            .modal-header { flex-direction: column; }
         }
     </style>
 </head>
@@ -326,6 +403,27 @@
 
 </div>
 
+<!-- MODAL DETALHE DA OBRA -->
+<div class="modal-overlay" id="modal-obra" onclick="if(event.target===this) fecharObra()">
+    <div class="modal">
+        <div class="modal-header">
+            <div>
+                <h2 id="modal-titulo">Obra</h2>
+                <div class="sub" id="modal-sub"></div>
+            </div>
+            <button type="button" class="btn btn-fechar" onclick="fecharObra()">✖ Fechar</button>
+        </div>
+
+        <div class="tabs">
+            <button type="button" class="tab ativo" data-tab="pedidos" onclick="mudarSeparador('pedidos')">📨 Pedidos <span class="badge zero" id="tab-count-pedidos">0</span></button>
+            <button type="button" class="tab" data-tab="atividades" onclick="mudarSeparador('atividades')">🛠️ Atividades <span class="badge zero" id="tab-count-atividades">0</span></button>
+            <button type="button" class="tab" data-tab="ocorrencias" onclick="mudarSeparador('ocorrencias')">⚠️ Ocorrências <span class="badge zero" id="tab-count-ocorrencias">0</span></button>
+        </div>
+
+        <div class="table-container" id="modal-conteudo"></div>
+    </div>
+</div>
+
 <script>
     /* SUPABASE */
     const SUPABASE_URL = 'https://dunondjiqawovisnwavg.supabase.co';
@@ -429,7 +527,7 @@
         }
 
         tabela.innerHTML = lista.map(obra => `
-            <tr class="${obra.concluida ? 'concluida' : ''}">
+            <tr class="clicavel ${obra.concluida ? 'concluida' : ''}" onclick="abrirObra(${obra.id})" title="Clique para ver pedidos, atividades e ocorrências">
                 <td class="numero-obra">${escaparHTML(obra.numero_obra)}</td>
                 <td>${escaparHTML(obra.local_obra)}</td>
                 <td>${escaparHTML(obra.empresa || '-')}</td>
@@ -438,7 +536,7 @@
                 <td class="num">${badge(obra.atividades)}</td>
                 <td class="num">${badge(obra.ocorrencias)}</td>
                 <td>
-                    <div class="acoes">
+                    <div class="acoes" onclick="event.stopPropagation()">
                         <button type="button" class="btn ${obra.concluida ? 'btn-reabrir' : 'btn-concluir'}" onclick="alternarConcluida(${obra.id})">
                             ${obra.concluida ? '↩️ Reabrir' : '✅ Concluir'}
                         </button>
@@ -811,6 +909,183 @@
     function limparFormulario() {
         document.getElementById('form-obra').reset();
         fecharDropdownEmpresa();
+    }
+
+    /* DETALHE DA OBRA (pedidos, atividades, ocorrências) */
+    let dadosObra = { pedidos: [], atividades: [], ocorrencias: [] };
+    let separadorAtivo = 'pedidos';
+    let obraAbertaId = null;
+
+    async function abrirObra(id) {
+        const obra = obras.find(o => Number(o.id) === Number(id));
+        if (!obra) return;
+
+        obraAbertaId = obra.id;
+        separadorAtivo = 'pedidos';
+        dadosObra = { pedidos: [], atividades: [], ocorrencias: [] };
+
+        document.getElementById('modal-titulo').textContent = `🏗️ Obra ${obra.numero_obra}`;
+        document.getElementById('modal-sub').innerHTML = [
+            escaparHTML(obra.local_obra),
+            obra.empresa ? '🏢 ' + escaparHTML(obra.empresa) : '',
+            obra.concelho ? '📍 ' + escaparHTML(obra.concelho) : ''
+        ].filter(Boolean).join(' &nbsp;•&nbsp; ');
+
+        document.getElementById('modal-conteudo').innerHTML =
+            `<div class="loading">⏳ A carregar dados da obra...</div>`;
+        document.getElementById('modal-obra').classList.add('aberto');
+        document.body.style.overflow = 'hidden';
+        atualizarSeparadores();
+
+        const [pedidos, atividades, ocorrencias] = await Promise.all([
+            supabaseClient.from('pedidos').select('*').eq('obra_id', id).order('data_hora_pedido', { ascending: false, nullsFirst: false }),
+            supabaseClient.from('atividades').select('*').eq('obra_id', id).order('data_hora_inicio', { ascending: false, nullsFirst: false }),
+            supabaseClient.from('ocorrencias').select('*').eq('obra_id', id).order('data', { ascending: false, nullsFirst: false })
+        ]);
+
+        // Se o utilizador fechou/abriu outra obra entretanto, ignorar
+        if (obraAbertaId !== obra.id) return;
+
+        const erro = pedidos.error || atividades.error || ocorrencias.error;
+        if (erro) {
+            console.error('Erro ao carregar detalhe da obra:', erro);
+            document.getElementById('modal-conteudo').innerHTML =
+                `<div class="sem-resultados">❌ Erro ao carregar dados.<br><br><small>${escaparHTML(erro.message)}</small></div>`;
+            return;
+        }
+
+        dadosObra = {
+            pedidos: pedidos.data || [],
+            atividades: atividades.data || [],
+            ocorrencias: ocorrencias.data || []
+        };
+
+        atualizarSeparadores();
+        desenharSeparador();
+    }
+
+    function fecharObra() {
+        obraAbertaId = null;
+        document.getElementById('modal-obra').classList.remove('aberto');
+        document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && obraAbertaId !== null) fecharObra();
+    });
+
+    function mudarSeparador(nome) {
+        separadorAtivo = nome;
+        atualizarSeparadores();
+        desenharSeparador();
+    }
+
+    function atualizarSeparadores() {
+        document.querySelectorAll('.tab').forEach(t =>
+            t.classList.toggle('ativo', t.dataset.tab === separadorAtivo));
+
+        ['pedidos', 'atividades', 'ocorrencias'].forEach(nome => {
+            const n = dadosObra[nome].length;
+            const el = document.getElementById('tab-count-' + nome);
+            el.textContent = n;
+            el.classList.toggle('zero', !n);
+        });
+    }
+
+    /* FORMATAÇÃO */
+    function formatarDataHora(valor) {
+        if (!valor) return '-';
+        const d = new Date(valor);
+        if (isNaN(d)) return escaparHTML(valor);
+        return d.toLocaleString('pt-PT', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+    }
+
+    function texto(valor) {
+        return valor ? escaparHTML(valor) : '-';
+    }
+
+    function estadoHTML(estado) {
+        if (!estado) return '-';
+        const classe = estado.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const seguro = classe.replace(/[^a-z]/g, '');
+        return `<span class="estado ${seguro}">${escaparHTML(estado)}</span>`;
+    }
+
+    function linkAnexo(valor) {
+        if (!valor) return '-';
+        if (/^https?:\/\//i.test(valor)) {
+            return `<a class="link-anexo" href="${escaparHTML(valor)}" target="_blank" rel="noopener">📎 Abrir</a>`;
+        }
+        return escaparHTML(valor);
+    }
+
+    function fotosHTML(fotos) {
+        if (!fotos) return '-';
+        let lista = fotos;
+        if (typeof lista === 'string') {
+            try { lista = JSON.parse(lista); } catch { lista = [lista]; }
+        }
+        if (!Array.isArray(lista)) lista = [lista];
+
+        const urls = lista
+            .map(f => (typeof f === 'string' ? f : (f && (f.url || f.publicUrl || f.src)) || ''))
+            .filter(u => /^https?:\/\//i.test(u));
+
+        if (!urls.length) return '-';
+
+        return `<div class="fotos">${urls.map(u =>
+            `<a href="${escaparHTML(u)}" target="_blank" rel="noopener"><img src="${escaparHTML(u)}" alt="Foto" loading="lazy"></a>`
+        ).join('')}</div>`;
+    }
+
+    /* DESENHAR SEPARADOR ATIVO */
+    function desenharSeparador() {
+        const conteudo = document.getElementById('modal-conteudo');
+        const lista = dadosObra[separadorAtivo];
+
+        if (!lista.length) {
+            const nomes = { pedidos: 'pedidos', atividades: 'atividades', ocorrencias: 'ocorrências' };
+            conteudo.innerHTML = `<div class="sem-resultados">📭 Esta obra ainda não tem ${nomes[separadorAtivo]}.</div>`;
+            return;
+        }
+
+        if (separadorAtivo === 'pedidos') {
+            conteudo.innerHTML = `<table><thead><tr>
+                <th>Data do pedido</th><th>Requerente</th><th>Serviço</th><th>Tipo</th>
+                <th>Técnico</th><th>Limite</th><th>Estado</th><th>Observação</th>
+            </tr></thead><tbody>${lista.map(p => `<tr>
+                <td>${formatarDataHora(p.data_hora_pedido)}</td>
+                <td>${texto(p.requerente)}</td>
+                <td>${texto(p.servico)}</td>
+                <td>${texto(p.tipo_trabalho)}</td>
+                <td>${texto(p.tecnico)}</td>
+                <td>${formatarDataHora(p.data_hora_limite)}</td>
+                <td>${estadoHTML(p.estado)}</td>
+                <td class="texto-longo">${texto(p.observacao)}</td>
+            </tr>`).join('')}</tbody></table>`;
+        } else if (separadorAtivo === 'atividades') {
+            conteudo.innerHTML = `<table><thead><tr>
+                <th>Início</th><th>Fim</th><th>Técnico</th><th>Serviço</th><th>Tipo de trabalho</th><th>Anexo</th>
+            </tr></thead><tbody>${lista.map(a => `<tr>
+                <td>${formatarDataHora(a.data_hora_inicio)}</td>
+                <td>${formatarDataHora(a.data_hora_fim)}</td>
+                <td>${texto(a.tecnico)}</td>
+                <td class="texto-longo">${texto(a.servico)}</td>
+                <td>${texto(a.tipo_trabalho)}</td>
+                <td>${linkAnexo(a.anexo)}</td>
+            </tr>`).join('')}</tbody></table>`;
+        } else {
+            conteudo.innerHTML = `<table><thead><tr>
+                <th>Data</th><th>Ocorrência</th><th>Fotos</th>
+            </tr></thead><tbody>${lista.map(o => `<tr>
+                <td>${formatarDataHora(o.data)}</td>
+                <td class="texto-longo">${texto(o.ocorrencia)}</td>
+                <td>${fotosHTML(o.fotos)}</td>
+            </tr>`).join('')}</tbody></table>`;
+        }
     }
 
     /* UTILITÁRIOS */
