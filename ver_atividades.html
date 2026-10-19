@@ -601,6 +601,12 @@
         }
         function formatarDataHora(cell) { const valor = cell.getValue(); return valor ? formatarDataHoraTexto(valor) : '—'; }
 
+        // Texto de uma obra para listas e células: "numero - local"
+        function textoObra(o) {
+            if (!o) return '';
+            return [o.numero_obra, o.local_obra].filter(Boolean).join(' - ');
+        }
+
         async function carregarAtividades() {
             if (!sbClient) { avisarSemCliente(); return; }
             const { data: { session } } = await sbClient.auth.getSession();
@@ -610,7 +616,7 @@
             const { data, error } = await sbClient.from('atividades').select('*').order('id', { ascending: false });
             if (error) { console.error("Erro ao carregar:", error); return; }
 
-            // A tabela OBRAS passa a ser a fonte oficial de:
+            // A tabela OBRAS é a fonte oficial de:
             // numero_obra, local_obra, empresa e concelho.
             const { data: obrasData, error: errObras } = await sbClient
                 .from('obras')
@@ -680,6 +686,13 @@
             }
             data.forEach(a => { a.ocorrencias_info = mapaOcorrencias[a.id] || []; });
 
+            // Lista de obras para o seletor da coluna "Obra"
+            // (mais recentes/abertas primeiro não é necessário: ordenado por nº de obra)
+            const valoresObras = Object.values(mapaObrasGlobal).map(o => ({
+                label: textoObra(o) || ('Obra #' + o.id),
+                value: o.id
+            }));
+
             table = new Tabulator("#tabela-atividades", {
                 data: data,
                 layout: "fitData",
@@ -691,8 +704,21 @@
                     { title: "Técnico", field: "tecnico", editor: "input" },
                     { title: "Início", field: "data_hora_inicio", formatter: formatarDataHora, editor: "input" },
                     { title: "Fim", field: "data_hora_fim", formatter: formatarDataHora, editor: "input" },
-                    { title: "Local/Obra", field: "local_obra", editor: "input" },
-                    { title: "Nº Obra", field: "numero_obra", editor: "input" },
+                    { title: "Obra", field: "obra_id", minWidth: 220,
+                      editor: "list",
+                      editorParams: {
+                          values: valoresObras,
+                          autocomplete: true,
+                          listOnEmpty: true,
+                          clearable: true,
+                          placeholderEmpty: "Sem resultados",
+                          placeholderLoading: "A carregar..."
+                      },
+                      formatter: function (cell) {
+                          const d = cell.getRow().getData();
+                          const texto = textoObra(mapaObrasGlobal[d.obra_id]) || textoObra(d);
+                          return texto ? texto + " <span style='color:#64748b;'>✎</span>" : "<span class='sem-anexo'>— escolher obra ✎</span>";
+                      } },
                     { title: "Serviço", field: "servico", editor: "input" },
                     { title: "Pedido", field: "pedido_id", formatter: function (cell) {
                         const p = cell.getRow().getData().pedido_info;
@@ -739,7 +765,32 @@
             table.on("tableBuilt", atualizarContador);
             table.on("dataFiltered", atualizarContador);
             renderizarCalendario(data);
-            table.on("cellEdited", function (cell) { idsEditados.add(cell.getRow().getData().id); renderizarCalendario(table.getData()); });
+
+            table.on("cellEdited", function (cell) {
+                const row = cell.getRow();
+
+                // Se a obra foi alterada, atualiza os dados da obra na linha
+                // (nº, local, empresa, concelho) para a tabela, calendário e Word.
+                if (cell.getField() === "obra_id") {
+                    const novoId = cell.getValue() ? Number(cell.getValue()) : null;
+                    const obra = novoId ? mapaObrasGlobal[novoId] : null;
+                    const camposObra = {
+                        obra_id: novoId,
+                        numero_obra: obra ? obra.numero_obra : "",
+                        local_obra: obra ? obra.local_obra : "",
+                        empresa: obra ? obra.empresa : "",
+                        concelho: obra ? obra.concelho : "",
+                        obra_info: obra || null
+                    };
+                    row.update(camposObra);
+
+                    const atividadeLocal = dadosAtividadesPorId[row.getData().id];
+                    if (atividadeLocal) Object.assign(atividadeLocal, camposObra);
+                }
+
+                idsEditados.add(row.getData().id);
+                renderizarCalendario(table.getData());
+            });
             table.on("rowDeleted", function () { renderizarCalendario(table.getData()); });
 
             document.getElementById("filtro-pesquisa").addEventListener("keyup", function () {
@@ -860,35 +911,20 @@
                 const item = dadosPorId[id];
                 if (!item) return Promise.resolve({ id, error: null });
                 return (async () => {
-                    // Dados próprios da atividade
+                    // Só dados próprios da atividade. A obra associa-se pelo obra_id;
+                    // os dados da tabela "obras" nunca são alterados a partir daqui.
                     const { error: erroAtividade } = await sbClient
                         .from('atividades')
                         .update({
                             tecnico: item.tecnico,
                             data_hora_inicio: item.data_hora_inicio,
                             data_hora_fim: item.data_hora_fim,
-                            servico: item.servico
+                            servico: item.servico,
+                            obra_id: item.obra_id || null
                         })
                         .eq('id', item.id);
 
-                    if (erroAtividade) return { id, error: erroAtividade };
-
-                    // Dados da obra são guardados exclusivamente em OBRAS.
-                    if (item.obra_id) {
-                        const { error: erroObra } = await sbClient
-                            .from('obras')
-                            .update({
-                                numero_obra: item.numero_obra,
-                                local_obra: item.local_obra,
-                                empresa: item.empresa || null,
-                                concelho: item.concelho || null
-                            })
-                            .eq('id', item.obra_id);
-
-                        if (erroObra) return { id, error: erroObra };
-                    }
-
-                    return { id, error: null };
+                    return { id, error: erroAtividade || null };
                 })();
             }));
 
