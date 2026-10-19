@@ -130,7 +130,7 @@
         <h1 style="margin: 0;">Histórico de Ocorrências <span id="contador-ocorrencias" style="color: #64748b; font-size: 0.8em;"></span></h1>
         <div class="toolbar-actions">
             <a href="registo_ocorrencia.html" style="background: #0ea5e9; color: white; text-decoration: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: bold; display: inline-block;">➕ Adicionar Ocorrência</a>
-            <button onclick="guardarAlteracoes()" style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">💾 Guardar Alterações</button>
+            <button id="btn-guardar" onclick="guardarAlteracoes()" style="background: #22c55e; padding: 10px; border:none; color:white; border-radius:5px; cursor:pointer;">💾 Guardar Alterações</button>
             <a href="index.html" class="btn-voltar">⬅ Voltar</a>
         </div>
     </div>
@@ -173,12 +173,36 @@
         const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let table = null;
-        let dadosAtividadesPorId = {};
+        let mapaObrasGlobal = {};
+        let mapaAtividadesGlobal = {};
+
+        // ===== Deteção de alterações (snapshot) =====
+        // Só os campos que pertencem à tabela "ocorrencias".
+        // A obra associa-se pelo obra_id e a atividade pelo atividade_id;
+        // os dados das tabelas "obras" e "atividades" nunca são alterados a partir daqui.
+        const CAMPOS_GUARDAVEIS = ["data", "ocorrencia", "obra_id", "atividade_id"];
+        let idsAlterados = new Set();
+        let dadosOriginais = {};
+
+        function guardarSnapshot(dados) {
+            dadosOriginais = {};
+            dados.forEach(item => {
+                const copia = {};
+                CAMPOS_GUARDAVEIS.forEach(campo => { copia[campo] = item[campo] ?? null; });
+                dadosOriginais[item.id] = copia;
+            });
+        }
+
+        function linhaFoiAlterada(item) {
+            const original = dadosOriginais[item.id];
+            if (!original) return true;
+            return CAMPOS_GUARDAVEIS.some(campo => (item[campo] ?? null) !== (original[campo] ?? null));
+        }
 
         // ===== Formatação de datas =====
         function formatarDataHoraTexto(valor) {
             if (!valor) return '';
-            const [data, hora] = valor.split('T');
+            const [data, hora] = String(valor).split('T');
             if (!data) return valor;
             const [ano, mes, dia] = data.split('-');
             const horaLimpa = hora ? hora.substring(0, 5) : '';
@@ -189,6 +213,28 @@
             const valor = cell.getValue();
             if (!valor) return '—';
             return formatarDataHoraTexto(valor);
+        }
+
+        // ===== Textos de obra / atividade =====
+        function textoObra(o) {
+            if (!o) return '';
+            return [o.numero_obra, o.local_obra].filter(Boolean).join(' - ');
+        }
+
+        function textoAtividade(a) {
+            if (!a) return '';
+            const obra = mapaObrasGlobal[a.obra_id];
+            const data = a.data_hora_inicio ? formatarDataHoraTexto(a.data_hora_inicio) + ' · ' : '';
+            const servico = a.servico ? ' (' + a.servico.substring(0, 40) + (a.servico.length > 40 ? '...' : '') + ')' : '';
+            return '#' + a.id + ' · ' + data + (a.tecnico || 'Sem técnico') + (obra ? ' - ' + textoObra(obra) : '') + servico;
+        }
+
+        // Atualiza os campos auxiliares de uma ocorrência (para a tabela e para a pesquisa)
+        function recalcularInfo(o) {
+            o.obra_info = mapaObrasGlobal[o.obra_id] || null;
+            o.atividade_info = mapaAtividadesGlobal[o.atividade_id] || null;
+            o.obra_texto = textoObra(o.obra_info);
+            o.atividade_texto = textoAtividade(o.atividade_info);
         }
 
         // ===== Normalizar o campo "fotos" (pode vir como array ou como texto JSON) =====
@@ -209,13 +255,14 @@
         // ===== Modais =====
         function abrirModalAtividade(a) {
             if (!a) return;
+            const obra = mapaObrasGlobal[a.obra_id] || {};
             document.getElementById('modal-atividade-titulo').innerText = '📊 Atividade #' + a.id;
             document.getElementById('modal-atividade-corpo').innerHTML =
                 '<p><strong>Técnico:</strong> ' + (a.tecnico || '—') + '</p>' +
                 '<p><strong>Início:</strong> ' + (formatarDataHoraTexto(a.data_hora_inicio) || '—') + '</p>' +
                 '<p><strong>Fim:</strong> ' + (formatarDataHoraTexto(a.data_hora_fim) || '—') + '</p>' +
-                '<p><strong>Local/Obra:</strong> ' + (a.local_obra || '—') + '</p>' +
-                '<p><strong>Nº Obra:</strong> ' + (a.numero_obra || '—') + '</p>' +
+                '<p><strong>Local/Obra:</strong> ' + (obra.local_obra || '—') + '</p>' +
+                '<p><strong>Nº Obra:</strong> ' + (obra.numero_obra || '—') + '</p>' +
                 '<p><strong>Serviço:</strong> ' + (a.servico || '—') + '</p>' +
                 (a.anexo ? '<p><a class="link-anexo" href="javascript:void(0)" onclick="fecharModalAtividade(); abrirModalAnexo(\'' + a.anexo + '\')">🖼️ Ver anexo</a></p>' : '');
             document.getElementById('modal-atividade').classList.add('aberta');
@@ -293,7 +340,7 @@
             }
         }
 
-        // ===== Carregar ocorrências + atividades associadas =====
+        // ===== Carregar ocorrências, obras e atividades =====
         async function carregarOcorrencias() {
             const { data: { session } } = await sbClient.auth.getSession();
             if (!session) { window.location.href = 'index.html'; return; }
@@ -306,25 +353,38 @@
 
             if (error) { console.error("Erro ao carregar:", error); return; }
 
-            // Carregar as atividades associadas
-            dadosAtividadesPorId = {};
-            data.forEach(o => { dadosAtividadesPorId[o.id] = o; });
+            // Obras (fonte oficial de nº, local, empresa, concelho)
+            const { data: obrasData, error: errObras } = await sbClient
+                .from('obras')
+                .select('id, numero_obra, local_obra, empresa, concelho')
+                .order('numero_obra', { ascending: true });
+            if (errObras) console.error("Erro ao carregar obras:", errObras);
 
-            const atividadesIds = [...new Set(data.filter(o => o.atividade_id).map(o => o.atividade_id))];
-            const mapaAtividades = {};
-            if (atividadesIds.length > 0) {
-                const { data: atividadesData, error: errAtividades } = await sbClient
-                    .from('atividades')
-                    .select('id, tecnico, data_hora_inicio, data_hora_fim, local_obra, numero_obra, servico, anexo')
-                    .in('id', atividadesIds);
+            mapaObrasGlobal = {};
+            (obrasData || []).forEach(o => { mapaObrasGlobal[o.id] = o; });
 
-                if (errAtividades) {
-                    console.error("Erro ao carregar atividades associadas:", errAtividades);
-                } else {
-                    (atividadesData || []).forEach(a => { mapaAtividades[a.id] = a; });
-                }
-            }
-            data.forEach(o => { o.atividade_info = mapaAtividades[o.atividade_id] || null; });
+            // Atividades (a tabela "atividades" não tem local_obra/numero_obra; tem obra_id)
+            const { data: atividadesData, error: errAtividades } = await sbClient
+                .from('atividades')
+                .select('id, tecnico, data_hora_inicio, data_hora_fim, servico, anexo, obra_id')
+                .order('id', { ascending: false });
+            if (errAtividades) console.error("Erro ao carregar atividades:", errAtividades);
+
+            mapaAtividadesGlobal = {};
+            (atividadesData || []).forEach(a => { mapaAtividadesGlobal[a.id] = a; });
+
+            data.forEach(recalcularInfo);
+            guardarSnapshot(data);
+
+            // Listas para os seletores
+            const valoresObras = Object.values(mapaObrasGlobal).map(o => ({
+                label: textoObra(o) || ('Obra #' + o.id),
+                value: o.id
+            }));
+            const valoresAtividades = Object.values(mapaAtividadesGlobal).map(a => ({
+                label: textoAtividade(a),
+                value: a.id
+            }));
 
             table = new Tabulator("#tabela-ocorrencias", {
                 data: data,
@@ -334,16 +394,48 @@
                 columns: [
                     { title: "Data", field: "data", formatter: formatarDataHora, editor: "input", width: 150 },
                     { title: "Ocorrência", field: "ocorrencia", editor: "textarea", formatter: "plaintext", minWidth: 300 },
-                    // ===== Coluna da atividade associada =====
-                    { title: "Atividade", field: "atividade_id", formatter: function (cell) {
-                        const rowData = cell.getRow().getData();
-                        if (!rowData.atividade_id || !rowData.atividade_info) return "<span class='sem-registo'>—</span>";
-                        return "📊 <a class='link-anexo' href='javascript:void(0)'>#" + rowData.atividade_id + "</a>";
-                    }, width: 100, hozAlign: "center", cellClick: function (e, cell) {
-                        const rowData = cell.getRow().getData();
-                        if (rowData.atividade_info) abrirModalAtividade(rowData.atividade_info);
-                    }},
-                    // ===== Coluna de fotografias associadas à ocorrência =====
+                    // ===== Obra (seletor) =====
+                    { title: "Obra", field: "obra_id", minWidth: 240,
+                        editor: "list",
+                        editorParams: {
+                            values: valoresObras,
+                            autocomplete: true,
+                            listOnEmpty: true,
+                            clearable: true,
+                            placeholderEmpty: "Sem resultados"
+                        },
+                        formatter: function (cell) {
+                            const texto = textoObra(mapaObrasGlobal[cell.getValue()]);
+                            return texto ? texto + " <span style='color:#64748b;'>✎</span>" : "<span class='sem-registo'>— escolher obra ✎</span>";
+                        }
+                    },
+                    // ===== Atividade associada (seletor) =====
+                    { title: "Atividade", field: "atividade_id", minWidth: 300,
+                        editor: "list",
+                        editorParams: {
+                            values: valoresAtividades,
+                            autocomplete: true,
+                            listOnEmpty: true,
+                            clearable: true,
+                            placeholderEmpty: "Sem resultados"
+                        },
+                        formatter: function (cell) {
+                            const a = mapaAtividadesGlobal[cell.getValue()];
+                            return a ? "📊 " + textoAtividade(a) + " <span style='color:#64748b;'>✎</span>" : "<span class='sem-registo'>— sem atividade ✎</span>";
+                        }
+                    },
+                    // ===== Ver detalhes da atividade =====
+                    { title: "", field: "atividade_info", headerSort: false, width: 70, hozAlign: "center",
+                        formatter: function (cell) {
+                            const d = cell.getRow().getData();
+                            return d.atividade_info ? "<a class='link-anexo' href='javascript:void(0)'>🔍 Ver</a>" : "<span class='sem-registo'>—</span>";
+                        },
+                        cellClick: function (e, cell) {
+                            const d = cell.getRow().getData();
+                            if (d.atividade_info) abrirModalAtividade(d.atividade_info);
+                        }
+                    },
+                    // ===== Fotografias associadas à ocorrência =====
                     { title: "Fotos", field: "fotos", formatter: function (cell) {
                         const lista = obterListaFotos(cell.getValue());
                         if (lista.length === 0) return "<span class='sem-registo'>—</span>";
@@ -359,6 +451,7 @@
                             if (confirm("Apagar esta ocorrência?")) {
                                 const id = cell.getRow().getData().id;
                                 sbClient.from('ocorrencias').delete().eq('id', id).then(() => {
+                                    idsAlterados.delete(id);
                                     cell.getRow().delete();
                                     atualizarContador();
                                 });
@@ -371,6 +464,35 @@
             table.on("tableBuilt", atualizarContador);
             table.on("dataFiltered", atualizarContador);
 
+            table.on("cellEdited", function (cell) {
+                const row = cell.getRow();
+                const campo = cell.getField();
+                const dados = row.getData();
+
+                if (campo === "atividade_id") {
+                    const novaId = cell.getValue() ? Number(cell.getValue()) : null;
+                    const atividade = novaId ? mapaAtividadesGlobal[novaId] : null;
+                    const alteracoes = { atividade_id: novaId };
+                    // Ao associar uma atividade, a obra passa a ser a da atividade
+                    if (atividade && atividade.obra_id) alteracoes.obra_id = atividade.obra_id;
+                    Object.assign(dados, alteracoes);
+                    recalcularInfo(dados);
+                    row.update(Object.assign({}, alteracoes, {
+                        atividade_info: dados.atividade_info,
+                        atividade_texto: dados.atividade_texto,
+                        obra_info: dados.obra_info,
+                        obra_texto: dados.obra_texto
+                    }));
+                } else if (campo === "obra_id") {
+                    const novaId = cell.getValue() ? Number(cell.getValue()) : null;
+                    dados.obra_id = novaId;
+                    recalcularInfo(dados);
+                    row.update({ obra_id: novaId, obra_info: dados.obra_info, obra_texto: dados.obra_texto });
+                }
+
+                idsAlterados.add(dados.id);
+            });
+
             document.getElementById("filtro-pesquisa").addEventListener("keyup", function () {
                 table.setFilter(function (data) {
                     const termo = document.getElementById("filtro-pesquisa").value.toLowerCase();
@@ -382,30 +504,60 @@
         }
 
         // ===== Guardar edições feitas na tabela =====
+        // Só envia as linhas realmente alteradas, em paralelo.
+        // Só a tabela "ocorrencias" é alterada.
         async function guardarAlteracoes() {
             if (!table) return;
+
+            // Fecha qualquer editor de célula ainda aberto
+            document.activeElement && document.activeElement.blur();
+
             const dados = table.getData();
-            let sucesso = true;
+            const linhasParaGuardar = dados.filter(item => idsAlterados.has(item.id) || linhaFoiAlterada(item));
 
-            for (const item of dados) {
-                const { error } = await sbClient
-                    .from('ocorrencias')
-                    .update({
-                        data: item.data,
-                        ocorrencia: item.ocorrencia
-                    })
-                    .eq('id', item.id);
-
-                if (error) {
-                    console.error("Erro ao atualizar ID " + item.id, error);
-                    sucesso = false;
-                }
+            if (linhasParaGuardar.length === 0) {
+                alert("Não há alterações por guardar.");
+                return;
             }
 
-            if (sucesso) {
-                alert("Todas as alterações foram guardadas com sucesso!");
-            } else {
-                alert("Alguns registos falharam ao guardar. Verifica a consola (F12).");
+            const btn = document.getElementById('btn-guardar');
+            const textoOriginal = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = "⏳ A guardar...";
+
+            try {
+                const resultados = await Promise.all(linhasParaGuardar.map(async item => {
+                    const { error } = await sbClient
+                        .from('ocorrencias')
+                        .update({
+                            data: item.data,
+                            ocorrencia: item.ocorrencia,
+                            obra_id: item.obra_id || null,
+                            atividade_id: item.atividade_id || null
+                        })
+                        .eq('id', item.id);
+                    return { id: item.id, item, error: error || null };
+                }));
+
+                const falhas = resultados.filter(r => r.error);
+                falhas.forEach(r => console.error("Erro ao atualizar ID " + r.id, r.error));
+
+                // Atualiza o snapshot só das linhas guardadas com sucesso
+                resultados.filter(r => !r.error).forEach(r => {
+                    const copia = {};
+                    CAMPOS_GUARDAVEIS.forEach(campo => { copia[campo] = r.item[campo] ?? null; });
+                    dadosOriginais[r.id] = copia;
+                    idsAlterados.delete(r.id);
+                });
+
+                if (falhas.length === 0) {
+                    alert("Alterações guardadas com sucesso! (" + linhasParaGuardar.length + " registo(s))");
+                } else {
+                    alert(falhas.length + " registo(s) falharam ao guardar. Verifica a consola (F12).");
+                }
+            } finally {
+                btn.disabled = false;
+                btn.innerText = textoOriginal;
             }
         }
 
