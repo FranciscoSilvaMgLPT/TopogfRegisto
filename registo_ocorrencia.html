@@ -180,15 +180,12 @@ button:disabled { background: #475569; cursor: not-allowed; }
         <input type="hidden" id="dataOcorrencia" name="data">
       </div>
 
-      <!-- ===== Seleção de Obra (igual ao registo de pedidos) ===== -->
+      <!-- ===== Seleção de Obra ===== -->
       <div class="full">
         <label>Obra</label>
         <select id="selectObra" name="obra_id">
           <option value="">-- Selecionar obra --</option>
         </select>
-        <!-- Campos ocultos para manter compatibilidade com a estrutura atual da BD -->
-        <input type="hidden" name="local_obra" id="hiddenLocalObra">
-        <input type="hidden" name="numero_obra" id="hiddenNumeroObra">
       </div>
 
       <div class="full">
@@ -319,8 +316,7 @@ async function carregarFotosParaStorage(ocorrenciaId) {
 }
 
 // ===== Carregar Atividades =====
-// A tabela "atividades" não tem local_obra/numero_obra; tem obra_id.
-// Os dados da obra vêm da relação com a tabela "obras".
+// A tabela "atividades" tem obra_id; os dados da obra vêm da relação com "obras".
 async function carregarAtividades() {
     selectAtividade.innerHTML = '<option value="">-- Nenhuma atividade associada --</option>';
     try {
@@ -352,8 +348,6 @@ async function carregarAtividades() {
                 const option = document.createElement('option');
                 option.value = atividade.id;
                 option.dataset.obraId = atividade.obra_id || '';
-                option.dataset.localObra = obra && obra.local_obra ? obra.local_obra : '';
-                option.dataset.numeroObra = obra && obra.numero_obra ? obra.numero_obra : '';
                 option.dataset.textoCompleto =
                     `${dataTxt}${tecnico} - ${numeroObra}${localObra}${tipo}` + (servico ? `\n${servico}` : '');
 
@@ -381,35 +375,26 @@ async function carregarObras() {
 
         if (error) throw error;
 
-     (obras || []).forEach(obra => {
-    const option = document.createElement('option');
-    option.value = obra.id;
-    option.dataset.local = obra.local_obra || '';
-    option.dataset.numero = obra.numero_obra || '';
+        (obras || []).forEach(obra => {
+            const option = document.createElement('option');
+            option.value = obra.id;
 
-    const local = obra.local_obra || '';
-    const numero = obra.numero_obra || '';
-    const empresa = obra.empresa || '';
-    const concelho = obra.concelho || '';
+            const local = obra.local_obra || '';
+            const numero = obra.numero_obra || '';
+            const empresa = obra.empresa || '';
+            const concelho = obra.concelho || '';
 
-    // "local numero - empresa concelho"
-    const parteObra = [local, numero].filter(Boolean).join(' ');
-    const parteEmpresa = [empresa, concelho].filter(Boolean).join(' ');
+            // "local numero - empresa concelho"
+            const parteObra = [local, numero].filter(Boolean).join(' ');
+            const parteEmpresa = [empresa, concelho].filter(Boolean).join(' ');
 
-    option.textContent = [parteObra, parteEmpresa].filter(Boolean).join(' - ');
-    selectObra.appendChild(option);
-});
+            option.textContent = [parteObra, parteEmpresa].filter(Boolean).join(' - ');
+            selectObra.appendChild(option);
+        });
     } catch (err) {
         console.error("Erro ao carregar obras:", err);
     }
 }
-
-// Atualizar campos ocultos quando uma obra é selecionada
-selectObra.addEventListener('change', function() {
-    const selectedOption = this.options[this.selectedIndex];
-    document.getElementById('hiddenLocalObra').value = (selectedOption && selectedOption.dataset.local) || '';
-    document.getElementById('hiddenNumeroObra').value = (selectedOption && selectedOption.dataset.numero) || '';
-});
 
 // Atualizar seleção de obra quando uma atividade é associada
 selectAtividade.addEventListener('change', () => {
@@ -419,19 +404,10 @@ selectAtividade.addEventListener('change', () => {
         detalhesAtividade.style.display = 'block';
 
         const obraId = selectedOption.dataset.obraId;
-        if (obraId) {
-            selectObra.value = obraId;
-        } else {
-            selectObra.value = "";
-        }
-        // Dispara o evento change para atualizar os campos ocultos
-        selectObra.dispatchEvent(new Event('change'));
-
+        selectObra.value = obraId || "";
     } else {
         detalhesAtividade.style.display = 'none';
         selectObra.value = "";
-        document.getElementById('hiddenLocalObra').value = '';
-        document.getElementById('hiddenNumeroObra').value = '';
     }
 });
 
@@ -621,11 +597,10 @@ form.addEventListener("submit", async (e) => {
     btnEnviar.disabled = true;
     btnEnviar.innerText = "A gravar...";
 
+    // Apenas colunas que existem na tabela "ocorrencias"
     const dadosParaEnviar = {
         data: document.getElementById("dataOcorrencia").value,
         ocorrencia: form.ocorrencia.value,
-        local_obra: document.getElementById("hiddenLocalObra").value,
-        numero_obra: document.getElementById("hiddenNumeroObra").value,
         obra_id: form.obra_id.value ? parseInt(form.obra_id.value) : null
     };
 
