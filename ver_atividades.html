@@ -369,11 +369,69 @@
         }
         function fecharModalAnexoSeBackdrop(e) { if (e.target.id === 'modal-anexo') fecharModalAnexo(); }
 
+        async function alternarEstadoPedido(pedidoId, atividadeId) {
+            if (!sbClient) { avisarSemCliente(); return; }
+            const pedido = mapaPedidosGlobal[pedidoId];
+            if (!pedido) { alert("Pedido não encontrado."); return; }
+
+            const estadoAtual = pedido.data_conclusao ? 'Concluido' : (pedido.estado || 'Pendente');
+            const novoEstado = estadoAtual === 'Concluido' ? 'Pendente' : 'Concluido';
+            
+            let mensagem = `Mudar estado do Pedido #${pedidoId} de "${estadoAtual}" para "${novoEstado}"?`;
+            if (novoEstado === 'Concluido') {
+                mensagem += "\n\nA data de conclusão será preenchida com a data/hora atual.";
+            } else {
+                mensagem += "\n\nA data de conclusão será removida.";
+            }
+            
+            if (!confirm(mensagem)) return;
+
+            const dataConclusao = novoEstado === 'Concluido' ? new Date().toISOString().slice(0, 19) : null;
+
+            const { error } = await sbClient.from('pedidos').update({
+                estado: novoEstado,
+                data_conclusao: dataConclusao
+            }).eq('id', pedidoId);
+
+            if (error) {
+                alert("Erro ao alterar estado: " + error.message);
+                return;
+            }
+
+            // Atualizar o mapa global de pedidos
+            mapaPedidosGlobal[pedidoId].estado = novoEstado;
+            mapaPedidosGlobal[pedidoId].data_conclusao = dataConclusao;
+
+            // Atualizar os dados das atividades associadas a este pedido na tabela
+            let atividadesAfetadas = 0;
+            if (table) {
+                table.getData().forEach(a => {
+                    if (a.pedido_id === pedidoId) {
+                        a.pedido_info.estado = novoEstado;
+                        a.pedido_info.data_conclusao = dataConclusao;
+                        const row = table.getRow(a.id);
+                        if (row) row.update({ pedido_info: a.pedido_info });
+                        atividadesAfetadas++;
+                    }
+                });
+            }
+
+            renderizarCalendario(table.getData());
+            fecharModalPedido();
+            alert(`✅ Pedido #${pedidoId} marcado como ${novoEstado}! (${atividadesAfetadas} atividade(s) atualizada(s))`);
+        }
+
         function abrirModalPedido(p, atividadeId) {
             if (!p) return;
+            const estadoAtual = p.data_conclusao ? 'Concluido' : (p.estado || 'Pendente');
             document.getElementById('modal-pedido-titulo').innerText = '📋 Pedido #' + p.id;
+            
+            const botaoToggleEstado = estadoAtual === 'Concluido'
+                ? '<a class="link-anexo" href="javascript:void(0)" id="link-toggle-estado" style="color:#f59e0b; font-weight:bold;">⏳ Marcar como Pendente</a>'
+                : '<a class="link-anexo" href="javascript:void(0)" id="link-toggle-estado" style="color:#22c55e; font-weight:bold;">✅ Marcar como Concluído</a>';
+            
             let html =
-                '<p><strong>Estado:</strong> ' + (p.data_conclusao ? '✅ Concluído' : (p.estado || '⏳ Pendente')) + '</p>' +
+                '<p><strong>Estado:</strong> ' + (estadoAtual === 'Concluido' ? '✅ Concluído' : '⏳ Pendente') + '</p>' +
                 '<p><strong>Data:</strong> ' + (formatarDataHoraTexto(p.data_hora_pedido) || '—') + '</p>' +
                 '<p><strong>Requerente:</strong> ' + (p.requerente || '—') + '</p>' +
                 '<p><strong>Empresa:</strong> ' + (p.empresa || '—') + '</p>' +
@@ -383,7 +441,8 @@
                 '<p><strong>Serviço:</strong> ' + (p.servico || '—') + '</p>' +
                 (p.data_conclusao ? '<p><strong>Conclusão:</strong> ' + formatarDataHoraTexto(p.data_conclusao) + '</p>' : '');
             if (atividadeId) {
-                html += '<p style="margin-top:16px; display:flex; gap:16px;">' +
+                html += '<p style="margin-top:16px; display:flex; gap:16px; flex-wrap:wrap;">' +
+                    botaoToggleEstado +
                     '<a class="link-anexo" href="javascript:void(0)" id="link-alterar-pedido">🔗 Alterar</a>' +
                     '<a class="link-anexo" href="javascript:void(0)" id="link-remover-pedido" style="color:#f87171;">❌ Remover associação</a>' +
                     '</p>';
@@ -396,6 +455,9 @@
                 });
                 document.getElementById('link-remover-pedido').addEventListener('click', function () {
                     removerAssociacaoPedido(atividadeId);
+                });
+                document.getElementById('link-toggle-estado').addEventListener('click', function () {
+                    alternarEstadoPedido(p.id, atividadeId);
                 });
             }
             document.getElementById('modal-pedido').classList.add('aberta');
@@ -723,12 +785,22 @@
                     { title: "Pedido", field: "pedido_id", formatter: function (cell) {
                         const p = cell.getRow().getData().pedido_info;
                         if (!cell.getValue() || !p) return "<a class='link-anexo' href='javascript:void(0)'>🔗 Associar</a>";
-                        return (p.data_conclusao ? "✅" : "⏳") + " <a class='link-anexo' href='javascript:void(0)'>#" + cell.getValue() + "</a>";
-                    }, width: 100, hozAlign: "center", cellClick: function (e, cell) {
+                        const estadoIcon = p.data_conclusao ? "✅" : "⏳";
+                        return estadoIcon + " <a class='link-anexo toggle-estado' href='javascript:void(0)' data-pedido-id='" + cell.getValue() + "' title='Clique para alternar estado do pedido'>#" + cell.getValue() + "</a> <a class='link-anexo ver-detalhes' href='javascript:void(0)' style='color:#94a3b8; font-size:10px; margin-left:4px;' title='Ver detalhes do pedido'>ℹ️</a>";
+                    }, width: 130, hozAlign: "center", cellClick: function (e, cell) {
                         const rowData = cell.getRow().getData();
                         const p = rowData.pedido_info;
-                        if (p) abrirModalPedido(p, rowData.id);
-                        else abrirModalAssociarPedido(rowData);
+                        
+                        if (e.target.classList.contains('toggle-estado')) {
+                            const pedidoId = parseInt(e.target.getAttribute('data-pedido-id'), 10);
+                            alternarEstadoPedido(pedidoId, rowData.id);
+                        } else if (e.target.classList.contains('ver-detalhes')) {
+                            if (p) abrirModalPedido(p, rowData.id);
+                            else abrirModalAssociarPedido(rowData);
+                        } else {
+                            if (p) abrirModalPedido(p, rowData.id);
+                            else abrirModalAssociarPedido(rowData);
+                        }
                     }},
                     { title: "Ocorrências", field: "ocorrencias_info", formatter: function (cell) {
                         const ocorrencias = cell.getRow().getData().ocorrencias_info || [];
